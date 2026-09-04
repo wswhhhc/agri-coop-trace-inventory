@@ -21,13 +21,13 @@
 - [x] 每个核心实体都有主键、关系和删除策略
 
 ### 阶段2：迁移与结构SQL
-- [ ] D3：初始化Alembic并配置环境变量
-- [ ] D4：编写初始迁移及完整回滚
-- [ ] D5：生成并核对schema.sql
+- [x] D3：初始化Alembic并配置环境变量
+- [x] D4：编写初始迁移及完整回滚
+- [x] D5：生成并核对schema.sql
 
 ### 检查点：结构
-- [ ] Alembic离线升级SQL可生成
-- [ ] upgrade和downgrade对象数量对称
+- [x] Alembic离线升级SQL可生成
+- [x] upgrade和downgrade对象数量对称
 
 ### 阶段3：合成数据
 - [ ] D6：先写合成数据生成器测试并确认失败
