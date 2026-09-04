@@ -5,7 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from sqlalchemy import pool
-from sqlalchemy.engine import Connection
+from sqlalchemy.engine import URL, Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
@@ -17,9 +17,26 @@ config = context.config
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(PROJECT_ROOT / ".env")
 
-database_url = os.getenv("DATABASE_URL")
-if not database_url:
-    raise RuntimeError("DATABASE_URL 未配置，请参考 .env.example")
+database_url_override = os.getenv("DATABASE_URL")
+postgres_password = os.getenv("POSTGRES_PASSWORD")
+if database_url_override:
+    database_url = database_url_override
+else:
+    required_names = ("POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", "POSTGRES_USER")
+    missing_names = [name for name in required_names if not os.getenv(name)]
+    if postgres_password is None:
+        missing_names.append("POSTGRES_PASSWORD")
+    if missing_names:
+        missing = ", ".join(missing_names)
+        raise RuntimeError(f"数据库环境变量未配置：{missing}，请参考 .env.example")
+    database_url = URL.create(
+        "postgresql+asyncpg",
+        username=os.environ["POSTGRES_USER"],
+        password=postgres_password,
+        host=os.environ["POSTGRES_HOST"],
+        port=int(os.environ["POSTGRES_PORT"]),
+        database=os.environ["POSTGRES_DB"],
+    ).render_as_string(hide_password=False)
 
 # ConfigParser 会把百分号作为插值标记，因此密码中的百分号需要转义。
 config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
@@ -84,6 +101,9 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
 
     """
+
+    if not database_url_override and not postgres_password:
+        raise RuntimeError("POSTGRES_PASSWORD 为空，请先在 .env 中填写数据库密码")
 
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
