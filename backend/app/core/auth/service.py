@@ -6,9 +6,11 @@ from typing import Any
 from uuid import UUID
 
 import jwt
+from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.context import AuthContext
+from app.core.auth.session import RedisSessionStore
 from app.core.config import Settings
 from app.core.exceptions import AppException
 from app.core.security import decode_jwt
@@ -22,15 +24,29 @@ COOPERATIVE_ADMIN_ROLE_CODE = "COOPERATIVE_ADMIN"
 class AuthService:
     """从令牌和最新数据库状态创建认证上下文。"""
 
-    def __init__(self, session: AsyncSession, settings: Settings) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        session_store: RedisSessionStore | None = None,
+    ) -> None:
         self.user_repository = UserRepository(session)
         self.warehouse_repository = WarehouseRepository(session)
         self.settings = settings
+        self.session_store = session_store
 
     async def build_context(self, token: str) -> AuthContext:
         """校验访问令牌并返回当前有效的认证上下文。"""
         claims = self._decode_token(token)
         user_id = self._claim_uuid(claims, "sub")
+        session_id = self._claim_string(claims, "sid")
+        if self.session_store is not None:
+            try:
+                auth_session = await self.session_store.get(session_id)
+            except RedisError as exc:
+                raise _dependency_unavailable() from exc
+            if auth_session is None or auth_session.user_id != user_id:
+                raise _unauthorized("AUTHENTICATION_REQUIRED", "会话已失效")
         user = await self.user_repository.get_by_id_with_access(user_id)
 
         if user is None:
@@ -60,7 +76,7 @@ class AuthService:
             permission_codes=permission_codes,
             cooperative_id=cooperative_id,
             warehouse_ids=warehouse_ids,
-            session_id=self._claim_string(claims, "sid"),
+            session_id=session_id,
             token_id=self._claim_string(claims, "jti"),
         )
 
@@ -113,6 +129,14 @@ def _unauthorized(code: str, message: str) -> AppException:
         message=message,
         status_code=401,
         headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+def _dependency_unavailable() -> AppException:
+    return AppException(
+        code="DEPENDENCY_UNAVAILABLE",
+        message="认证依赖服务暂时不可用",
+        status_code=503,
     )
 
 

@@ -5,23 +5,38 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import Depends, Request
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.context import AuthContext
 from app.core.auth.service import AuthService
+from app.core.auth.session import RedisSessionStore
 from app.core.config import Settings, get_settings
 from app.core.exceptions import AppException
 from app.infrastructure.database import get_db_session
+from app.infrastructure.redis import get_redis_client
+
+
+def get_session_store(
+    settings: Annotated[Settings, Depends(get_settings)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> RedisSessionStore:
+    return RedisSessionStore(
+        redis,
+        key_prefix=settings.redis_key_prefix,
+        ttl_seconds=settings.refresh_token_expire_days * 24 * 60 * 60,
+    )
 
 
 async def get_auth_context(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_db_session)],
     settings: Annotated[Settings, Depends(get_settings)],
+    session_store: Annotated[RedisSessionStore | None, Depends(get_session_store)] = None,
 ) -> AuthContext:
     """读取 Bearer Token 并构建当前请求的认证上下文。"""
     token = _extract_bearer_token(request.headers.get("Authorization"))
-    return await AuthService(session, settings).build_context(token)
+    return await AuthService(session, settings, session_store).build_context(token)
 
 
 def _extract_bearer_token(authorization: str | None) -> str:
@@ -46,4 +61,4 @@ def _missing_authentication() -> AppException:
 CurrentAuthContext = Annotated[AuthContext, Depends(get_auth_context)]
 
 
-__all__ = ["CurrentAuthContext", "get_auth_context"]
+__all__ = ["CurrentAuthContext", "get_auth_context", "get_session_store"]

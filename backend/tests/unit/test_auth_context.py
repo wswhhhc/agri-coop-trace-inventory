@@ -68,6 +68,11 @@ def _request(authorization: str | None) -> Request:
     return Request({"type": "http", "headers": headers})
 
 
+class _RevokedSessionStore:
+    async def get(self, _session_id: str):
+        return None
+
+
 @pytest.mark.asyncio
 async def test_auth_service_builds_context_from_current_database_access(
     auth_session: AsyncSession,
@@ -195,6 +200,33 @@ async def test_auth_service_returns_401_for_expired_token(
 
     assert error.value.status_code == 401
     assert error.value.code == "TOKEN_EXPIRED"
+
+
+@pytest.mark.asyncio
+async def test_auth_service_rejects_access_token_when_redis_session_is_revoked(
+    auth_session: AsyncSession,
+) -> None:
+    role = Role(code="COOPERATIVE_ADMIN", name="合作社管理员")
+    cooperative = Cooperative(code="coop-revoked", name="合作社")
+    user = User(
+        cooperative=cooperative,
+        role=role,
+        username="revoked_session",
+        password_hash="hashed",
+        real_name="会话用户",
+    )
+    auth_session.add(user)
+    await auth_session.commit()
+
+    with pytest.raises(AppException) as error:
+        await AuthService(
+            auth_session,
+            _settings(),
+            _RevokedSessionStore(),
+        ).build_context(_token(user.id))
+
+    assert error.value.status_code == 401
+    assert error.value.code == "AUTHENTICATION_REQUIRED"
 
 
 @pytest.mark.asyncio

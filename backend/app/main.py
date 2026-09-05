@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from app.api.auth import router as auth_router
 from app.core.config import Settings, get_settings
 from app.core.exceptions import (
     register_exception_handlers,
@@ -62,6 +63,7 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
         )
     application.middleware("http")(request_id_middleware)
     register_exception_handlers(application)
+    application.include_router(auth_router, prefix=app_settings.api_v1_prefix)
 
     @application.get(
         "/health",

@@ -6,6 +6,7 @@ import hashlib
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 from redis.asyncio import Redis
@@ -94,23 +95,25 @@ class RedisSessionStore:
             last_rotated_at=current_time,
         )
 
-        await self.redis.hset(
+        await cast(Any, self.redis.hset)(
             self._session_key(session_id),
             mapping=self._to_mapping(session),
         )
-        await self.redis.expire(self._session_key(session_id), self.ttl_seconds)
+        await cast(Any, self.redis.expire)(
+            self._session_key(session_id), self.ttl_seconds
+        )
         return CreatedSession(session=session, refresh_token=refresh_token)
 
     async def get(self, session_id: str) -> AuthSession | None:
         """按会话 ID 读取会话；不存在时返回 None。"""
-        mapping = await self.redis.hgetall(self._session_key(session_id))
+        mapping = await cast(Any, self.redis.hgetall)(self._session_key(session_id))
         if not mapping:
             return None
         return self._from_mapping(session_id, mapping)
 
     async def ttl(self, session_id: str) -> int:
         """返回会话剩余 TTL，供监控和测试使用。"""
-        return await self.redis.ttl(self._session_key(session_id))
+        return await cast(Any, self.redis.ttl)(self._session_key(session_id))
 
     async def rotate(
         self,
@@ -122,14 +125,14 @@ class RedisSessionStore:
         session_id = self.session_id_from_refresh_token(refresh_token)
         new_refresh_token = self._new_refresh_token(session_id)
         current_time = _as_utc(now)
-        result = await self.redis.eval(
+        result = await cast(Any, self.redis.eval)(
             _ROTATE_REFRESH_TOKEN_SCRIPT,
             1,
             self._session_key(session_id),
             _hash_refresh_token(refresh_token),
             _hash_refresh_token(new_refresh_token),
             current_time.isoformat(),
-            self.ttl_seconds,
+            str(self.ttl_seconds),
         )
 
         if not result or int(result[0]) != 1:
@@ -148,7 +151,7 @@ class RedisSessionStore:
 
     async def revoke(self, session_id: str) -> None:
         """立即删除会话，使其关联的刷新令牌全部失效。"""
-        await self.redis.delete(self._session_key(session_id))
+        await cast(Any, self.redis.delete)(self._session_key(session_id))
 
     @staticmethod
     def session_id_from_refresh_token(refresh_token: str) -> str:

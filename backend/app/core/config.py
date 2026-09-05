@@ -141,6 +141,7 @@ class Settings(DatabaseSettings):
     refresh_token_cookie_secure: bool = False
     refresh_token_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     refresh_token_cookie_domain: str | None = None
+    refresh_token_cookie_path: str = "/api/v1/auth"
 
     # Web/API
     cors_allowed_origins: str = "http://localhost:5173"
