@@ -29,6 +29,17 @@ class AuthTokenData(BaseSchema):
     permissions: list[str]
 
 
+class CurrentUserData(BaseSchema):
+    id: UUID
+    username: str
+    display_name: str
+    role: str
+    cooperative_id: UUID | None
+    warehouse_ids: list[UUID] | None
+    permissions: list[str]
+    status: str
+
+
 AuthTokenResponse = ApiResponse[AuthTokenData]
 
 
@@ -36,5 +47,6 @@ __all__ = [
     "AuthTokenData",
     "AuthTokenResponse",
     "AuthUser",
+    "CurrentUserData",
     "LoginRequest",
 ]

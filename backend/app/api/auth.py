@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth.dependencies import get_session_store
+from app.core.auth.dependencies import CurrentAuthContext, get_session_store
 from app.core.auth.flows import AuthenticationService, AuthTokenResult
 from app.core.auth.session import RedisSessionStore
 from app.core.config import Settings, get_settings
@@ -17,8 +17,10 @@ from app.schemas.auth import (
     AuthTokenData,
     AuthTokenResponse,
     AuthUser,
+    CurrentUserData,
     LoginRequest,
 )
+from app.schemas.common import ApiResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -75,6 +77,26 @@ async def logout(
     )
     response.status_code = 204
     return response
+
+
+@router.get("/me", response_model=ApiResponse[CurrentUserData])
+async def me(context: CurrentAuthContext) -> ApiResponse[CurrentUserData]:
+    return ApiResponse(
+        data=CurrentUserData(
+            id=context.user_id,
+            username=context.username,
+            display_name=context.real_name,
+            role=context.role_code,
+            cooperative_id=context.cooperative_id,
+            warehouse_ids=(
+                sorted(context.warehouse_ids)
+                if context.warehouse_ids is not None
+                else None
+            ),
+            permissions=sorted(context.permission_codes),
+            status="ACTIVE",
+        )
+    )
 
 
 def _token_data(result: AuthTokenResult) -> AuthTokenData:

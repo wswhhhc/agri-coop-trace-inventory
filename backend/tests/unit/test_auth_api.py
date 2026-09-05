@@ -7,7 +7,7 @@ import pytest
 import pytest_asyncio
 from app.core.config import Settings, get_settings
 from app.core.security import hash_password
-from app.infrastructure.database import get_transactional_session
+from app.infrastructure.database import get_db_session, get_transactional_session
 from app.infrastructure.redis import create_redis_client, get_redis_client
 from app.main import create_app
 from app.models import Base, Cooperative, Role, User
@@ -70,12 +70,17 @@ async def auth_api():
         async with session_factory() as session, session.begin():
             yield session
 
+    async def override_db_session():
+        async with session_factory() as session:
+            yield session
+
     application = create_app(settings)
     application.dependency_overrides[get_settings] = lambda: settings
     application.dependency_overrides[get_redis_client] = lambda: redis
     application.dependency_overrides[get_transactional_session] = (
         override_transactional_session
     )
+    application.dependency_overrides[get_db_session] = override_db_session
     transport = httpx.ASGITransport(app=application)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         try:
@@ -125,6 +130,25 @@ async def test_refresh_rotates_cookie_and_old_cookie_is_rejected(auth_api):
     old_refresh = await auth_api.post("/api/v1/auth/refresh")
     assert old_refresh.status_code == 401
     assert old_refresh.json()["error"]["code"] == "INVALID_REFRESH_TOKEN"
+
+
+@pytest.mark.asyncio
+async def test_me_returns_current_user_permissions_and_data_scope(auth_api):
+    login = await auth_api.post(
+        "/api/v1/auth/login",
+        json={"username": "coop_admin", "password": "correct-password"},
+    )
+    access_token = login.json()["data"]["accessToken"]
+
+    response = await auth_api.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["username"] == "coop_admin"
+    assert response.json()["data"]["permissions"] == []
+    assert response.json()["data"]["warehouseIds"] == []
 
 
 @pytest.mark.asyncio
