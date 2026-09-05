@@ -152,8 +152,8 @@ def test_unexpected_exception_does_not_leak_internal_message() -> None:
 def test_business_exception_categories_have_stable_http_contract() -> None:
     cases = [
         (BatchNotFoundError("batch-1"), "BATCH_NOT_FOUND", 404),
-        (InsufficientInventoryError(), "INSUFFICIENT_INVENTORY", 409),
-        (StatusNotAllowedError(), "STATUS_NOT_ALLOWED", 409),
+        (InsufficientInventoryError(), "INSUFFICIENT_STOCK", 409),
+        (StatusNotAllowedError(), "INVALID_BATCH_STATUS", 409),
         (DataScopeAccessDeniedError(), "SCOPE_ACCESS_DENIED", 403),
         (UniqueConflictError(), "UNIQUE_CONFLICT", 409),
         (ForeignKeyConflictError(), "FOREIGN_KEY_CONFLICT", 409),
@@ -217,6 +217,23 @@ def test_foreign_key_integrity_error_returns_explicit_conflict_code() -> None:
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "FOREIGN_KEY_CONFLICT"
     assert response.json()["error"]["requestId"] == response.headers["X-Request-ID"]
+
+
+def test_other_integrity_error_still_returns_conflict_status() -> None:
+    app = main.create_app(_settings())
+
+    @app.get("/database-check-error")
+    async def database_check_error() -> None:
+        raise _integrity_error(
+            sqlstate="23514", constraint_name="ck_products_safety_stock"
+        )
+
+    response = TestClient(app, raise_server_exceptions=False).get(
+        "/database-check-error"
+    )
+
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "DATABASE_CONSTRAINT_VIOLATION"
 
 
 def test_unknown_database_error_is_logged_and_returns_internal_error(caplog) -> None:

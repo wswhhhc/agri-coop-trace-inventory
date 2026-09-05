@@ -102,7 +102,7 @@ class InsufficientInventoryError(AppException):
         if requested is not None:
             details["requested"] = requested
         super().__init__(
-            code="INSUFFICIENT_INVENTORY",
+            code="INSUFFICIENT_STOCK",
             message="库存不足",
             status_code=409,
             details=details,
@@ -124,7 +124,7 @@ class StatusNotAllowedError(AppException):
         if allowed_statuses is not None:
             details["allowedStatuses"] = allowed_statuses
         super().__init__(
-            code="STATUS_NOT_ALLOWED",
+            code="INVALID_BATCH_STATUS",
             message="当前状态不允许执行该操作",
             status_code=409,
             details=details,
