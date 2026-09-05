@@ -4,17 +4,20 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
-    Enum as SqlEnum,
-    Uuid,
+    CheckConstraint,
     ForeignKey,
     Index,
     String,
     UniqueConstraint,
+    Uuid,
+)
+from sqlalchemy import (
+    Enum as SqlEnum,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
-from app.models.enums import WarehouseStatus
+from app.models.enums import WarehouseStatus, enum_sql_values
 
 if TYPE_CHECKING:
     from app.models.cooperative import Cooperative
@@ -24,6 +27,10 @@ if TYPE_CHECKING:
 class Warehouse(Base):
     __tablename__ = "warehouses"
     __table_args__ = (
+        CheckConstraint(
+            f"status IN ({enum_sql_values(WarehouseStatus)})",
+            name="ck_warehouses_status",
+        ),
         UniqueConstraint(
             "cooperative_id", "code", name="uq_warehouses_cooperative_code"
         ),
@@ -43,7 +50,7 @@ class Warehouse(Base):
         SqlEnum(
             WarehouseStatus,
             native_enum=False,
-            create_constraint=True,
+            create_constraint=False,
             name="ck_warehouses_status",
             length=16,
         ),

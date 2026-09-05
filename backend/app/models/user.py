@@ -6,7 +6,6 @@ from uuid import UUID
 
 from sqlalchemy import (
     CheckConstraint,
-    Enum as SqlEnum,
     DateTime,
     ForeignKey,
     Index,
@@ -14,12 +13,16 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
 )
+from sqlalchemy import (
+    Enum as SqlEnum,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
-from app.models.enums import UserStatus
+from app.models.enums import UserStatus, enum_sql_values
 
 if TYPE_CHECKING:
+    from app.models.batch import Batch
     from app.models.cooperative import Cooperative
     from app.models.role import Role
     from app.models.user_warehouse import UserWarehouse
@@ -31,6 +34,9 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint("username = lower(username)", name="ck_users_username_lower"),
+        CheckConstraint(
+            f"status IN ({enum_sql_values(UserStatus)})", name="ck_users_status"
+        ),
         UniqueConstraint("username", name="uq_users_username"),
         Index("ix_users_cooperative_status", "cooperative_id", "status"),
     )
@@ -52,7 +58,7 @@ class User(Base):
         SqlEnum(
             UserStatus,
             native_enum=False,
-            create_constraint=True,
+            create_constraint=False,
             name="ck_users_status",
             length=16,
         ),
@@ -71,10 +77,15 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    created_batches: Mapped[list[Batch]] = relationship(
+        "Batch", back_populates="creator", foreign_keys="Batch.created_by"
+    )
 
     def validate_cooperative_scope(self) -> None:
         """校验用户是否满足合作社数据范围规则。"""
-        has_cooperative = self.cooperative_id is not None or self.cooperative is not None
+        has_cooperative = (
+            self.cooperative_id is not None or self.cooperative is not None
+        )
         role_code = self.role.code if self.role is not None else None
         if not has_cooperative and role_code != SYSTEM_ADMIN_ROLE_CODE:
             raise ValueError("非系统管理员用户必须关联合作社")

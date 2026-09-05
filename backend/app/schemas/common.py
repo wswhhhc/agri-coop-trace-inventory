@@ -3,9 +3,10 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from app.models.enums import SortDirection
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
+
+from app.models.enums import SortDirection
 
 
 class BaseSchema(BaseModel):

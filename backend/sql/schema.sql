@@ -170,7 +170,7 @@ CREATE TABLE batches (
     FOREIGN KEY(created_by) REFERENCES users (id) ON DELETE RESTRICT
 );
 
-CREATE INDEX ix_batches_cooperative_product_production ON batches (cooperative_id, product_id, production_date DESC);
+CREATE INDEX ix_batches_cooperative_product_production ON batches (cooperative_id, product_id, production_date);
 
 CREATE INDEX ix_batches_cooperative_expiry ON batches (cooperative_id, expiry_date);
 

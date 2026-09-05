@@ -1,6 +1,11 @@
 from enum import StrEnum
 
 
+def enum_sql_values(enum_type: type[StrEnum]) -> str:
+    """返回供 CHECK 约束使用的静态枚举值列表。"""
+    return ", ".join(f"'{item.value}'" for item in enum_type)
+
+
 class UserStatus(StrEnum):
     ACTIVE = "ACTIVE"
     LOCKED = "LOCKED"
@@ -36,4 +41,5 @@ __all__ = [
     "SortDirection",
     "UserStatus",
     "WarehouseStatus",
+    "enum_sql_values",
 ]

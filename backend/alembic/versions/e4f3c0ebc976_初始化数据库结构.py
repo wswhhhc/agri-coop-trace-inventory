@@ -281,7 +281,7 @@ def upgrade() -> None:
     op.create_index(
         "ix_batches_cooperative_product_production",
         "batches",
-        ["cooperative_id", "product_id", sa.text("production_date DESC")],
+        ["cooperative_id", "product_id", "production_date"],
     )
     op.create_index(
         "ix_batches_cooperative_expiry", "batches", ["cooperative_id", "expiry_date"]

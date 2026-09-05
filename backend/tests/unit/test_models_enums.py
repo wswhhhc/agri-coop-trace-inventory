@@ -1,5 +1,3 @@
-from sqlalchemy import Enum as SqlEnum, inspect
-
 from app.models import Cooperative, User, Warehouse
 from app.models.enums import (
     BatchStatus,
@@ -9,6 +7,8 @@ from app.models.enums import (
     WarehouseStatus,
 )
 from app.schemas.common import SortOrder
+from sqlalchemy import Enum as SqlEnum
+from sqlalchemy import inspect
 
 
 def test_domain_enums_have_the_documented_values() -> None:

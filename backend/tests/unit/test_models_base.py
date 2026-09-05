@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from app.models import AuditLog, Base as ExportedBase, Cooperative, UserWarehouse
+from app.models import AuditLog, Cooperative, UserWarehouse
+from app.models import Base as ExportedBase
 from app.models.base import Base
 from sqlalchemy import inspect
 from sqlalchemy.orm import DeclarativeBase
