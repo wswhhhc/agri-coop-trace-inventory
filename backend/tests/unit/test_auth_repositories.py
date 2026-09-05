@@ -9,8 +9,17 @@ from app.repositories.auth import (
     PermissionRepository,
     RoleRepository,
     UserRepository,
+    WarehouseRepository,
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+
+def test_each_repository_lives_in_its_own_module() -> None:
+    assert CooperativeRepository.__module__ == "app.repositories.cooperative"
+    assert UserRepository.__module__ == "app.repositories.user"
+    assert RoleRepository.__module__ == "app.repositories.role"
+    assert PermissionRepository.__module__ == "app.repositories.permission"
+    assert WarehouseRepository.__module__ == "app.repositories.warehouse"
 
 
 @pytest_asyncio.fixture
