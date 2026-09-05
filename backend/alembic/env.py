@@ -12,8 +12,11 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 # access to the values within the .ini file in use.
 config = context.config
 
-database_settings = DatabaseSettings()
-database_url = database_settings.sqlalchemy_database_url
+configured_database_url = config.get_main_option("sqlalchemy.url")
+if configured_database_url:
+    database_url = configured_database_url
+else:
+    database_url = DatabaseSettings().sqlalchemy_database_url
 
 # ConfigParser 会把百分号作为插值标记，因此密码中的百分号需要转义。
 config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
@@ -90,6 +93,11 @@ async def run_async_migrations() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
+
+    injected_connection = context.config.attributes.get("connection")
+    if injected_connection is not None:
+        do_run_migrations(injected_connection)
+        return
 
     asyncio.run(run_async_migrations())
 

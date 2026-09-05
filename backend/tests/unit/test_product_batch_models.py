@@ -2,7 +2,6 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
-import pytest_asyncio
 from app.models import (
     Base,
     Batch,
@@ -14,20 +13,7 @@ from app.models import (
     User,
 )
 from sqlalchemy import inspect, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
-
-@pytest_asyncio.fixture
-async def catalog_session() -> AsyncSession:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-    async with session_factory() as session:
-        yield session
-
-    await engine.dispose()
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def test_product_and_batch_models_are_registered_in_separate_modules() -> None:
@@ -86,7 +72,7 @@ def test_product_and_batch_have_the_expected_columns_and_constraints() -> None:
 
 @pytest.mark.asyncio
 async def test_product_and_batch_can_be_created_and_queried_by_orm(
-    catalog_session: AsyncSession,
+    postgres_session: AsyncSession,
 ) -> None:
     cooperative = Cooperative(code="coop-1", name="示例合作社")
     role = Role(code="COOPERATIVE_ADMIN", name="合作社管理员")
@@ -123,10 +109,10 @@ async def test_product_and_batch_can_be_created_and_queried_by_orm(
         status=BatchStatus.CREATED,
     )
 
-    catalog_session.add(batch)
-    await catalog_session.commit()
+    postgres_session.add(batch)
+    await postgres_session.commit()
 
-    loaded = await catalog_session.scalar(
+    loaded = await postgres_session.scalar(
         select(Batch).where(Batch.trace_code == "trace-20260905-01")
     )
 

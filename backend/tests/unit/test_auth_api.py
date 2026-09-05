@@ -12,9 +12,8 @@ from app.core.security import hash_password
 from app.infrastructure.database import get_db_session, get_transactional_session
 from app.infrastructure.redis import create_redis_client, get_redis_client
 from app.main import create_app
-from app.models import Base, Cooperative, Role, User
+from app.models import Cooperative, Role, User
 from redis.exceptions import RedisError
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 
 def _settings(prefix: str) -> Settings:
@@ -35,7 +34,7 @@ def _settings(prefix: str) -> Settings:
 
 
 @pytest_asyncio.fixture
-async def auth_api():
+async def auth_api(postgres_session_factory):
     settings = _settings(f"test-auth-api-{uuid4().hex}:")
     redis = create_redis_client(settings)
     try:
@@ -44,20 +43,8 @@ async def auth_api():
         await redis.aclose()
         pytest.skip("Redis 未运行，跳过认证 API 集成测试")
 
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    uuid_defaults = []
-    for table in Base.metadata.tables.values():
-        id_column = table.c.get("id")
-        if id_column is not None and id_column.server_default is not None:
-            uuid_defaults.append((id_column, id_column.server_default))
-            id_column.server_default = None
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    for column, server_default in uuid_defaults:
-        column.server_default = server_default
-
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-    async with session_factory() as session:
+    session_factory = postgres_session_factory
+    async with postgres_session_factory() as session:
         role = Role(code="COOPERATIVE_ADMIN", name="合作社管理员")
         cooperative = Cooperative(code="coop-api", name="API 合作社")
         user = User(
@@ -97,7 +84,6 @@ async def auth_api():
             if keys:
                 await redis.delete(*keys)
             await redis.aclose()
-            await engine.dispose()
 
 
 @pytest.mark.asyncio

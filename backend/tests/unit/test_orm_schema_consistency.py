@@ -1,10 +1,12 @@
 import re
 from pathlib import Path
 
+import pytest
 from alembic import command
 from alembic.config import Config
 from app.models import Base
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ORM_TABLE_COLUMNS = {
@@ -139,26 +141,32 @@ def test_target_tables_have_foreign_keys_and_expected_indexes() -> None:
     }
 
 
-def test_alembic_check_has_no_differences_for_the_shared_metadata(
-    tmp_path, monkeypatch
+@pytest.mark.asyncio
+async def test_alembic_check_has_no_differences_for_the_shared_metadata(
+    postgres_engine: AsyncEngine,
+    postgres_database_url: str,
 ) -> None:
-    database_path = tmp_path / "alembic-check.sqlite"
-    engine = create_engine(f"sqlite:///{database_path}")
-    Base.metadata.create_all(engine)
-    with engine.begin() as connection:
-        connection.execute(
+    config = Config(str(PROJECT_ROOT / "alembic.ini"))
+    config.set_main_option("script_location", str(PROJECT_ROOT / "alembic"))
+    config.set_main_option("sqlalchemy.url", postgres_database_url)
+
+    async with postgres_engine.begin() as connection:
+        await connection.execute(
             text(
                 "CREATE TABLE alembic_version "
                 "(version_num VARCHAR(32) NOT NULL PRIMARY KEY)"
             )
         )
-        connection.execute(
+        await connection.execute(
             text("INSERT INTO alembic_version (version_num) VALUES ('e5f6a7b8c9d0')")
         )
-    engine.dispose()
+        await connection.run_sync(
+            lambda sync_connection: command.check(
+                _config_with_connection(config, sync_connection)
+            )
+        )
 
-    monkeypatch.setenv("DATABASE_URL", f"sqlite+aiosqlite:///{database_path}")
-    config = Config(str(PROJECT_ROOT / "alembic.ini"))
-    config.set_main_option("script_location", str(PROJECT_ROOT / "alembic"))
 
-    command.check(config)
+def _config_with_connection(config: Config, connection: object) -> Config:
+    config.attributes["connection"] = connection
+    return config
