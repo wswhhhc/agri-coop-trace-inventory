@@ -5,12 +5,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
+from app.core.exceptions import (
+    register_exception_handlers,
+    request_id_middleware,
+)
 from app.core.logging_config import configure_logging
 from app.infrastructure.database import (
     dispose_database_engine,
     initialize_database,
 )
+from app.schemas.common import ApiResponse
 
 settings = get_settings()
 configure_logging(settings)
@@ -25,31 +30,47 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     finally:
         await dispose_database_engine()
 
-app = FastAPI(
-    title=settings.app_name,
-    version="0.1.0",
-    debug=settings.debug,
-    lifespan=lifespan,
-    docs_url="/docs" if settings.docs_enabled else None,
-    redoc_url="/redoc" if settings.docs_enabled else None,
-    openapi_url=f"{settings.api_v1_prefix}/openapi.json"
-    if settings.docs_enabled
-    else None,
-)
+def create_app(app_settings: Settings | None = None) -> FastAPI:
+    """根据配置创建应用，便于生产启动和隔离测试复用同一套注册逻辑。"""
+    app_settings = app_settings or settings
+    application = FastAPI(
+        title=app_settings.app_name,
+        version="0.1.0",
+        debug=app_settings.debug,
+        lifespan=lifespan,
+        docs_url="/docs" if app_settings.docs_enabled else None,
+        redoc_url="/redoc" if app_settings.docs_enabled else None,
+        openapi_url=f"{app_settings.api_v1_prefix}/openapi.json"
+        if app_settings.docs_enabled
+        else None,
+    )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=settings.cors_allow_credentials,
-    allow_methods=settings.cors_methods,
-    allow_headers=settings.cors_headers,
-    expose_headers=settings.cors_exposed_headers,
-)
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=app_settings.cors_origins,
+        allow_credentials=app_settings.cors_allow_credentials,
+        allow_methods=app_settings.cors_methods,
+        allow_headers=app_settings.cors_headers,
+        expose_headers=app_settings.cors_exposed_headers,
+    )
+    if app_settings.trusted_host_list:
+        application.add_middleware(
+            TrustedHostMiddleware, allowed_hosts=app_settings.trusted_host_list
+        )
+    application.middleware("http")(request_id_middleware)
+    register_exception_handlers(application)
 
-if settings.trusted_host_list:
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_host_list)
+    @application.get(
+        "/health",
+        response_model=ApiResponse[dict[str, str]],
+        tags=["system"],
+    )
+    async def health_check() -> ApiResponse[dict[str, str]]:
+        return ApiResponse(
+            data={"status": "ok", "environment": app_settings.app_env}
+        )
+
+    return application
 
 
-@app.get("/health", tags=["system"])
-async def health_check() -> dict[str, str]:
-    return {"status": "ok", "environment": settings.app_env}
+app = create_app()
