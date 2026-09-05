@@ -1,4 +1,5 @@
 from app.models.base import Base
+from app.models.audit_log import AuditLog
 from app.models.cooperative import Cooperative
 from app.models.permission import Permission
 from app.models.role import Role
@@ -10,6 +11,7 @@ from app.models.warehouse import Warehouse
 __all__ = [
     "SYSTEM_ADMIN_ROLE_CODE",
     "Base",
+    "AuditLog",
     "Cooperative",
     "Permission",
     "Role",

@@ -69,10 +69,24 @@ class _FakeSessionStore:
         return self.created
 
 
+class _FakeAuditLogService:
+    def __init__(self) -> None:
+        self.events = []
+
+    async def record(self, event) -> None:
+        self.events.append(event)
+
+
 @pytest.mark.asyncio
 async def test_login_uses_same_error_for_unknown_username_and_wrong_password() -> None:
     user = _user()
-    service = AuthenticationService(None, _settings(), _FakeSessionStore())
+    audit_service = _FakeAuditLogService()
+    service = AuthenticationService(
+        None,
+        _settings(),
+        _FakeSessionStore(),
+        audit_log_service=audit_service,
+    )
     service.user_repository = _FakeUserRepository(None)
 
     with pytest.raises(AppException) as unknown:
@@ -91,6 +105,32 @@ async def test_login_uses_same_error_for_unknown_username_and_wrong_password() -
         wrong_password.value.code,
         wrong_password.value.message,
     )
+    assert [event.detail["reason"] for event in audit_service.events] == [
+        "invalid_credentials",
+        "invalid_credentials",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_successful_login_records_audit_event_without_credentials() -> None:
+    user = _user()
+    audit_service = _FakeAuditLogService()
+    service = AuthenticationService(
+        None,
+        _settings(),
+        _FakeSessionStore(),
+        audit_log_service=audit_service,
+    )
+    service.user_repository = _FakeUserRepository(user)
+
+    await service.login("coop_admin", "correct-password")
+
+    assert len(audit_service.events) == 1
+    event = audit_service.events[0]
+    assert event.action == "LOGIN"
+    assert event.result == "SUCCESS"
+    assert event.user_id == user.id
+    assert event.detail == {}
 
 
 @pytest.mark.asyncio

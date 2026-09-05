@@ -98,3 +98,19 @@ async def test_session_store_revoke_makes_refresh_token_unusable(
     assert await session_store.get(session.session_id) is None
     with pytest.raises(InvalidRefreshToken):
         await session_store.rotate(refresh_token)
+
+
+@pytest.mark.asyncio
+async def test_revoke_by_refresh_token_requires_current_token(
+    session_store: RedisSessionStore,
+) -> None:
+    created = await session_store.create(uuid4())
+    rotated = await session_store.rotate(created.refresh_token)
+
+    assert await session_store.revoke_by_refresh_token(created.refresh_token) is None
+    assert await session_store.get(created.session.session_id) is not None
+
+    revoked_user_id = await session_store.revoke_by_refresh_token(rotated.refresh_token)
+
+    assert revoked_user_id == created.session.user_id
+    assert await session_store.get(created.session.session_id) is None

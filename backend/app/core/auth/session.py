@@ -56,6 +56,17 @@ return {
 }
 """
 
+_REVOKE_REFRESH_TOKEN_SCRIPT = """
+local status = redis.call('HGET', KEYS[1], 'status')
+local current_hash = redis.call('HGET', KEYS[1], 'refresh_token_hash')
+if status ~= 'ACTIVE' or current_hash ~= ARGV[1] then
+    return {0}
+end
+local user_id = redis.call('HGET', KEYS[1], 'user_id')
+redis.call('DEL', KEYS[1])
+return {1, user_id}
+"""
+
 
 class RedisSessionStore:
     """封装认证会话的创建、查询、轮换和撤销。"""
@@ -152,6 +163,19 @@ class RedisSessionStore:
     async def revoke(self, session_id: str) -> None:
         """立即删除会话，使其关联的刷新令牌全部失效。"""
         await cast(Any, self.redis.delete)(self._session_key(session_id))
+
+    async def revoke_by_refresh_token(self, refresh_token: str) -> UUID | None:
+        """仅当令牌仍是当前令牌时原子撤销会话。"""
+        session_id = self.session_id_from_refresh_token(refresh_token)
+        result = await cast(Any, self.redis.eval)(
+            _REVOKE_REFRESH_TOKEN_SCRIPT,
+            1,
+            self._session_key(session_id),
+            _hash_refresh_token(refresh_token),
+        )
+        if not result or int(result[0]) != 1:
+            return None
+        return UUID(str(result[1]))
 
     @staticmethod
     def session_id_from_refresh_token(refresh_token: str) -> str:

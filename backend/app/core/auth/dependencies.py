@@ -8,12 +8,14 @@ from fastapi import Depends, Request
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.audit.service import AuditLogService
 from app.core.auth.context import AuthContext
 from app.core.auth.rate_limit import LoginRateLimiter
 from app.core.auth.service import AuthService
 from app.core.auth.session import RedisSessionStore
 from app.core.config import Settings, get_settings
 from app.core.exceptions import AppException
+from app.infrastructure import database as database_infrastructure
 from app.infrastructure.database import get_db_session
 from app.infrastructure.redis import get_redis_client
 
@@ -38,6 +40,13 @@ def get_login_rate_limiter(
         key_prefix=settings.redis_key_prefix,
         max_attempts=settings.login_rate_limit_per_minute,
     )
+
+
+def get_audit_log_service() -> AuditLogService:
+    session_factory = database_infrastructure.SessionLocal
+    if session_factory is None:
+        raise RuntimeError("数据库尚未初始化")
+    return AuditLogService(session_factory)
 
 
 async def get_auth_context(
@@ -75,6 +84,7 @@ CurrentAuthContext = Annotated[AuthContext, Depends(get_auth_context)]
 
 __all__ = [
     "CurrentAuthContext",
+    "get_audit_log_service",
     "get_auth_context",
     "get_login_rate_limiter",
     "get_session_store",

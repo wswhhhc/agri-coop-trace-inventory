@@ -7,8 +7,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.audit.context import AuditContext
+from app.core.audit.service import AuditLogService
 from app.core.auth.dependencies import (
     CurrentAuthContext,
+    get_audit_log_service,
     get_login_rate_limiter,
     get_session_store,
 )
@@ -37,12 +40,16 @@ def get_authentication_service(
     login_rate_limiter: Annotated[
         LoginRateLimiter, Depends(get_login_rate_limiter)
     ],
+    audit_log_service: Annotated[
+        AuditLogService, Depends(get_audit_log_service)
+    ],
 ) -> AuthenticationService:
     return AuthenticationService(
         session,
         settings,
         session_store,
         login_rate_limiter,
+        audit_log_service,
     )
 
 
@@ -54,7 +61,12 @@ async def login(
     service: Annotated[AuthenticationService, Depends(get_authentication_service)],
 ) -> AuthTokenResponse:
     client_ip = request.client.host if request.client is not None else "unknown"
-    result = await service.login(payload.username, payload.password, client_ip)
+    result = await service.login(
+        payload.username,
+        payload.password,
+        client_ip,
+        AuditContext.from_request(request),
+    )
     _set_refresh_cookie(response, service.settings, result.refresh_token)
     return AuthTokenResponse(data=_token_data(result))
 
@@ -72,7 +84,10 @@ async def refresh(
             message="刷新令牌无效或已失效",
             status_code=401,
         )
-    result = await service.refresh(refresh_token)
+    result = await service.refresh(
+        refresh_token,
+        AuditContext.from_request(request),
+    )
     _set_refresh_cookie(response, service.settings, result.refresh_token)
     return AuthTokenResponse(data=_token_data(result))
 
@@ -84,7 +99,7 @@ async def logout(
     service: Annotated[AuthenticationService, Depends(get_authentication_service)],
 ) -> Response:
     refresh_token = request.cookies.get(service.settings.refresh_token_cookie_name)
-    await service.logout(refresh_token)
+    await service.logout(refresh_token, AuditContext.from_request(request))
     response.delete_cookie(
         key=service.settings.refresh_token_cookie_name,
         path=service.settings.refresh_token_cookie_path,

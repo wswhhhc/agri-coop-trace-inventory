@@ -5,6 +5,8 @@ from uuid import uuid4
 import httpx
 import pytest
 import pytest_asyncio
+from app.core.audit.service import AuditLogService
+from app.core.auth.dependencies import get_audit_log_service
 from app.core.config import Settings, get_settings
 from app.core.security import hash_password
 from app.infrastructure.database import get_db_session, get_transactional_session
@@ -81,6 +83,9 @@ async def auth_api():
         override_transactional_session
     )
     application.dependency_overrides[get_db_session] = override_db_session
+    application.dependency_overrides[get_audit_log_service] = (
+        lambda: AuditLogService(session_factory)
+    )
     transport = httpx.ASGITransport(app=application)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         try:
