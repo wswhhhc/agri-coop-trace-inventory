@@ -4,9 +4,18 @@ from typing import Any
 
 from app import main
 from app.core.config import Settings
-from app.core.exceptions import AppException
+from app.core.exceptions import (
+    AppException,
+    BatchNotFoundError,
+    DataScopeAccessDeniedError,
+    ForeignKeyConflictError,
+    InsufficientInventoryError,
+    StatusNotAllowedError,
+    UniqueConflictError,
+)
 from fastapi import HTTPException, Query
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 
 def _settings(**overrides: object) -> Settings:
@@ -138,3 +147,92 @@ def test_unexpected_exception_does_not_leak_internal_message() -> None:
         }
     }
     assert "password" not in response.text
+
+
+def test_business_exception_categories_have_stable_http_contract() -> None:
+    cases = [
+        (BatchNotFoundError("batch-1"), "BATCH_NOT_FOUND", 404),
+        (InsufficientInventoryError(), "INSUFFICIENT_INVENTORY", 409),
+        (StatusNotAllowedError(), "STATUS_NOT_ALLOWED", 409),
+        (DataScopeAccessDeniedError(), "SCOPE_ACCESS_DENIED", 403),
+        (UniqueConflictError(), "UNIQUE_CONFLICT", 409),
+        (ForeignKeyConflictError(), "FOREIGN_KEY_CONFLICT", 409),
+    ]
+
+    for exception, code, status_code in cases:
+        assert exception.code == code
+        assert exception.status_code == status_code
+
+
+class _PostgresError(Exception):
+    def __init__(self, *, sqlstate: str, constraint_name: str) -> None:
+        super().__init__(constraint_name)
+        self.sqlstate = sqlstate
+        self.constraint_name = constraint_name
+
+
+def _integrity_error(*, sqlstate: str, constraint_name: str) -> IntegrityError:
+    return IntegrityError(
+        "INSERT INTO demo VALUES (...)",
+        {},
+        _PostgresError(sqlstate=sqlstate, constraint_name=constraint_name),
+    )
+
+
+def test_unique_integrity_error_returns_explicit_conflict_code() -> None:
+    app = main.create_app(_settings())
+
+    @app.get("/database-unique-error")
+    async def database_unique_error() -> None:
+        raise _integrity_error(
+            sqlstate="23505", constraint_name="uq_products_cooperative_code"
+        )
+
+    response = TestClient(app, raise_server_exceptions=False).get(
+        "/database-unique-error", headers={"X-Request-ID": "req_unique_1"}
+    )
+
+    assert response.status_code == 409
+    assert response.json()["error"] == {
+        "code": "UNIQUE_CONFLICT",
+        "message": "数据唯一性冲突",
+        "details": {},
+        "requestId": "req_unique_1",
+    }
+
+
+def test_foreign_key_integrity_error_returns_explicit_conflict_code() -> None:
+    app = main.create_app(_settings())
+
+    @app.get("/database-foreign-key-error")
+    async def database_foreign_key_error() -> None:
+        raise _integrity_error(
+            sqlstate="23503", constraint_name="fk_batches_product_id"
+        )
+
+    response = TestClient(app, raise_server_exceptions=False).get(
+        "/database-foreign-key-error"
+    )
+
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "FOREIGN_KEY_CONFLICT"
+    assert response.json()["error"]["requestId"] == response.headers["X-Request-ID"]
+
+
+def test_unknown_database_error_is_logged_and_returns_internal_error(caplog) -> None:
+    app = main.create_app(_settings())
+
+    @app.get("/database-unknown-error")
+    async def database_unknown_error() -> None:
+        raise SQLAlchemyError("database password should not leak")
+
+    with caplog.at_level("ERROR"):
+        response = TestClient(app, raise_server_exceptions=False).get(
+            "/database-unknown-error"
+        )
+
+    assert response.status_code == 500
+    assert response.json()["error"]["code"] == "DATABASE_ERROR"
+    assert response.json()["error"]["requestId"] == response.headers["X-Request-ID"]
+    assert "database-unknown-error" in caplog.text
+    assert "database password should not leak" in caplog.text

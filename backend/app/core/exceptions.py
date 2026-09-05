@@ -10,6 +10,7 @@ from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import Response
 
@@ -72,6 +73,104 @@ class AppException(Exception):
         self.headers = dict(headers or {})
 
 
+class BatchNotFoundError(AppException):
+    """请求的农产品批次不存在。"""
+
+    def __init__(self, batch_id: object | None = None) -> None:
+        super().__init__(
+            code="BATCH_NOT_FOUND",
+            message="批次不存在",
+            status_code=404,
+            details=(
+                {"batchId": str(batch_id)} if batch_id is not None else None
+            ),
+        )
+
+
+class InsufficientInventoryError(AppException):
+    """库存数量不足以完成当前业务操作。"""
+
+    def __init__(
+        self,
+        *,
+        available: object | None = None,
+        requested: object | None = None,
+    ) -> None:
+        details: dict[str, Any] = {}
+        if available is not None:
+            details["available"] = available
+        if requested is not None:
+            details["requested"] = requested
+        super().__init__(
+            code="INSUFFICIENT_INVENTORY",
+            message="库存不足",
+            status_code=409,
+            details=details,
+        )
+
+
+class StatusNotAllowedError(AppException):
+    """资源当前状态不允许执行目标操作。"""
+
+    def __init__(
+        self,
+        *,
+        current_status: str | None = None,
+        allowed_statuses: list[str] | None = None,
+    ) -> None:
+        details: dict[str, Any] = {}
+        if current_status is not None:
+            details["currentStatus"] = current_status
+        if allowed_statuses is not None:
+            details["allowedStatuses"] = allowed_statuses
+        super().__init__(
+            code="STATUS_NOT_ALLOWED",
+            message="当前状态不允许执行该操作",
+            status_code=409,
+            details=details,
+        )
+
+
+class DataScopeAccessDeniedError(AppException):
+    """当前身份无权访问目标数据范围。"""
+
+    def __init__(self, resource_type: str | None = None) -> None:
+        super().__init__(
+            code="SCOPE_ACCESS_DENIED",
+            message="无权访问该数据范围",
+            status_code=403,
+            details=(
+                {"resourceType": resource_type}
+                if resource_type is not None
+                else None
+            ),
+        )
+
+
+class UniqueConflictError(AppException):
+    """数据违反唯一性约束。"""
+
+    def __init__(self, field: str | None = None) -> None:
+        super().__init__(
+            code="UNIQUE_CONFLICT",
+            message="数据唯一性冲突",
+            status_code=409,
+            details={"field": field} if field is not None else None,
+        )
+
+
+class ForeignKeyConflictError(AppException):
+    """数据引用的关联记录不存在或不允许被引用。"""
+
+    def __init__(self, field: str | None = None) -> None:
+        super().__init__(
+            code="FOREIGN_KEY_CONFLICT",
+            message="关联数据不存在或外键冲突",
+            status_code=409,
+            details={"field": field} if field is not None else None,
+        )
+
+
 def _is_valid_request_id(value: str | None) -> bool:
     return value is not None and _REQUEST_ID_PATTERN.fullmatch(value) is not None
 
@@ -94,9 +193,19 @@ async def request_id_middleware(
 
     try:
         response = await call_next(request)
-    except Exception:  # noqa: BLE001 - global HTTP boundary must catch unknown errors
+    except IntegrityError as exc:
+        response = await integrity_error_handler(request, exc)
+    except SQLAlchemyError as exc:
+        response = await database_exception_handler(request, exc)
+    except Exception:
         # ServerErrorMiddleware 会重新抛出未处理异常，直接在最外层兜底，
         # 才能保证自定义 500 响应和 X-Request-ID 一起返回给客户端。
+        logger.exception(
+            "未处理的服务端异常 request_id=%s method=%s path=%s",
+            request_id,
+            request.method,
+            request.url.path,
+        )
         response = _error_response(
             request,
             status_code=500,
@@ -124,10 +233,12 @@ def _error_response(
             request_id=_get_request_id(request),
         )
     )
+    response_headers = dict(headers or {})
+    response_headers.setdefault(REQUEST_ID_HEADER, _get_request_id(request))
     return JSONResponse(
         status_code=status_code,
         content=jsonable_encoder(body, by_alias=True),
-        headers=dict(headers or {}),
+        headers=response_headers,
     )
 
 
@@ -158,6 +269,57 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
         message=exc.message,
         details=exc.details,
         headers=exc.headers,
+    )
+
+
+def _integrity_error_state(exc: IntegrityError) -> tuple[str | None, str | None]:
+    original = exc.orig
+    sqlstate = getattr(original, "sqlstate", None) or getattr(
+        original, "pgcode", None
+    )
+    constraint_name = getattr(original, "constraint_name", None)
+    return (
+        sqlstate if isinstance(sqlstate, str) else None,
+        constraint_name if isinstance(constraint_name, str) else None,
+    )
+
+
+def _map_integrity_error(exc: IntegrityError) -> AppException:
+    sqlstate, constraint_name = _integrity_error_state(exc)
+    normalized_constraint = (constraint_name or "").lower()
+    if sqlstate == "23505" or normalized_constraint.startswith("uq_"):
+        return UniqueConflictError()
+    if sqlstate == "23503" or normalized_constraint.startswith("fk_"):
+        return ForeignKeyConflictError()
+    return AppException(
+        code="DATABASE_CONSTRAINT_VIOLATION",
+        message="数据约束冲突",
+        status_code=409,
+    )
+
+
+async def integrity_error_handler(
+    request: Request, exc: IntegrityError
+) -> JSONResponse:
+    """将数据库约束异常转换为稳定的业务错误契约。"""
+    return await app_exception_handler(request, _map_integrity_error(exc))
+
+
+async def database_exception_handler(
+    request: Request, exc: SQLAlchemyError
+) -> JSONResponse:
+    """记录不可识别的数据库异常，并隐藏数据库内部细节。"""
+    logger.exception(
+        "数据库异常 request_id=%s method=%s path=%s",
+        _get_request_id(request),
+        request.method,
+        request.url.path,
+    )
+    return _error_response(
+        request,
+        status_code=500,
+        code="DATABASE_ERROR",
+        message="数据库服务异常，请稍后重试",
     )
 
 
@@ -214,14 +376,28 @@ def register_exception_handlers(application: FastAPI) -> None:
     application.add_exception_handler(
         RequestValidationError, cast(Any, validation_exception_handler)
     )
+    application.add_exception_handler(
+        IntegrityError, cast(Any, integrity_error_handler)
+    )
+    application.add_exception_handler(
+        SQLAlchemyError, cast(Any, database_exception_handler)
+    )
     application.add_exception_handler(Exception, unhandled_exception_handler)
 
 
 __all__ = [
     "REQUEST_ID_HEADER",
     "AppException",
+    "BatchNotFoundError",
+    "DataScopeAccessDeniedError",
+    "ForeignKeyConflictError",
+    "InsufficientInventoryError",
+    "StatusNotAllowedError",
+    "UniqueConflictError",
     "app_exception_handler",
+    "database_exception_handler",
     "http_exception_handler",
+    "integrity_error_handler",
     "register_exception_handlers",
     "request_id_middleware",
     "unhandled_exception_handler",
