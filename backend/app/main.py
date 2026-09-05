@@ -15,11 +15,13 @@ from app.infrastructure.database import (
     dispose_database_engine,
     initialize_database,
 )
+from app.infrastructure.redis import dispose_redis_client, initialize_redis
 from app.schemas.common import ApiResponse
 
 settings = get_settings()
 configure_logging(settings)
 initialize_database(settings)
+initialize_redis(settings)
 
 
 @asynccontextmanager
@@ -29,6 +31,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         yield
     finally:
         await dispose_database_engine()
+        await dispose_redis_client()
 
 def create_app(app_settings: Settings | None = None) -> FastAPI:
     """根据配置创建应用，便于生产启动和隔离测试复用同一套注册逻辑。"""
