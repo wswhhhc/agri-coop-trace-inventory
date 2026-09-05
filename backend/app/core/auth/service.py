@@ -14,6 +14,7 @@ from app.core.auth.session import RedisSessionStore
 from app.core.config import Settings
 from app.core.exceptions import AppException
 from app.core.security import decode_jwt
+from app.infrastructure.transaction import transaction_scope
 from app.models import SYSTEM_ADMIN_ROLE_CODE, User
 from app.repositories.user import UserRepository
 from app.repositories.warehouse import WarehouseRepository
@@ -30,12 +31,18 @@ class AuthService:
         settings: Settings,
         session_store: RedisSessionStore | None = None,
     ) -> None:
+        self.session = session
         self.user_repository = UserRepository(session)
         self.warehouse_repository = WarehouseRepository(session)
         self.settings = settings
         self.session_store = session_store
 
     async def build_context(self, token: str) -> AuthContext:
+        """在一个认证上下文读取用例事务中构建当前有效上下文。"""
+        async with transaction_scope(self.session):
+            return await self._build_context(token)
+
+    async def _build_context(self, token: str) -> AuthContext:
         """校验访问令牌并返回当前有效的认证上下文。"""
         claims = self._decode_token(token)
         user_id = self._claim_uuid(claims, "sub")

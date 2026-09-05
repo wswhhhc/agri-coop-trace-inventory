@@ -21,6 +21,7 @@ from app.core.auth.session import (
 from app.core.config import Settings
 from app.core.exceptions import AppException
 from app.core.security import create_access_token, hash_password, verify_password
+from app.infrastructure.transaction import transaction_scope
 from app.models import SYSTEM_ADMIN_ROLE_CODE, User
 from app.models._common import utc_now
 from app.repositories.user import UserRepository
@@ -62,6 +63,7 @@ class AuthenticationService:
         login_rate_limiter: LoginRateLimiter | None = None,
         audit_log_service: AuditLogService | None = None,
     ) -> None:
+        self.session = session
         self.user_repository = UserRepository(session)
         self.settings = settings
         self.session_store = session_store
@@ -69,6 +71,17 @@ class AuthenticationService:
         self.audit_log_service = audit_log_service
 
     async def login(
+        self,
+        username: str,
+        password: str,
+        client_ip: str = "unknown",
+        audit_context: AuditContext | None = None,
+    ) -> AuthTokenResult:
+        """在一个登录业务用例事务中校验账号并签发令牌。"""
+        async with transaction_scope(self.session):
+            return await self._login(username, password, client_ip, audit_context)
+
+    async def _login(
         self,
         username: str,
         password: str,
@@ -159,6 +172,15 @@ class AuthenticationService:
         refresh_token: str,
         audit_context: AuditContext | None = None,
     ) -> AuthTokenResult:
+        """在一个刷新令牌业务用例事务中轮换令牌。"""
+        async with transaction_scope(self.session):
+            return await self._refresh(refresh_token, audit_context)
+
+    async def _refresh(
+        self,
+        refresh_token: str,
+        audit_context: AuditContext | None = None,
+    ) -> AuthTokenResult:
         """轮换刷新令牌并签发新的访问令牌。"""
         try:
             created = await self.session_store.rotate(refresh_token)
@@ -238,6 +260,15 @@ class AuthenticationService:
         return result
 
     async def logout(
+        self,
+        refresh_token: str | None,
+        audit_context: AuditContext | None = None,
+    ) -> None:
+        """在一个退出业务用例事务中撤销刷新令牌。"""
+        async with transaction_scope(self.session):
+            await self._logout(refresh_token, audit_context)
+
+    async def _logout(
         self,
         refresh_token: str | None,
         audit_context: AuditContext | None = None,

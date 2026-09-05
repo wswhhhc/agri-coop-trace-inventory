@@ -69,6 +69,19 @@ class _FakeSessionStore:
         return self.created
 
 
+class _FakeTransaction:
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_args):
+        return None
+
+
+class _FakeSession:
+    def begin(self):
+        return _FakeTransaction()
+
+
 class _FakeAuditLogService:
     def __init__(self) -> None:
         self.events = []
@@ -82,7 +95,7 @@ async def test_login_uses_same_error_for_unknown_username_and_wrong_password() -
     user = _user()
     audit_service = _FakeAuditLogService()
     service = AuthenticationService(
-        None,
+        _FakeSession(),
         _settings(),
         _FakeSessionStore(),
         audit_log_service=audit_service,
@@ -116,7 +129,7 @@ async def test_successful_login_records_audit_event_without_credentials() -> Non
     user = _user()
     audit_service = _FakeAuditLogService()
     service = AuthenticationService(
-        None,
+        _FakeSession(),
         _settings(),
         _FakeSessionStore(),
         audit_log_service=audit_service,
@@ -135,7 +148,7 @@ async def test_successful_login_records_audit_event_without_credentials() -> Non
 
 @pytest.mark.asyncio
 async def test_locked_user_cannot_login() -> None:
-    service = AuthenticationService(None, _settings(), _FakeSessionStore())
+    service = AuthenticationService(_FakeSession(), _settings(), _FakeSessionStore())
     service.user_repository = _FakeUserRepository(_user(status="LOCKED"))
 
     with pytest.raises(AppException) as error:

@@ -20,7 +20,7 @@ from app.core.auth.rate_limit import LoginRateLimiter
 from app.core.auth.session import RedisSessionStore
 from app.core.config import Settings, get_settings
 from app.core.exceptions import AppException
-from app.infrastructure.database import get_transactional_session
+from app.infrastructure.database import get_db_session
 from app.schemas.auth import (
     AuthTokenData,
     AuthTokenResponse,
@@ -34,7 +34,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 def get_authentication_service(
-    session: Annotated[AsyncSession, Depends(get_transactional_session)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
     settings: Annotated[Settings, Depends(get_settings)],
     session_store: Annotated[RedisSessionStore, Depends(get_session_store)],
     login_rate_limiter: Annotated[

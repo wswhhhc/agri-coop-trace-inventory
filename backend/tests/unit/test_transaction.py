@@ -1,12 +1,19 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Self, cast
+from unittest.mock import AsyncMock
+from uuid import UUID
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.core.auth.flows import AuthenticationService
+from app.core.auth.service import AuthService
+from app.core.config import Settings
+from app.core.exceptions import AppException
 from app.infrastructure import database
 from app.infrastructure.transaction import transaction_scope
+from app.models import SYSTEM_ADMIN_ROLE_CODE
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class _FakeTransaction:
@@ -136,3 +143,59 @@ async def test_get_transactional_session_requires_initialized_database(
 
     with pytest.raises(RuntimeError, match="数据库尚未初始化"):
         await anext(database.get_transactional_session())
+
+
+def _settings() -> Settings:
+    return Settings(
+        _env_file=None,
+        postgres_password="unit-test-password",
+        jwt_secret_key="unit-test-secret-with-at-least-32-bytes",
+        jwt_issuer="agri-api",
+        jwt_audience="agri-web",
+    )
+
+
+@pytest.mark.asyncio
+async def test_authentication_service_owns_login_transaction() -> None:
+    session = _FakeSession()
+    service = AuthenticationService(
+        cast(AsyncSession, session), _settings(), cast(object, object())
+    )
+    service.user_repository.get_by_username_with_access = AsyncMock(
+        return_value=None
+    )
+
+    with pytest.raises(AppException, match="用户名或密码错误"):
+        await service.login("unknown", "wrong-password")
+
+    assert session.transaction.entered is True
+    assert session.transaction.rolled_back is True
+
+
+@pytest.mark.asyncio
+async def test_auth_service_owns_context_transaction() -> None:
+    session = _FakeSession()
+    service = AuthService(cast(AsyncSession, session), _settings())
+    user_id = UUID("11111111-1111-4111-8111-111111111111")
+    service._decode_token = lambda _token: {
+        "sub": str(user_id),
+        "sid": "session-1",
+        "jti": "token-1",
+    }
+    service.user_repository.get_by_id_with_access = AsyncMock(
+        return_value=SimpleNamespace(
+            id=user_id,
+            username="admin",
+            real_name="管理员",
+            status="ACTIVE",
+            cooperative_id=None,
+            cooperative=None,
+            role=SimpleNamespace(code=SYSTEM_ADMIN_ROLE_CODE, permissions=[]),
+        )
+    )
+
+    context = await service.build_context("token")
+
+    assert context.user_id == user_id
+    assert session.transaction.entered is True
+    assert session.transaction.committed is True
