@@ -14,6 +14,7 @@ from app.infrastructure.redis import create_redis_client, get_redis_client
 from app.main import create_app
 from app.models import Cooperative, Role, User
 from redis.exceptions import RedisError
+from tests.support import skip_or_fail
 
 
 def _settings(prefix: str) -> Settings:
@@ -41,7 +42,7 @@ async def auth_api(postgres_session_factory):
         await redis.ping()
     except RedisError:
         await redis.aclose()
-        pytest.skip("Redis 未运行，跳过认证 API 集成测试")
+        skip_or_fail("redis", "Redis 未运行，无法执行认证 API 门禁测试")
 
     session_factory = postgres_session_factory
     async with postgres_session_factory() as session:

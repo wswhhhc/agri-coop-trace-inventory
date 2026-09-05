@@ -8,6 +8,7 @@ from app.core.auth.session import InvalidRefreshToken, RedisSessionStore
 from app.core.config import Settings
 from app.infrastructure.redis import create_redis_client
 from redis.exceptions import RedisError
+from tests.support import skip_or_fail
 
 
 def _settings(prefix: str) -> Settings:
@@ -33,7 +34,7 @@ async def session_store() -> RedisSessionStore:
         await client.ping()
     except RedisError:
         await client.aclose()
-        pytest.skip("Redis 未运行，跳过 Redis 会话集成测试")
+        skip_or_fail("redis", "Redis 未运行，无法执行 Redis 会话门禁测试")
 
     store = RedisSessionStore(
         client,

@@ -3,8 +3,6 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
-
 from app.schemas.common import (
     ApiResponse,
     ErrorResponse,
@@ -14,6 +12,7 @@ from app.schemas.common import (
     ResourceMeta,
     SortOrder,
 )
+from pydantic import ValidationError
 
 
 def test_base_schema_accepts_python_names_and_serializes_camel_case() -> None:

@@ -3,7 +3,6 @@ from pathlib import Path
 
 import pytest
 from pwdlib import PasswordHash
-
 from scripts.generate_demo_data import (
     DEMO_PASSWORD_HASH,
     generate_demo_sql,

@@ -40,6 +40,8 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["backend"]
+testpaths = ["backend/tests"]
+addopts = ["--strict-config", "--strict-markers"]
 markers = [
     "postgres: 需要真实 PostgreSQL 测试数据库的集成测试",
 ]

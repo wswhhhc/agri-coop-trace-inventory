@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.pool import NullPool
+from tests.support import skip_or_fail
 
 
 def _database_url_from_environment() -> str | None:
@@ -32,8 +33,9 @@ def _asyncpg_url(url: str) -> str:
 def postgres_database_url() -> str:
     url = _database_url_from_environment()
     if not url:
-        pytest.skip(
-            "未配置 TEST_POSTGRES_DATABASE_URL 或 TEST_DATABASE_URL，跳过 PostgreSQL 集成测试"
+        skip_or_fail(
+            "postgres",
+            "未配置 TEST_POSTGRES_DATABASE_URL 或 TEST_DATABASE_URL，无法执行 PostgreSQL 门禁测试",
         )
     return _asyncpg_url(url)
 
@@ -74,7 +76,7 @@ async def postgres_engine(
             async with engine.begin() as connection:
                 await connection.run_sync(Base.metadata.create_all)
         except SQLAlchemyError as error:
-            pytest.skip(f"PostgreSQL 测试数据库不可用：{error}")
+            skip_or_fail("postgres", f"PostgreSQL 测试数据库不可用：{error}")
 
         yield engine
     finally:

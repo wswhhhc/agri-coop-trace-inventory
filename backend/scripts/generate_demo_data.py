@@ -12,9 +12,8 @@ from pathlib import Path
 from typing import Any
 from uuid import NAMESPACE_URL, UUID, uuid5
 
-from faker import Faker
-
 from app.core.config import DemoSettings
+from faker import Faker
 
 DEFAULT_SEED = DemoSettings().demo_data_seed
 DEMO_PASSWORD_HASH = (
