@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+
+from app.infrastructure.transaction import transaction_scope
 
 from app.core.config import DatabaseSettings
 
@@ -62,6 +64,16 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
             raise
 
 
+async def get_transactional_session() -> AsyncGenerator[AsyncSession, None]:
+    """提供一个写请求级会话，正常结束提交，异常时回滚。"""
+    if SessionLocal is None:
+        raise RuntimeError("数据库尚未初始化")
+
+    async with SessionLocal() as session:
+        async with transaction_scope(session):
+            yield session
+
+
 async def dispose_database_engine() -> None:
     """释放进程级连接池，供应用关闭生命周期调用。"""
     global SessionLocal, engine
@@ -79,5 +91,6 @@ __all__ = [
     "dispose_database_engine",
     "engine",
     "get_db_session",
+    "get_transactional_session",
     "initialize_database",
 ]
