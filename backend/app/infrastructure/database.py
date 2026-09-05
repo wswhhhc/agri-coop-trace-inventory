@@ -9,9 +9,8 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from app.infrastructure.transaction import transaction_scope
-
 from app.core.config import DatabaseSettings
+from app.infrastructure.transaction import transaction_scope
 
 SessionFactory = async_sessionmaker[AsyncSession]
 
@@ -69,9 +68,8 @@ async def get_transactional_session() -> AsyncGenerator[AsyncSession, None]:
     if SessionLocal is None:
         raise RuntimeError("数据库尚未初始化")
 
-    async with SessionLocal() as session:
-        async with transaction_scope(session):
-            yield session
+    async with SessionLocal() as session, transaction_scope(session):
+        yield session
 
 
 async def dispose_database_engine() -> None:
