@@ -17,8 +17,8 @@ class UserWarehouse(Base):
     __tablename__ = "user_warehouses"
 
     # 关联表使用复合主键，不适用实体模型的单列 UUID 主键和更新时间。
-    id = None
-    updated_at = None
+    id = None  # type: ignore[assignment]
+    updated_at = None  # type: ignore[assignment]
 
     user_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),
