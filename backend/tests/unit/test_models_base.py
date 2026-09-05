@@ -7,7 +7,15 @@ from sqlalchemy.orm import DeclarativeBase
 
 def test_base_is_a_declarative_base_without_predefined_table_attributes() -> None:
     assert issubclass(Base, DeclarativeBase)
-    assert Base.metadata.tables == {}
+    assert {
+        "cooperatives",
+        "roles",
+        "permissions",
+        "role_permissions",
+        "users",
+        "warehouses",
+        "user_warehouses",
+    }.issubset(Base.metadata.tables)
     assert not any(
         attribute_name in Base.__dict__
         for attribute_name in ("id", "created_at", "updated_at", "cooperative_id")
