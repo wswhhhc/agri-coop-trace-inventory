@@ -33,6 +33,10 @@ class AuthContext:
         """判断当前用户是否拥有指定功能权限。"""
         return permission_code in self.permission_codes
 
+    def has_cooperative_access(self, cooperative_id: UUID) -> bool:
+        """判断当前用户是否可以访问指定合作社。"""
+        return self.cooperative_id is None or self.cooperative_id == cooperative_id
+
     def has_warehouse_access(self, warehouse_id: UUID) -> bool:
         """判断当前用户是否可以访问指定仓库。"""
         return self.warehouse_ids is None or warehouse_id in self.warehouse_ids
