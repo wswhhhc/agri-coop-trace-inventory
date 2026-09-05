@@ -9,7 +9,7 @@ from app.core.audit.service import AuditLogService
 from app.core.auth.dependencies import get_audit_log_service
 from app.core.config import Settings, get_settings
 from app.core.security import hash_password
-from app.infrastructure.database import get_db_session, get_transactional_session
+from app.infrastructure.database import get_db_session
 from app.infrastructure.redis import create_redis_client, get_redis_client
 from app.main import create_app
 from app.models import Cooperative, Role, User
@@ -57,10 +57,6 @@ async def auth_api(postgres_session_factory):
         session.add(user)
         await session.commit()
 
-    async def override_transactional_session():
-        async with session_factory() as session, session.begin():
-            yield session
-
     async def override_db_session():
         async with session_factory() as session:
             yield session
@@ -68,9 +64,6 @@ async def auth_api(postgres_session_factory):
     application = create_app(settings)
     application.dependency_overrides[get_settings] = lambda: settings
     application.dependency_overrides[get_redis_client] = lambda: redis
-    application.dependency_overrides[get_transactional_session] = (
-        override_transactional_session
-    )
     application.dependency_overrides[get_db_session] = override_db_session
     application.dependency_overrides[get_audit_log_service] = (
         lambda: AuditLogService(session_factory)

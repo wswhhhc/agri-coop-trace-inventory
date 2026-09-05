@@ -10,7 +10,7 @@ from fastapi import Path
 
 from app.core.auth.context import AuthContext
 from app.core.auth.dependencies import CurrentAuthContext
-from app.core.exceptions import AppException
+from app.core.exceptions import AppException, DataScopeAccessDeniedError
 
 
 def permission_denied() -> AppException:
@@ -37,7 +37,7 @@ def ensure_cooperative_scope(
 ) -> None:
     """断言合作社属于当前认证上下文范围。"""
     if not context.has_cooperative_access(cooperative_id):
-        raise resource_not_found()
+        raise DataScopeAccessDeniedError(resource_type="cooperative")
 
 
 def ensure_warehouse_scope(
@@ -46,7 +46,7 @@ def ensure_warehouse_scope(
 ) -> None:
     """断言仓库属于当前认证上下文范围。"""
     if not context.has_warehouse_access(warehouse_id):
-        raise resource_not_found()
+        raise DataScopeAccessDeniedError(resource_type="warehouse")
 
 
 def require_permission(
