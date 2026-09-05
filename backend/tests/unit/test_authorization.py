@@ -64,10 +64,10 @@ def test_scope_helpers_reject_ids_outside_auth_context_scope() -> None:
     with pytest.raises(AppException) as warehouse_error:
         ensure_warehouse_scope(context, OTHER_WAREHOUSE_ID)
 
-    assert cooperative_error.value.status_code == 403
-    assert cooperative_error.value.code == "SCOPE_ACCESS_DENIED"
-    assert warehouse_error.value.status_code == 403
-    assert warehouse_error.value.code == "SCOPE_ACCESS_DENIED"
+    assert cooperative_error.value.status_code == 404
+    assert cooperative_error.value.code == "RESOURCE_NOT_FOUND"
+    assert warehouse_error.value.status_code == 404
+    assert warehouse_error.value.code == "RESOURCE_NOT_FOUND"
 
 
 @pytest.mark.asyncio
@@ -98,12 +98,12 @@ async def test_cooperative_scope_dependency_returns_context_for_matching_scope()
 
 
 @pytest.mark.asyncio
-async def test_cooperative_scope_dependency_returns_403_for_other_scope() -> None:
+async def test_cooperative_scope_dependency_returns_404_for_other_scope() -> None:
     with pytest.raises(AppException) as error:
         await require_cooperative_scope(OTHER_COOPERATIVE_ID, _context())
 
-    assert error.value.status_code == 403
-    assert error.value.code == "SCOPE_ACCESS_DENIED"
+    assert error.value.status_code == 404
+    assert error.value.code == "RESOURCE_NOT_FOUND"
 
 
 @pytest.mark.asyncio
@@ -115,12 +115,12 @@ async def test_global_context_can_pass_cooperative_and_warehouse_scope() -> None
 
 
 @pytest.mark.asyncio
-async def test_warehouse_scope_dependency_returns_403_for_unauthorized_warehouse() -> None:
+async def test_warehouse_scope_dependency_returns_404_for_unauthorized_warehouse() -> None:
     with pytest.raises(AppException) as error:
         await require_warehouse_scope(OTHER_WAREHOUSE_ID, _context())
 
-    assert error.value.status_code == 403
-    assert error.value.code == "SCOPE_ACCESS_DENIED"
+    assert error.value.status_code == 404
+    assert error.value.code == "RESOURCE_NOT_FOUND"
 
 
 @pytest.mark.asyncio
@@ -128,8 +128,8 @@ async def test_empty_warehouse_scope_cannot_access_any_warehouse() -> None:
     with pytest.raises(AppException) as error:
         await require_warehouse_scope(WAREHOUSE_ID, _context(warehouse_ids=frozenset()))
 
-    assert error.value.status_code == 403
-    assert error.value.code == "SCOPE_ACCESS_DENIED"
+    assert error.value.status_code == 404
+    assert error.value.code == "RESOURCE_NOT_FOUND"
 
 
 def test_fastapi_dependencies_bind_camel_case_path_parameter_and_error_status() -> None:
@@ -159,8 +159,8 @@ def test_fastapi_dependencies_bind_camel_case_path_parameter_and_error_status() 
 
     assert client.get(f"/cooperatives/{COOPERATIVE_ID}").status_code == 200
     denied = client.get(f"/cooperatives/{OTHER_COOPERATIVE_ID}")
-    assert denied.status_code == 403
-    assert denied.json()["error"]["code"] == "SCOPE_ACCESS_DENIED"
+    assert denied.status_code == 404
+    assert denied.json()["error"]["code"] == "RESOURCE_NOT_FOUND"
     assert client.post("/inventory").status_code == 200
 
     async def override_without_write_permission() -> AuthContext:
