@@ -47,6 +47,15 @@ def test_auth_models_register_database_tables_and_relationships() -> None:
     assert inspect(Warehouse).relationships["user_warehouses"].mapper.class_ is UserWarehouse
 
 
+def test_each_auth_model_lives_in_its_own_module() -> None:
+    assert Cooperative.__module__ == "app.models.cooperative"
+    assert User.__module__ == "app.models.user"
+    assert Role.__module__ == "app.models.role"
+    assert Permission.__module__ == "app.models.permission"
+    assert Warehouse.__module__ == "app.models.warehouse"
+    assert UserWarehouse.__module__ == "app.models.user_warehouse"
+
+
 def test_system_admin_can_be_created_without_cooperative() -> None:
     system_admin = User(
         id=uuid4(),

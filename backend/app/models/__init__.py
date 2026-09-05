@@ -1,14 +1,11 @@
-from app.models.auth import (
-    SYSTEM_ADMIN_ROLE_CODE,
-    Cooperative,
-    Permission,
-    Role,
-    User,
-    UserWarehouse,
-    Warehouse,
-    role_permissions,
-)
 from app.models.base import Base
+from app.models.cooperative import Cooperative
+from app.models.permission import Permission
+from app.models.role import Role
+from app.models.role_permission import role_permissions
+from app.models.user import SYSTEM_ADMIN_ROLE_CODE, User
+from app.models.user_warehouse import UserWarehouse
+from app.models.warehouse import Warehouse
 
 __all__ = [
     "SYSTEM_ADMIN_ROLE_CODE",

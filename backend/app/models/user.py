@@ -1,0 +1,96 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import TYPE_CHECKING
+from uuid import UUID, uuid4
+
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    UniqueConstraint,
+    Uuid,
+    text,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.models._common import utc_now
+from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.cooperative import Cooperative
+    from app.models.role import Role
+    from app.models.user_warehouse import UserWarehouse
+
+SYSTEM_ADMIN_ROLE_CODE = "SYSTEM_ADMIN"
+
+
+class User(Base):
+    __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint("username = lower(username)", name="ck_users_username_lower"),
+        CheckConstraint(
+            "status IN ('ACTIVE', 'LOCKED', 'INACTIVE')", name="ck_users_status"
+        ),
+        UniqueConstraint("username", name="uq_users_username"),
+        Index("ix_users_cooperative_status", "cooperative_id", "status"),
+    )
+
+    id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+        server_default=text("gen_random_uuid()"),
+    )
+    cooperative_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("cooperatives.id", ondelete="RESTRICT"),
+    )
+    role_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("roles.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    username: Mapped[str] = mapped_column(String(50), nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    real_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    phone: Mapped[str | None] = mapped_column(String(20))
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="ACTIVE", server_default="ACTIVE"
+    )
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        server_default=text("CURRENT_TIMESTAMP"),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        onupdate=utc_now,
+        server_default=text("CURRENT_TIMESTAMP"),
+    )
+
+    cooperative: Mapped[Cooperative | None] = relationship(
+        "Cooperative", back_populates="users"
+    )
+    role: Mapped[Role] = relationship("Role", back_populates="users")
+    user_warehouses: Mapped[list[UserWarehouse]] = relationship(
+        "UserWarehouse",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    def validate_cooperative_scope(self) -> None:
+        """校验用户是否满足合作社数据范围规则。"""
+        has_cooperative = self.cooperative_id is not None or self.cooperative is not None
+        role_code = self.role.code if self.role is not None else None
+        if not has_cooperative and role_code != SYSTEM_ADMIN_ROLE_CODE:
+            raise ValueError("非系统管理员用户必须关联合作社")
+
+
+__all__ = ["SYSTEM_ADMIN_ROLE_CODE", "User"]
