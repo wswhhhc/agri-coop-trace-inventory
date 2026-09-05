@@ -77,3 +77,19 @@ async def test_audit_log_service_rejects_sensitive_detail_fields(
 
     with pytest.raises(ValueError, match="禁止记录"):
         await AuditLogService(audit_session_factory).record(event)
+
+
+@pytest.mark.asyncio
+async def test_audit_log_service_rejects_nested_sensitive_detail_fields(
+    audit_session_factory,
+) -> None:
+    event = AuditEvent(
+        action="LOGIN",
+        module="AUTH",
+        object_type="AUTHENTICATION",
+        result="FAILURE",
+        detail={"metadata": [{"access_token": "must-not-be-stored"}]},
+    )
+
+    with pytest.raises(ValueError, match="禁止记录"):
+        await AuditLogService(audit_session_factory).record(event)

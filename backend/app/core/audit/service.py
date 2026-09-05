@@ -79,13 +79,21 @@ class AuditLogService:
 
 
 def _validate_detail(detail: dict[str, Any]) -> None:
-    forbidden = {
-        key.lower()
-        for key in detail
-        if key.lower() in _FORBIDDEN_DETAIL_KEYS
-    }
+    forbidden = set(_iter_forbidden_detail_keys(detail))
     if forbidden:
         raise ValueError(f"审计详情包含禁止记录的字段: {', '.join(sorted(forbidden))}")
+
+
+def _iter_forbidden_detail_keys(value: Any):
+    if isinstance(value, dict):
+        for key, nested_value in value.items():
+            normalized_key = str(key).lower()
+            if normalized_key in _FORBIDDEN_DETAIL_KEYS:
+                yield normalized_key
+            yield from _iter_forbidden_detail_keys(nested_value)
+    elif isinstance(value, (list, tuple)):
+        for nested_value in value:
+            yield from _iter_forbidden_detail_keys(nested_value)
 
 
 __all__ = ["AuditEvent", "AuditLogService"]
