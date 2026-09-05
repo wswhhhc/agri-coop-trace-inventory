@@ -7,8 +7,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth.dependencies import CurrentAuthContext, get_session_store
+from app.core.auth.dependencies import (
+    CurrentAuthContext,
+    get_login_rate_limiter,
+    get_session_store,
+)
 from app.core.auth.flows import AuthenticationService, AuthTokenResult
+from app.core.auth.rate_limit import LoginRateLimiter
 from app.core.auth.session import RedisSessionStore
 from app.core.config import Settings, get_settings
 from app.core.exceptions import AppException
@@ -29,17 +34,27 @@ def get_authentication_service(
     session: Annotated[AsyncSession, Depends(get_transactional_session)],
     settings: Annotated[Settings, Depends(get_settings)],
     session_store: Annotated[RedisSessionStore, Depends(get_session_store)],
+    login_rate_limiter: Annotated[
+        LoginRateLimiter, Depends(get_login_rate_limiter)
+    ],
 ) -> AuthenticationService:
-    return AuthenticationService(session, settings, session_store)
+    return AuthenticationService(
+        session,
+        settings,
+        session_store,
+        login_rate_limiter,
+    )
 
 
 @router.post("/login", response_model=AuthTokenResponse)
 async def login(
     payload: LoginRequest,
+    request: Request,
     response: Response,
     service: Annotated[AuthenticationService, Depends(get_authentication_service)],
 ) -> AuthTokenResponse:
-    result = await service.login(payload.username, payload.password)
+    client_ip = request.client.host if request.client is not None else "unknown"
+    result = await service.login(payload.username, payload.password, client_ip)
     _set_refresh_cookie(response, service.settings, result.refresh_token)
     return AuthTokenResponse(data=_token_data(result))
 

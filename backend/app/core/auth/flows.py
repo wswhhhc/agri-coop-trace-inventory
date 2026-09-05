@@ -8,6 +8,7 @@ from uuid import UUID
 from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth.rate_limit import LoginRateLimiter, RateLimitExceeded
 from app.core.auth.session import (
     CreatedSession,
     InvalidRefreshToken,
@@ -54,31 +55,43 @@ class AuthenticationService:
         session: AsyncSession,
         settings: Settings,
         session_store: RedisSessionStore,
+        login_rate_limiter: LoginRateLimiter | None = None,
     ) -> None:
         self.user_repository = UserRepository(session)
         self.settings = settings
         self.session_store = session_store
+        self.login_rate_limiter = login_rate_limiter
 
-    async def login(self, username: str, password: str) -> AuthTokenResult:
+    async def login(
+        self,
+        username: str,
+        password: str,
+        client_ip: str = "unknown",
+    ) -> AuthTokenResult:
         """校验账号并创建 Redis 会话。"""
+        await self._ensure_login_allowed(username, client_ip)
         user = await self.user_repository.get_by_username_with_access(username)
         if user is None:
             verify_password(password, _DUMMY_PASSWORD_HASH)
+            await self._record_login_failure(username, client_ip)
             raise _invalid_credentials()
 
         if user.status == "LOCKED":
+            await self._record_login_failure(username, client_ip)
             raise AppException(
                 code="ACCOUNT_LOCKED",
                 message="用户已被锁定",
                 status_code=403,
             )
         if user.status != "ACTIVE":
+            await self._record_login_failure(username, client_ip)
             raise AppException(
                 code="ACCOUNT_DISABLED",
                 message="用户已被禁用",
                 status_code=401,
             )
         if not verify_password(password, user.password_hash):
+            await self._record_login_failure(username, client_ip)
             raise _invalid_credentials()
 
         self._validate_user_scope(user)
@@ -88,6 +101,7 @@ class AuthenticationService:
             raise _dependency_unavailable() from exc
 
         user.last_login_at = utc_now()
+        await self._reset_login_failures(username)
         return self._token_result(user, created)
 
     async def refresh(self, refresh_token: str) -> AuthTokenResult:
@@ -168,6 +182,34 @@ class AuthenticationService:
             user=user_data,
         )
 
+    async def _ensure_login_allowed(self, username: str, client_ip: str) -> None:
+        if self.login_rate_limiter is None:
+            return
+        try:
+            await self.login_rate_limiter.ensure_allowed(username, client_ip)
+        except RateLimitExceeded as exc:
+            raise _rate_limit_exceeded(exc.retry_after) from exc
+        except RedisError as exc:
+            raise _dependency_unavailable() from exc
+
+    async def _record_login_failure(self, username: str, client_ip: str) -> None:
+        if self.login_rate_limiter is None:
+            return
+        try:
+            await self.login_rate_limiter.record_failure(username, client_ip)
+        except RateLimitExceeded as exc:
+            raise _rate_limit_exceeded(exc.retry_after) from exc
+        except RedisError as exc:
+            raise _dependency_unavailable() from exc
+
+    async def _reset_login_failures(self, username: str) -> None:
+        if self.login_rate_limiter is None:
+            return
+        try:
+            await self.login_rate_limiter.reset_account(username)
+        except RedisError as exc:
+            raise _dependency_unavailable() from exc
+
     @staticmethod
     def _validate_user_scope(user: User) -> None:
         if user.role is None:
@@ -214,6 +256,15 @@ def _dependency_unavailable() -> AppException:
         code="DEPENDENCY_UNAVAILABLE",
         message="认证依赖服务暂时不可用",
         status_code=503,
+    )
+
+
+def _rate_limit_exceeded(retry_after: int) -> AppException:
+    return AppException(
+        code="RATE_LIMIT_EXCEEDED",
+        message="登录尝试过于频繁，请稍后重试",
+        status_code=429,
+        headers={"Retry-After": str(max(retry_after, 1))},
     )
 
 

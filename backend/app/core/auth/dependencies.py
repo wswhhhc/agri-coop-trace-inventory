@@ -9,6 +9,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.context import AuthContext
+from app.core.auth.rate_limit import LoginRateLimiter
 from app.core.auth.service import AuthService
 from app.core.auth.session import RedisSessionStore
 from app.core.config import Settings, get_settings
@@ -25,6 +26,17 @@ def get_session_store(
         redis,
         key_prefix=settings.redis_key_prefix,
         ttl_seconds=settings.refresh_token_expire_days * 24 * 60 * 60,
+    )
+
+
+def get_login_rate_limiter(
+    settings: Annotated[Settings, Depends(get_settings)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> LoginRateLimiter:
+    return LoginRateLimiter(
+        redis,
+        key_prefix=settings.redis_key_prefix,
+        max_attempts=settings.login_rate_limit_per_minute,
     )
 
 
@@ -61,4 +73,9 @@ def _missing_authentication() -> AppException:
 CurrentAuthContext = Annotated[AuthContext, Depends(get_auth_context)]
 
 
-__all__ = ["CurrentAuthContext", "get_auth_context", "get_session_store"]
+__all__ = [
+    "CurrentAuthContext",
+    "get_auth_context",
+    "get_login_rate_limiter",
+    "get_session_store",
+]

@@ -186,3 +186,22 @@ async def test_unknown_username_and_wrong_password_have_same_error(auth_api):
     assert unknown.json()["error"]["code"] == wrong_password.json()["error"]["code"]
     assert unknown.json()["error"]["message"] == wrong_password.json()["error"]["message"]
     assert unknown.json()["error"]["details"] == wrong_password.json()["error"]["details"]
+
+
+@pytest.mark.asyncio
+async def test_login_is_rate_limited_after_ten_failed_attempts(auth_api):
+    for _ in range(10):
+        response = await auth_api.post(
+            "/api/v1/auth/login",
+            json={"username": "coop_admin", "password": "wrong-password"},
+        )
+        assert response.status_code == 401
+
+    blocked = await auth_api.post(
+        "/api/v1/auth/login",
+        json={"username": "coop_admin", "password": "wrong-password"},
+    )
+
+    assert blocked.status_code == 429
+    assert blocked.json()["error"]["code"] == "RATE_LIMIT_EXCEEDED"
+    assert int(blocked.headers["retry-after"]) >= 1
