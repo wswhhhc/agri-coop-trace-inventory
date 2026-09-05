@@ -7,6 +7,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.auth import router as auth_router
 from app.api.cooperatives import router as cooperatives_router
+from app.api.warehouses import router as warehouses_router
 from app.core.config import Settings, get_settings
 from app.core.exceptions import (
     register_exception_handlers,
@@ -66,6 +67,7 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
     register_exception_handlers(application)
     application.include_router(auth_router, prefix=app_settings.api_v1_prefix)
     application.include_router(cooperatives_router, prefix=app_settings.api_v1_prefix)
+    application.include_router(warehouses_router, prefix=app_settings.api_v1_prefix)
 
     @application.get(
         "/health",
