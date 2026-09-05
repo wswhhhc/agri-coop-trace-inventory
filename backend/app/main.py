@@ -6,9 +6,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.batches import router as batches_router
 from app.api.cooperatives import router as cooperatives_router
-from app.api.warehouses import router as warehouses_router
+from app.api.products import category_router, product_router
 from app.api.users import router as users_router
+from app.api.warehouses import router as warehouses_router
 from app.core.config import Settings, get_settings
 from app.core.exceptions import (
     register_exception_handlers,
@@ -70,6 +72,9 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
     application.include_router(cooperatives_router, prefix=app_settings.api_v1_prefix)
     application.include_router(warehouses_router, prefix=app_settings.api_v1_prefix)
     application.include_router(users_router, prefix=app_settings.api_v1_prefix)
+    application.include_router(category_router, prefix=app_settings.api_v1_prefix)
+    application.include_router(product_router, prefix=app_settings.api_v1_prefix)
+    application.include_router(batches_router, prefix=app_settings.api_v1_prefix)
 
     @application.get(
         "/health",

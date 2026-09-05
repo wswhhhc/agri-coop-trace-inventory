@@ -309,7 +309,9 @@ async def database_exception_handler(
     request: Request, exc: SQLAlchemyError
 ) -> JSONResponse:
     """记录不可识别的数据库异常，并隐藏数据库内部细节。"""
-    logger.exception(
+    # 交给根日志通道，避免应用运行时被第三方日志配置改变传播链，导致
+    # 数据库异常只写入某个孤立 handler，遗漏统一的文件、控制台和采集器。
+    logging.getLogger().exception(
         "数据库异常 request_id=%s method=%s path=%s",
         _get_request_id(request),
         request.method,

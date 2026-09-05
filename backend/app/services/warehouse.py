@@ -33,6 +33,7 @@ class WarehouseService:
         context: AuthContext,
         params: WarehouseListParams,
     ) -> tuple[list[Warehouse], int]:
+        self._require_read_role(context)
         async with transaction_scope(self.session):
             return await self.repository.list_scoped(
                 context.cooperative_id,
