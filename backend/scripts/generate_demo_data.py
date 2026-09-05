@@ -14,8 +14,9 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 
 from faker import Faker
 
-DEFAULT_SEED = 20260904
-DEMO_PASSWORD = "Demo@123456"
+from app.core.config import DemoSettings
+
+DEFAULT_SEED = DemoSettings().demo_data_seed
 DEMO_PASSWORD_HASH = (
     "$argon2id$v=19$m=65536,t=3,p=4$Jr7nDhBa/TJu8djiucnYmQ$"
     "PpfaZDyJYSlP+Bgnlm/9Oz7/mPkMsPpg4DDTEibL50k"
@@ -26,6 +27,59 @@ GENERATED_AT = datetime.combine(AS_OF_DATE, time(9), TZ_CST)
 
 Row = dict[str, Any]
 TableRows = tuple[str, list[Row]]
+
+
+def get_demo_password() -> str:
+    """读取本地演示账号密码；演示 SQL 仍使用固定哈希以保持可复现。"""
+    password = DemoSettings().demo_password
+    if password is None:
+        raise RuntimeError("DEMO_PASSWORD 未配置，请在 backend/.env 中填写")
+    return password.get_secret_value()
+
+PERMISSION_SPECS = (
+    ("cooperative:manage", "管理合作社", "organization"),
+    ("user:manage", "管理用户", "identity"),
+    ("warehouse:manage", "管理仓库", "organization"),
+    ("product:manage", "管理产品", "catalog"),
+    ("batch:manage", "管理批次", "batch"),
+    ("inventory:read", "查看库存", "inventory"),
+    ("inventory:write", "办理库存业务", "inventory"),
+    ("trace:read", "查看追溯", "traceability"),
+    ("alert:read", "查看预警", "alerting"),
+    ("alert:handle", "处理预警", "alerting"),
+    ("model:read", "查看预测模型", "forecasting"),
+    ("model:manage", "管理预测模型", "forecasting"),
+    ("audit:read", "查看审计", "audit"),
+)
+
+
+def permission_codes_by_role() -> dict[str, list[str]]:
+    """返回与需求文档一致的演示角色权限边界。"""
+    all_codes = [code for code, _, _ in PERMISSION_SPECS]
+    return {
+        "SYSTEM_ADMIN": [
+            "cooperative:manage",
+            "user:manage",
+            "inventory:read",
+            "trace:read",
+            "alert:read",
+            "model:read",
+            "audit:read",
+        ],
+        "COOPERATIVE_ADMIN": [
+            code for code in all_codes if code != "cooperative:manage"
+        ],
+        "WAREHOUSE_STAFF": [
+            "batch:manage",
+            "inventory:read",
+            "inventory:write",
+            "trace:read",
+            "alert:read",
+            "alert:handle",
+            "model:read",
+            "audit:read",
+        ],
+    }
 
 
 def _uuid(seed: int, label: str) -> UUID:
@@ -116,20 +170,7 @@ def _base_rows(
         },
     ]
 
-    permission_specs = [
-        ("cooperative:manage", "管理合作社", "organization"),
-        ("user:manage", "管理用户", "identity"),
-        ("warehouse:manage", "管理仓库", "organization"),
-        ("product:manage", "管理产品", "catalog"),
-        ("batch:manage", "管理批次", "batch"),
-        ("inventory:read", "查看库存", "inventory"),
-        ("inventory:write", "办理库存业务", "inventory"),
-        ("trace:read", "查看追溯", "traceability"),
-        ("alert:read", "查看预警", "alerting"),
-        ("alert:handle", "处理预警", "alerting"),
-        ("model:manage", "管理预测模型", "forecasting"),
-        ("audit:read", "查看审计", "audit"),
-    ]
+    permission_specs = PERMISSION_SPECS
     permission_ids = {
         code: _uuid(seed, f"permission:{code}") for code, _, _ in permission_specs
     }
@@ -144,22 +185,9 @@ def _base_rows(
         }
         for code, name, module in permission_specs
     ]
-    admin_permissions = [
-        code for code, _, _ in permission_specs if code != "cooperative:manage"
-    ]
-    staff_permissions = [
-        "batch:manage",
-        "inventory:read",
-        "inventory:write",
-        "trace:read",
-        "alert:read",
-    ]
+    role_permissions_by_role = permission_codes_by_role()
     role_permissions: list[Row] = []
-    for role_code, codes in (
-        ("SYSTEM_ADMIN", list(permission_ids)),
-        ("COOPERATIVE_ADMIN", admin_permissions),
-        ("WAREHOUSE_STAFF", staff_permissions),
-    ):
+    for role_code, codes in role_permissions_by_role.items():
         role_permissions.extend(
             {"role_id": role_ids[role_code], "permission_id": permission_ids[code]}
             for code in codes
@@ -781,7 +809,7 @@ def _alert_and_ai_rows(
             }
         )
         model_id = _uuid(seed, f"model:{scope}")
-        model_type = "XGBOOST" if scope_index % 2 == 0 else "RANDOM_FOREST"
+        model_type = "XGBOOST"
         models.append(
             {
                 "id": model_id,
@@ -945,7 +973,7 @@ def _alert_and_ai_rows(
                 "id": _uuid(seed, f"idempotency:{index}"),
                 "cooperative_id": context["cooperative_ids"][coop_index],
                 "user_id": user_id,
-                "endpoint": "/api/v1/inventory-outbounds",
+                "endpoint": "/api/v1/inventory-issues",
                 "idempotency_key": f"synthetic-request-{seed}-{index + 1}",
                 "request_hash": uuid5(NAMESPACE_URL, f"request:{seed}:{index}").hex * 2,
                 "status": "COMPLETED",
