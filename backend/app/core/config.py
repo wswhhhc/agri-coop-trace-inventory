@@ -194,8 +194,15 @@ class Settings(DatabaseSettings):
         errors: list[str] = []
         if self.database_url is None and self.postgres_password is None:
             errors.append("POSTGRES_PASSWORD 或 DATABASE_URL 必须配置")
-        if self.jwt_secret_key.get_secret_value() == "":
+        jwt_secret = self.jwt_secret_key.get_secret_value()
+        if jwt_secret == "":
             errors.append("JWT_SECRET_KEY 必须配置")
+        elif len(jwt_secret.encode("utf-8")) < 32:
+            errors.append("JWT_SECRET_KEY 长度至少为 32 字节")
+        if self.jwt_issuer is None or not self.jwt_issuer.strip():
+            errors.append("JWT_ISSUER 必须配置")
+        if self.jwt_audience is None or not self.jwt_audience.strip():
+            errors.append("JWT_AUDIENCE 必须配置")
         if self.default_page_size > self.max_page_size:
             errors.append("DEFAULT_PAGE_SIZE 不能大于 MAX_PAGE_SIZE")
         if not self.ml_allowed_horizons:

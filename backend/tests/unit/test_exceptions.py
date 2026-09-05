@@ -12,7 +12,9 @@ from fastapi.testclient import TestClient
 def _settings(**overrides: object) -> Settings:
     values: dict[str, object] = {
         "_env_file": None,
-        "jwt_secret_key": "unit-test-secret",
+        "jwt_secret_key": "unit-test-secret-with-at-least-32-bytes",
+        "jwt_issuer": "agri-api",
+        "jwt_audience": "agri-web",
         "postgres_password": "unit-test-password",
     }
     values.update(overrides)

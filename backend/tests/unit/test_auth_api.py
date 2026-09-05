@@ -21,6 +21,8 @@ def _settings(prefix: str) -> Settings:
     return Settings(
         _env_file=None,
         jwt_secret_key="unit-test-secret-with-at-least-32-bytes",
+        jwt_issuer="agri-api",
+        jwt_audience="agri-web",
         postgres_password="unit-test-password",
         redis_url="redis://localhost:6379/14",
         redis_key_prefix=prefix,

@@ -1,15 +1,16 @@
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
-
 from app.core.config import Settings
+from pydantic import ValidationError
 
 
 def _settings(**overrides: object) -> Settings:
     values: dict[str, object] = {
         "_env_file": None,
-        "jwt_secret_key": "unit-test-secret",
+        "jwt_secret_key": "unit-test-secret-with-at-least-32-bytes",
+        "jwt_issuer": "agri-api",
+        "jwt_audience": "agri-web",
         "postgres_password": "unit-test-password",
     }
     values.update(overrides)
@@ -67,3 +68,16 @@ def test_production_settings_reject_placeholder_secret_and_insecure_cookie() -> 
 def test_production_settings_require_secure_refresh_cookie() -> None:
     with pytest.raises(ValidationError, match="REFRESH_TOKEN_COOKIE_SECURE"):
         _settings(app_env="production", refresh_token_cookie_secure=False)
+
+
+def test_settings_require_jwt_issuer_and_audience() -> None:
+    with pytest.raises(ValidationError, match="JWT_ISSUER"):
+        _settings(jwt_issuer="")
+
+    with pytest.raises(ValidationError, match="JWT_AUDIENCE"):
+        _settings(jwt_audience="")
+
+
+def test_settings_require_jwt_secret_key_of_at_least_32_bytes() -> None:
+    with pytest.raises(ValidationError, match="JWT_SECRET_KEY"):
+        _settings(jwt_secret_key="short-secret")
