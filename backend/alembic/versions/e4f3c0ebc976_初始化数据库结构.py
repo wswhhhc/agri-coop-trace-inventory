@@ -73,6 +73,7 @@ def upgrade() -> None:
         sa.Column("description", sa.String(255)),
         sa.Column("is_system", sa.Boolean(), nullable=False, server_default=sa.false()),
         _created_at_column(),
+        _updated_at_column(),
         sa.UniqueConstraint("code", name="uq_roles_code"),
     )
     op.create_table(
@@ -83,6 +84,7 @@ def upgrade() -> None:
         sa.Column("module", sa.String(32), nullable=False),
         sa.Column("description", sa.String(255)),
         _created_at_column(),
+        _updated_at_column(),
         sa.UniqueConstraint("code", name="uq_permissions_code"),
     )
     op.create_table(
@@ -1032,6 +1034,7 @@ def upgrade() -> None:
             "detail", JSONB, nullable=False, server_default=sa.text("'{}'::jsonb")
         ),
         _created_at_column(),
+        _updated_at_column(),
         sa.CheckConstraint(
             "result IN ('SUCCESS', 'FAILURE')", name="ck_audit_logs_result"
         ),

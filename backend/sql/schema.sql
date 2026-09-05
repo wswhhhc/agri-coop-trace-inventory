@@ -35,6 +35,7 @@ CREATE TABLE roles (
     description VARCHAR(255), 
     is_system BOOLEAN DEFAULT false NOT NULL, 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL, 
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL, 
     PRIMARY KEY (id), 
     CONSTRAINT uq_roles_code UNIQUE (code)
 );
@@ -46,6 +47,7 @@ CREATE TABLE permissions (
     module VARCHAR(32) NOT NULL, 
     description VARCHAR(255), 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL, 
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL, 
     PRIMARY KEY (id), 
     CONSTRAINT uq_permissions_code UNIQUE (code)
 );
@@ -558,6 +560,7 @@ CREATE TABLE audit_logs (
     user_agent VARCHAR(500), 
     detail JSONB DEFAULT '{}'::jsonb NOT NULL, 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL, 
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL, 
     PRIMARY KEY (id), 
     CONSTRAINT ck_audit_logs_result CHECK (result IN ('SUCCESS', 'FAILURE')), 
     FOREIGN KEY(cooperative_id) REFERENCES cooperatives (id) ON DELETE RESTRICT, 

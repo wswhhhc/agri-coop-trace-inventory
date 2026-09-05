@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
-from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, String, Uuid, text
+from sqlalchemy import JSON, CheckConstraint, ForeignKey, String, Uuid
 from sqlalchemy.dialects.postgresql import INET, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models._common import utc_now
 from app.models.base import Base
 
 _IP_ADDRESS_TYPE = INET().with_variant(String(45), "sqlite")
@@ -23,12 +21,6 @@ class AuditLog(Base):
         ),
     )
 
-    id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        primary_key=True,
-        default=uuid4,
-        server_default=text("gen_random_uuid()"),
-    )
     cooperative_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("cooperatives.id", ondelete="RESTRICT"),
@@ -49,12 +41,6 @@ class AuditLog(Base):
         _DETAIL_TYPE,
         nullable=False,
         default=dict,
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=utc_now,
-        server_default=text("CURRENT_TIMESTAMP"),
     )
 
 

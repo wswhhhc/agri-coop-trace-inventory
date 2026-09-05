@@ -2,22 +2,22 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import TYPE_CHECKING
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from sqlalchemy import (
     CheckConstraint,
+    Enum as SqlEnum,
     DateTime,
     ForeignKey,
     Index,
     String,
     UniqueConstraint,
     Uuid,
-    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models._common import utc_now
 from app.models.base import Base
+from app.models.enums import UserStatus
 
 if TYPE_CHECKING:
     from app.models.cooperative import Cooperative
@@ -31,19 +31,10 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint("username = lower(username)", name="ck_users_username_lower"),
-        CheckConstraint(
-            "status IN ('ACTIVE', 'LOCKED', 'INACTIVE')", name="ck_users_status"
-        ),
         UniqueConstraint("username", name="uq_users_username"),
         Index("ix_users_cooperative_status", "cooperative_id", "status"),
     )
 
-    id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        primary_key=True,
-        default=uuid4,
-        server_default=text("gen_random_uuid()"),
-    )
     cooperative_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("cooperatives.id", ondelete="RESTRICT"),
@@ -57,23 +48,19 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     real_name: Mapped[str] = mapped_column(String(50), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(20))
-    status: Mapped[str] = mapped_column(
-        String(16), nullable=False, default="ACTIVE", server_default="ACTIVE"
+    status: Mapped[UserStatus] = mapped_column(
+        SqlEnum(
+            UserStatus,
+            native_enum=False,
+            create_constraint=True,
+            name="ck_users_status",
+            length=16,
+        ),
+        nullable=False,
+        default=UserStatus.ACTIVE,
+        server_default=UserStatus.ACTIVE.value,
     )
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=utc_now,
-        server_default=text("CURRENT_TIMESTAMP"),
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=utc_now,
-        onupdate=utc_now,
-        server_default=text("CURRENT_TIMESTAMP"),
-    )
 
     cooperative: Mapped[Cooperative | None] = relationship(
         "Cooperative", back_populates="users"
