@@ -4,6 +4,7 @@ import { computed, reactive, ref } from 'vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import { createBatch, listBatches, type BatchCreatePayload } from '@/api/batches'
 import { listProducts } from '@/api/products'
 import { useListPage, usePageData } from '@/composables/usePageData'
@@ -28,6 +29,13 @@ const form = reactive<BatchCreatePayload>({
 
 function productName(productId: string): string {
   return productState.data.value.find((product) => product.id === productId)?.name ?? '—'
+}
+
+function batchStatusTone(value: string): 'success' | 'warning' | 'danger' | 'info' {
+  if (value === 'IN_STOCK') return 'success'
+  if (value === 'EXPIRED' || value === 'BLOCKED') return 'danger'
+  if (value === 'DEPLETED') return 'warning'
+  return 'info'
 }
 
 function resetForm(): void {
@@ -65,7 +73,7 @@ async function handleSubmit(): Promise<void> {
 
 <template>
   <section class="batch-list-page">
-    <PageHeader title="批次管理" description="创建和查看农产品生产批次。" />
+    <PageHeader eyebrow="全程追溯" title="批次管理" description="创建和查看农产品生产批次。" />
     <PageContext />
     <form v-if="canManage" class="batch-create-form" @submit.prevent="handleSubmit">
       <h2>新增批次</h2>
@@ -128,7 +136,7 @@ async function handleSubmit(): Promise<void> {
             <td>{{ batch.origin }}</td>
             <td>{{ batch.productionDate }}</td>
             <td>{{ batch.expiryDate }}</td>
-            <td>{{ batch.status }}</td>
+            <td><StatusBadge :label="batch.status" :tone="batchStatusTone(batch.status)" /></td>
             <td><RouterLink :to="{ name: 'batch-detail', params: { batchId: batch.id } }">查看</RouterLink></td>
           </tr>
         </tbody>
