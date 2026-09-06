@@ -12,6 +12,9 @@ export interface CooperativeSummary {
   id: string
   code: string
   name: string
+  address: string | null
+  contactName: string | null
+  contactPhone: string | null
   status: string
 }
 
