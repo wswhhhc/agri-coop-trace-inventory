@@ -26,13 +26,35 @@ def scan_alerts_task(
     task_record_id: str | None = None,
 ) -> dict[str, int]:
     """Celery 同步入口；实际扫描在异步 Session 中完成。"""
-    return asyncio.run(_run_scan(cooperative_id, task_record_id, self.request.id))
+    settings = get_settings()
+    try:
+        return asyncio.run(
+            _run_scan(
+                cooperative_id,
+                task_record_id,
+                self.request.id,
+                retry_count=self.request.retries,
+                max_retries=settings.celery_task_max_retries,
+            )
+        )
+    except Exception as error:
+        if self.request.retries < settings.celery_task_max_retries:
+            raise self.retry(
+                exc=error,
+                countdown=settings.celery_task_retry_backoff_seconds
+                * (2**self.request.retries),
+                max_retries=settings.celery_task_max_retries,
+            ) from error
+        raise
 
 
 async def _run_scan(
     cooperative_id: str | None,
     task_record_id: str | None,
     celery_task_id: str,
+    *,
+    retry_count: int,
+    max_retries: int,
 ) -> dict[str, int]:
     settings = get_settings()
     engine = create_database_engine(settings)
@@ -66,7 +88,11 @@ async def _run_scan(
             async with session_factory() as session, session.begin():
                 record = await session.get(TaskRecord, record_uuid, with_for_update=True)
                 if record is not None:
-                    record.status = TaskStatus.FAILURE
+                    record.status = (
+                        TaskStatus.FAILURE
+                        if retry_count >= max_retries
+                        else TaskStatus.RETRY
+                    )
                     record.finished_at = datetime.now(UTC)
                     record.error_code = "ALERT_SCAN_FAILED"
                     record.error_message = str(error)[:500]

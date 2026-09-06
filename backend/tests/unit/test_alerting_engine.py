@@ -26,7 +26,7 @@ def _inventory(*, quantity="8", locked="1", safety="10", expiry=date(2026, 10, 1
     return SimpleNamespace(
         id=uuid4(), cooperative_id=uuid4(), warehouse_id=uuid4(), batch_id=uuid4(),
         quantity=Decimal(quantity), locked_quantity=Decimal(locked),
-        batch=SimpleNamespace(expiry_date=expiry, product=SimpleNamespace(id=uuid4(), name="玉米", safety_stock=Decimal(safety))),
+        batch=SimpleNamespace(expiry_date=expiry, production_date=date(2026, 1, 1), product=SimpleNamespace(id=uuid4(), name="玉米", safety_stock=Decimal(safety))),
     )
 
 
@@ -47,7 +47,7 @@ def test_near_expiry_and_overstock_rules_use_configured_thresholds() -> None:
     assert result.evidence["daysRemaining"] == 4
 
     over = _inventory(quantity="100", locked="0", safety="10")
-    result = evaluate_inventory_rule(_rule(AlertType.OVERSTOCK, threshold_quantity=Decimal(90)), over, date(2026, 9, 6))
+    result = evaluate_inventory_rule(_rule(AlertType.OVERSTOCK, threshold_quantity=Decimal(90), turnover_days=30), over, date(2026, 9, 6))
     assert result is not None
     assert result.evidence["quantity"] == 100.0
 

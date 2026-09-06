@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+from collections.abc import Callable
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,14 +29,20 @@ from app.services.inventory_policy import (
 )
 from app.services.traceability import TraceabilityCache
 
+logger = logging.getLogger(__name__)
+
 
 class InventoryService:
     """库存业务门面；查询和变更分别委托给专门的用例服务。"""
 
     def __init__(
-        self, session: AsyncSession, cache: TraceabilityCache | None = None
+        self,
+        session: AsyncSession,
+        cache: TraceabilityCache | None = None,
+        alert_scheduler: Callable[..., object] | None = None,
     ) -> None:
         self.session = session
+        self.alert_scheduler = alert_scheduler
         repository = InventoryRepository(session)
         self.repository = repository
         self._mutation_service = InventoryMutationService(
@@ -43,6 +51,14 @@ class InventoryService:
             IdempotencyRecordRepository(session),
             cache,
         )
+
+    def _schedule_alert_scan(self, context: AuthContext) -> None:
+        if self.alert_scheduler is None or context.cooperative_id is None:
+            return
+        try:
+            self.alert_scheduler(args=[str(context.cooperative_id)], kwargs={})
+        except Exception:
+            logger.exception("库存变更后提交预警扫描任务失败 cooperative_id=%s", context.cooperative_id)
 
     async def list_current(
         self, context: AuthContext, params: InventoryListParams
@@ -111,26 +127,36 @@ class InventoryService:
     async def receive(
         self, context: AuthContext, payload: InventoryReceiptCreate, idempotency_key: str
     ) -> dict[str, object]:
-        return await self._mutation_service.receive(context, payload, idempotency_key)
+        result = await self._mutation_service.receive(context, payload, idempotency_key)
+        self._schedule_alert_scan(context)
+        return result
 
     async def issue(
         self, context: AuthContext, payload: InventoryIssueCreate, idempotency_key: str
     ) -> dict[str, object]:
-        return await self._mutation_service.issue(context, payload, idempotency_key)
+        result = await self._mutation_service.issue(context, payload, idempotency_key)
+        self._schedule_alert_scan(context)
+        return result
 
     async def loss(
         self, context: AuthContext, payload: InventoryLossCreate, idempotency_key: str
     ) -> dict[str, object]:
-        return await self._mutation_service.loss(context, payload, idempotency_key)
+        result = await self._mutation_service.loss(context, payload, idempotency_key)
+        self._schedule_alert_scan(context)
+        return result
 
     async def transfer(
         self, context: AuthContext, payload: StockTransferCreate, idempotency_key: str
     ) -> dict[str, object]:
-        return await self._mutation_service.transfer(context, payload, idempotency_key)
+        result = await self._mutation_service.transfer(context, payload, idempotency_key)
+        self._schedule_alert_scan(context)
+        return result
 
     async def stocktake(
         self, context: AuthContext, payload: StocktakeCreate, idempotency_key: str
     ) -> dict[str, object]:
-        return await self._mutation_service.stocktake(context, payload, idempotency_key)
+        result = await self._mutation_service.stocktake(context, payload, idempotency_key)
+        self._schedule_alert_scan(context)
+        return result
 
 __all__ = ["InventoryService"]

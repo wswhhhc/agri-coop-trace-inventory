@@ -27,6 +27,7 @@ from app.schemas.inventory import (
 from app.services.inventory import InventoryService
 from app.services.inventory_presenter import inventory_data, transaction_data
 from app.services.traceability import TraceabilityCache
+from app.tasks.alerting_tasks import scan_alerts_task
 
 router = APIRouter(tags=["inventory"])
 
@@ -35,7 +36,7 @@ def get_inventory_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     cache: Annotated[TraceabilityCache, Depends(get_traceability_cache)],
 ) -> InventoryService:
-    return InventoryService(session, cache)
+    return InventoryService(session, cache, scan_alerts_task.apply_async)
 
 
 @router.get("/inventories", response_model=ListResponse[InventoryData])

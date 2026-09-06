@@ -43,8 +43,17 @@ def evaluate_inventory_rule(rule, inventory, today: date) -> AlertEvaluation | N
         threshold = rule.threshold_quantity
         if threshold is None:
             threshold = Decimal(inventory.batch.product.safety_stock) * 10
-        triggered = available >= Decimal(threshold)
-        evidence = {"quantity": float(available), "thresholdQuantity": float(threshold)}
+        days_in_stock = max(0, (today - inventory.batch.production_date).days)
+        turnover_days = rule.turnover_days
+        triggered = available >= Decimal(threshold) and (
+            turnover_days is None or days_in_stock >= turnover_days
+        )
+        evidence = {
+            "quantity": float(available),
+            "thresholdQuantity": float(threshold),
+            "daysInStock": days_in_stock,
+            "turnoverDays": turnover_days,
+        }
         message = f"当前可用库存{available:g}，达到积压阈值{Decimal(threshold):g}"
     else:
         return None
