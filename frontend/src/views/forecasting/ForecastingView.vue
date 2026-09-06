@@ -16,6 +16,8 @@ import { listWarehouses } from '@/api/warehouses'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
+import TaskProgress from '@/components/common/TaskProgress.vue'
 import { useListPage } from '@/composables/usePageData'
 import { usePageData } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
@@ -65,6 +67,10 @@ const trainingForm = reactive({
   testRatio: 0.2,
   randomSeed: 42,
 })
+
+function modelStatusTone(active: boolean): 'success' | 'neutral' {
+  return active ? 'success' : 'neutral'
+}
 
 async function loadDetail(modelVersionId: string): Promise<void> {
   detailLoading.value = true
@@ -159,7 +165,7 @@ async function handleForecastSubmit(): Promise<void> {
 
 <template>
   <section class="forecasting-page">
-    <PageHeader title="AI 预测" description="查看模型版本、训练范围和评估指标。" />
+    <PageHeader eyebrow="智能决策" title="AI 预测" description="查看模型版本、训练范围和评估指标。" />
     <PageContext />
     <form v-if="canTrain" class="model-training-form" @submit.prevent="handleTrainingSubmit">
       <h2>提交模型训练</h2>
@@ -186,7 +192,7 @@ async function handleForecastSubmit(): Promise<void> {
       <label>测试比例 <input v-model.number="trainingForm.testRatio" type="number" min="0.01" max="0.99" step="0.01" required /></label>
       <label>随机种子 <input v-model.number="trainingForm.randomSeed" type="number" min="0" step="1" required /></label>
       <button type="submit" :disabled="trainingSubmitting">{{ trainingSubmitting ? '训练中…' : '提交训练任务' }}</button>
-      <p v-if="trainingTask" role="status">训练任务：{{ trainingTask.status }}，进度 {{ trainingTask.progress }}%</p>
+      <TaskProgress v-if="trainingTask" label="模型训练任务" :status="trainingTask.status" :progress="trainingTask.progress" />
       <p v-if="trainingTask?.errorMessage" role="alert">{{ trainingTask.errorMessage }}</p>
       <p v-if="trainingError" role="alert">{{ trainingError }}</p>
     </form>
@@ -220,7 +226,7 @@ async function handleForecastSubmit(): Promise<void> {
       <button type="submit" :disabled="forecastSubmitting">
         {{ forecastSubmitting ? '预测中…' : '提交预测任务' }}
       </button>
-      <p v-if="forecastTask" role="status">预测任务：{{ forecastTask.status }}，进度 {{ forecastTask.progress }}%</p>
+      <TaskProgress v-if="forecastTask" label="需求预测任务" :status="forecastTask.status" :progress="forecastTask.progress" />
       <p v-if="forecastTask?.errorMessage" role="alert">{{ forecastTask.errorMessage }}</p>
       <p v-if="forecastError" role="alert">{{ forecastError }}</p>
     </form>
@@ -245,7 +251,7 @@ async function handleForecastSubmit(): Promise<void> {
             <td>{{ model.modelType }}</td>
             <td>{{ model.trainingStartDate }} ～ {{ model.trainingEndDate }}</td>
             <td>{{ model.dataType }}</td>
-            <td>{{ model.isActive ? '已激活' : '未激活' }}</td>
+            <td><StatusBadge :label="model.isActive ? '已激活' : '未激活'" :tone="modelStatusTone(model.isActive)" /></td>
             <td>
               <button type="button" @click="loadDetail(model.id)">查看详情</button>
               <button
