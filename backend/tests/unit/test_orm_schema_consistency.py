@@ -205,6 +205,19 @@ ORM_TABLE_COLUMNS = {
         "created_by",
         "created_at",
     },
+    "alert_rules": {
+        "id", "cooperative_id", "warehouse_id", "product_id", "alert_type",
+        "threshold_quantity", "threshold_days", "turnover_days", "severity",
+        "is_enabled", "created_at", "updated_at",
+    },
+    "alerts": {
+        "id", "cooperative_id", "rule_id", "alert_type", "severity", "status",
+        "warehouse_id", "product_id", "batch_id", "dedupe_key", "title", "message",
+        "evidence", "detected_at", "resolved_at", "assignee_id", "created_at", "updated_at",
+    },
+    "alert_handling_logs": {
+        "id", "alert_id", "operator_id", "from_status", "to_status", "comment", "created_at",
+    },
 }
 
 
@@ -283,6 +296,30 @@ def test_target_tables_have_foreign_keys_and_expected_indexes() -> None:
     assert {
         index.name for index in Base.metadata.tables["trace_events"].indexes
     } == {"ix_trace_events_batch_time"}
+    assert {
+        foreign_key.target_fullname
+        for foreign_key in Base.metadata.tables["alert_rules"].foreign_keys
+    } == {"cooperatives.id", "warehouses.id", "products.id"}
+    assert {
+        foreign_key.target_fullname
+        for foreign_key in Base.metadata.tables["alerts"].foreign_keys
+    } == {
+        "cooperatives.id", "alert_rules.id", "warehouses.id", "products.id",
+        "batches.id", "users.id",
+    }
+    assert {
+        foreign_key.target_fullname
+        for foreign_key in Base.metadata.tables["alert_handling_logs"].foreign_keys
+    } == {"alerts.id", "users.id"}
+    assert {
+        index.name for index in Base.metadata.tables["alert_rules"].indexes
+    } == {"ix_alert_rules_scope"}
+    assert {
+        index.name for index in Base.metadata.tables["alerts"].indexes
+    } == {"uq_alerts_active_dedupe", "ix_alerts_workbench"}
+    assert {
+        index.name for index in Base.metadata.tables["alert_handling_logs"].indexes
+    } == {"ix_alert_handling_logs_alert_time"}
 
 
 @pytest.mark.asyncio

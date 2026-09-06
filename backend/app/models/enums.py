@@ -79,6 +79,27 @@ class InventoryRisk(StrEnum):
     OVERSTOCK = "OVERSTOCK"
 
 
+class AlertType(StrEnum):
+    LOW_STOCK = "LOW_STOCK"
+    NEAR_EXPIRY = "NEAR_EXPIRY"
+    OVERSTOCK = "OVERSTOCK"
+    QUALITY_FAILED = "QUALITY_FAILED"
+
+
+class AlertSeverity(StrEnum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+
+class AlertStatus(StrEnum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    RESOLVED = "RESOLVED"
+    IGNORED = "IGNORED"
+
+
 class IdempotencyStatus(StrEnum):
     PROCESSING = "PROCESSING"
     COMPLETED = "COMPLETED"
@@ -86,6 +107,9 @@ class IdempotencyStatus(StrEnum):
 
 
 __all__ = [
+    "AlertSeverity",
+    "AlertStatus",
+    "AlertType",
     "BatchStatus",
     "CooperativeStatus",
     "IdempotencyStatus",
