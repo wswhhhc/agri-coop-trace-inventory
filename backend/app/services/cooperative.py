@@ -10,7 +10,7 @@ from app.core.auth.authorization import (
     resource_not_found,
 )
 from app.core.auth.context import AuthContext
-from app.core.exceptions import AppException
+from app.core.validation import require_non_empty_update
 from app.infrastructure.transaction import transaction_scope
 from app.models import Cooperative
 from app.repositories.cooperative import CooperativeRepository
@@ -81,13 +81,7 @@ class CooperativeService:
     ) -> Cooperative:
         self._require_manage_permission(context)
         ensure_cooperative_scope(context, cooperative_id)
-        values = payload.model_dump(exclude_unset=True)
-        if not values:
-            raise AppException(
-                code="BAD_REQUEST",
-                message="至少提供一个需要更新的字段",
-                status_code=400,
-            )
+        values = require_non_empty_update(payload.model_dump(exclude_unset=True))
         async with transaction_scope(self.session):
             cooperative = await self.repository.get_scoped(
                 context.cooperative_id, cooperative_id

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from io import BytesIO
-from math import ceil
 from typing import Annotated
 from urllib.parse import quote
 from uuid import UUID
@@ -12,6 +11,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import StreamingResponse
 
+from app.api._pagination import build_pagination_meta
 from app.core.auth.dependencies import CurrentAuthContext
 from app.core.auth.public_rate_limit import (
     PublicRateLimiter,
@@ -23,7 +23,7 @@ from app.core.exceptions import AppException
 from app.infrastructure.database import get_db_session
 from app.infrastructure.redis import get_redis_client
 from app.models import TraceEvent
-from app.schemas.common import ApiResponse, ListResponse, PaginationMeta
+from app.schemas.common import ApiResponse, ListResponse
 from app.schemas.traceability import (
     PublicTraceData,
     TraceEventData,
@@ -112,12 +112,7 @@ async def list_trace_events(
     items, total = await service.list_internal(context, batch_id, params)
     return ListResponse(
         data=[_trace_event_data(item) for item in items],
-        pagination=PaginationMeta(
-            page=params.page,
-            page_size=params.page_size,
-            total_items=total,
-            total_pages=ceil(total / params.page_size) if total else 0,
-        ),
+        pagination=build_pagination_meta(total, params.page, params.page_size),
     )
 
 

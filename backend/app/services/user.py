@@ -13,6 +13,7 @@ from app.core.auth.authorization import (
 from app.core.auth.context import AuthContext
 from app.core.exceptions import AppException
 from app.core.security import hash_password
+from app.core.validation import require_non_empty_update
 from app.infrastructure.transaction import transaction_scope
 from app.models import (
     SYSTEM_ADMIN_ROLE_CODE,
@@ -155,12 +156,7 @@ class UserService:
                     role.code, user.cooperative_id
                 )
                 values["role_id"] = role.id
-            if not values:
-                raise AppException(
-                    code="BAD_REQUEST",
-                    message="至少提供一个需要更新的字段",
-                    status_code=400,
-                )
+            require_non_empty_update(values)
             await self.repository.update(user, values)
             loaded = await self.repository.get_scoped(
                 context.cooperative_id, user.id

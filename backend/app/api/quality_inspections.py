@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 import logging
-from math import ceil
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api._pagination import build_pagination_meta
 from app.api.traceability import get_traceability_cache
 from app.core.audit.service import AuditEvent, AuditLogService
 from app.core.auth.dependencies import CurrentAuthContext, get_audit_log_service
 from app.core.exceptions import AppException
 from app.infrastructure.database import get_db_session
 from app.models import QualityInspection
-from app.schemas.common import ApiResponse, ListResponse, PaginationMeta
+from app.schemas.common import ApiResponse, ListResponse
 from app.schemas.quality_inspection import (
     QualityInspectionCreate,
     QualityInspectionData,
@@ -89,12 +89,7 @@ async def list_quality_inspections(
     items, total = await service.list(context, batch_id, params)
     return ListResponse(
         data=[_quality_inspection_data(item) for item in items],
-        pagination=PaginationMeta(
-            page=params.page,
-            page_size=params.page_size,
-            total_items=total,
-            total_pages=ceil(total / params.page_size) if total else 0,
-        ),
+        pagination=build_pagination_meta(total, params.page, params.page_size),
     )
 
 

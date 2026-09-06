@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from math import ceil
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api._pagination import build_pagination_meta
 from app.core.auth.dependencies import CurrentAuthContext
 from app.infrastructure.database import get_db_session
-from app.schemas.common import ApiResponse, ListResponse, PaginationMeta
+from app.schemas.common import ApiResponse, ListResponse
 from app.schemas.warehouse import (
     WarehouseCreate,
     WarehouseData,
@@ -36,12 +36,7 @@ async def list_warehouses(
     items, total = await service.list(context, params)
     return ListResponse(
         data=[WarehouseData.model_validate(item) for item in items],
-        pagination=PaginationMeta(
-            page=params.page,
-            page_size=params.page_size,
-            total_items=total,
-            total_pages=ceil(total / params.page_size) if total else 0,
-        ),
+        pagination=build_pagination_meta(total, params.page, params.page_size),
     )
 
 

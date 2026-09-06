@@ -11,6 +11,7 @@ from app.core.auth.authorization import (
 )
 from app.core.auth.context import AuthContext
 from app.core.exceptions import AppException
+from app.core.validation import require_non_empty_update
 from app.infrastructure.transaction import transaction_scope
 from app.models import (
     SYSTEM_ADMIN_ROLE_CODE,
@@ -89,13 +90,7 @@ class ProductCategoryService:
         payload: ProductCategoryUpdate,
     ) -> ProductCategory:
         self._require_manage(context)
-        values = payload.model_dump(exclude_unset=True)
-        if not values:
-            raise AppException(
-                code="BAD_REQUEST",
-                message="至少提供一个需要更新的字段",
-                status_code=400,
-            )
+        values = require_non_empty_update(payload.model_dump(exclude_unset=True))
         async with transaction_scope(self.session):
             category = await self.repository.get_scoped(
                 context.cooperative_id,
@@ -202,13 +197,7 @@ class ProductService:
         payload: ProductUpdate,
     ) -> Product:
         self._require_manage(context)
-        values = payload.model_dump(exclude_unset=True)
-        if not values:
-            raise AppException(
-                code="BAD_REQUEST",
-                message="至少提供一个需要更新的字段",
-                status_code=400,
-            )
+        values = require_non_empty_update(payload.model_dump(exclude_unset=True))
         async with transaction_scope(self.session):
             product = await self.repository.get_scoped(
                 context.cooperative_id,

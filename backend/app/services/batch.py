@@ -13,6 +13,7 @@ from app.core.auth.authorization import (
 )
 from app.core.auth.context import AuthContext
 from app.core.exceptions import AppException, StatusNotAllowedError
+from app.core.validation import require_non_empty_update
 from app.infrastructure.transaction import transaction_scope
 from app.models import (
     SYSTEM_ADMIN_ROLE_CODE,
@@ -154,13 +155,7 @@ class BatchService:
                 and batch.created_by != context.user_id
             ):
                 raise permission_denied()
-            values = payload.model_dump(exclude_unset=True)
-            if not values:
-                raise AppException(
-                    code="BAD_REQUEST",
-                    message="至少提供一个需要更新的字段",
-                    status_code=400,
-                )
+            values = require_non_empty_update(payload.model_dump(exclude_unset=True))
             if "expiry_date" in values and values["expiry_date"] < batch.production_date:
                 raise AppException(
                     code="BAD_REQUEST",
