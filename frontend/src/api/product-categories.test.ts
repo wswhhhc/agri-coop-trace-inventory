@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { listProductCategories } from './product-categories'
+import { createProductCategory, listProductCategories } from './product-categories'
 
 vi.mock('./http', () => ({
-  default: { get: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn() },
 }))
 
 describe('product categories api', () => {
@@ -29,5 +29,21 @@ describe('product categories api', () => {
     await expect(listProductCategories()).resolves.toEqual([
       { id: 'category-1', code: 'VEG', name: '蔬菜', isActive: true },
     ])
+  })
+
+  it('creates a category and returns the created resource', async () => {
+    vi.mocked(http.post).mockResolvedValueOnce({
+      data: { data: { id: 'category-2', code: 'FRUIT', name: '水果', isActive: true } },
+    })
+
+    await expect(
+      createProductCategory({ code: 'FRUIT', name: '水果', description: null }),
+    ).resolves.toEqual({ id: 'category-2', code: 'FRUIT', name: '水果', isActive: true })
+
+    expect(http.post).toHaveBeenCalledWith('/product-categories', {
+      code: 'FRUIT',
+      name: '水果',
+      description: null,
+    })
   })
 })

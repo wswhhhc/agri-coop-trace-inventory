@@ -10,6 +10,12 @@ export interface ProductCategoryListParams {
   isActive?: boolean
 }
 
+export interface ProductCategoryCreatePayload {
+  code: string
+  name: string
+  description: string | null
+}
+
 export async function listProductCategories(
   options: ProductCategoryListParams = {},
 ): Promise<ProductCategorySummary[]> {
@@ -22,5 +28,15 @@ export async function listProductCategories(
   const response = await http.get<ListResponse<ProductCategorySummary>>('/product-categories', {
     params,
   })
+  return response.data.data
+}
+
+export async function createProductCategory(
+  payload: ProductCategoryCreatePayload,
+): Promise<ProductCategorySummary> {
+  const response = await http.post<{ data: ProductCategorySummary }>(
+    '/product-categories',
+    payload,
+  )
   return response.data.data
 }
