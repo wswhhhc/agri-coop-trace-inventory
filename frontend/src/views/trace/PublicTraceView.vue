@@ -71,3 +71,135 @@ function statusTone(value: string): 'success' | 'warning' | 'danger' | 'info' {
     </PageState>
   </main>
 </template>
+
+<style scoped>
+.public-trace-page {
+  width: min(100%, 56rem);
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-5) var(--space-12);
+  background: var(--color-bg);
+}
+
+.public-trace-page__kicker {
+  margin-bottom: var(--space-2);
+  color: var(--color-brand);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.public-trace-page h1 {
+  margin-bottom: var(--space-6);
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+}
+
+.public-trace-page > .page-state {
+  display: grid;
+  gap: var(--space-5);
+  place-items: stretch;
+  text-align: left;
+}
+
+.public-trace-page > .page-state > p:first-child {
+  margin: 0;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-4);
+  color: var(--color-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.public-trace-page > .page-state > section {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.public-trace-page > .page-state h2 {
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-lg);
+}
+
+.public-trace-page > .page-state dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.public-trace-page > .page-state dl > div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.public-trace-page > .page-state dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.public-trace-page > .page-state dd {
+  margin: 0;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.public-trace-page > .page-state ul {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.public-trace-page > .page-state ol {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.public-trace-page > .page-state ol li {
+  padding-left: var(--space-2);
+}
+
+.public-trace-page > .page-state time {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.public-trace-page > .page-state ol p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.public-trace-page > .page-state > p[role='note'] {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-relaxed);
+}
+
+@media (max-width: 48rem) {
+  .public-trace-page {
+    padding: var(--space-6) var(--space-4) var(--space-10);
+  }
+
+  .public-trace-page > .page-state > section {
+    padding: var(--space-4);
+  }
+
+  .public-trace-page > .page-state dl {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

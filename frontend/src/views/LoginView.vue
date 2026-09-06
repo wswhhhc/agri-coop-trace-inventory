@@ -73,3 +73,34 @@ async function handleSubmit(): Promise<void> {
     </section>
   </main>
 </template>
+
+<style scoped>
+.login-page {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: var(--space-6);
+  background:
+    radial-gradient(circle at 15% 15%, var(--color-brand-soft), transparent 32%),
+    var(--color-bg);
+}
+
+.login-panel {
+  width: min(100%, 28rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.login-panel form,
+.login-panel form > div {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.login-panel form {
+  gap: var(--space-5);
+}
+</style>
