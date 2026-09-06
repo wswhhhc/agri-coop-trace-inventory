@@ -320,3 +320,140 @@ async function runAlertScan(): Promise<void> {
     </form>
   </section>
 </template>
+
+<style scoped>
+.alert-list-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.alert-list-page > .page-state,
+.alert-instance-list > .page-state {
+  overflow-x: auto;
+}
+
+.alert-list-page > .page-state table,
+.alert-instance-list > .page-state table {
+  min-width: 54rem;
+}
+
+.alert-list-page > button {
+  justify-self: start;
+}
+
+.alert-instance-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.alert-instance-list h2,
+.alert-detail h2,
+.alert-rule-edit-form h2 {
+  margin-bottom: 0;
+  font-size: var(--font-size-lg);
+}
+
+.alert-detail,
+.alert-rule-edit-form {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.alert-detail {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.alert-detail dl {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.alert-detail dl > div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.35fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-2);
+}
+
+.alert-detail dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.alert-detail dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.alert-handle-form,
+.alert-rule-edit-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.alert-handle-form {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-4);
+}
+
+.alert-handle-form h3,
+.alert-handle-form > label:nth-of-type(2),
+.alert-handle-form > p,
+.alert-rule-edit-form h2 {
+  grid-column: 1 / -1;
+}
+
+.alert-handle-form > label,
+.alert-rule-edit-form > label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.alert-handle-form > button,
+.alert-rule-edit-form > button {
+  justify-self: start;
+}
+
+.alert-handle-form > p[role='alert'],
+.alert-rule-edit-form > p[role='alert'] {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+@media (max-width: 48rem) {
+  .alert-detail dl > div {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+
+  .alert-handle-form,
+  .alert-rule-edit-form {
+    grid-template-columns: 1fr;
+  }
+
+  .alert-handle-form h3,
+  .alert-handle-form > label:nth-of-type(2),
+  .alert-handle-form > p,
+  .alert-rule-edit-form h2 {
+    grid-column: auto;
+  }
+
+  .alert-handle-form > button,
+  .alert-rule-edit-form > button {
+    justify-self: stretch;
+  }
+}
+</style>

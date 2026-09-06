@@ -122,3 +122,58 @@ async function handleDownload(): Promise<void> {
     <p v-if="downloadError" role="alert">{{ downloadError }}</p>
   </section>
 </template>
+
+<style scoped>
+.export-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.export-page > form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.export-page > form label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.export-page > button {
+  justify-self: start;
+}
+
+.export-page > p[role='alert'],
+.export-page > p[role='status'] {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.export-page > p[role='alert'] {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+@media (max-width: 48rem) {
+  .export-page > form {
+    grid-template-columns: 1fr;
+    padding: var(--space-4);
+  }
+
+  .export-page > button {
+    justify-self: stretch;
+  }
+}
+</style>
