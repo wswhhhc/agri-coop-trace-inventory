@@ -7,20 +7,23 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.traceability import get_traceability_cache
 from app.core.auth.dependencies import CurrentAuthContext
 from app.infrastructure.database import get_db_session
 from app.models import Batch
 from app.schemas.batch import BatchCreate, BatchData, BatchListParams, BatchUpdate
 from app.schemas.common import ApiResponse, ListResponse, PaginationMeta
 from app.services.batch import BatchService
+from app.services.traceability import TraceabilityCache
 
 router = APIRouter(prefix="/batches", tags=["batches"])
 
 
 def get_batch_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
+    cache: Annotated[TraceabilityCache, Depends(get_traceability_cache)],
 ) -> BatchService:
-    return BatchService(session)
+    return BatchService(session, cache)
 
 
 def _batch_data(batch: Batch) -> BatchData:

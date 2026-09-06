@@ -7,6 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.traceability import get_traceability_cache
 from app.core.auth.dependencies import CurrentAuthContext
 from app.infrastructure.database import get_db_session
 from app.schemas.common import ApiResponse, ListResponse, PaginationMeta
@@ -25,14 +26,16 @@ from app.schemas.inventory import (
 )
 from app.services.inventory import InventoryService
 from app.services.inventory_presenter import inventory_data, transaction_data
+from app.services.traceability import TraceabilityCache
 
 router = APIRouter(tags=["inventory"])
 
 
 def get_inventory_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
+    cache: Annotated[TraceabilityCache, Depends(get_traceability_cache)],
 ) -> InventoryService:
-    return InventoryService(session)
+    return InventoryService(session, cache)
 
 
 @router.get("/inventories", response_model=ListResponse[InventoryData])

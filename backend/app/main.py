@@ -12,6 +12,7 @@ from app.api.files import router as files_router
 from app.api.inventory import router as inventory_router
 from app.api.products import category_router, product_router
 from app.api.quality_inspections import router as quality_inspections_router
+from app.api.traceability import public_router as public_traceability_router
 from app.api.traceability import router as traceability_router
 from app.api.users import router as users_router
 from app.api.warehouses import router as warehouses_router
@@ -85,6 +86,7 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
         quality_inspections_router, prefix=app_settings.api_v1_prefix
     )
     application.include_router(traceability_router, prefix=app_settings.api_v1_prefix)
+    application.include_router(public_traceability_router, prefix=app_settings.api_v1_prefix)
 
     @application.get(
         "/health",

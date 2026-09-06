@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 from uuid import UUID
 
 from pydantic import AwareDatetime, Field
 
-from app.models.enums import TraceEventType
+from app.models.enums import BatchStatus, InspectionConclusion, TraceEventType
 from app.schemas.common import BaseSchema, PageParams, SortOrder
 
 
@@ -42,4 +43,60 @@ class TraceEventData(BaseSchema):
     created_at: AwareDatetime
 
 
-__all__ = ["TraceEventCreate", "TraceEventData", "TraceEventListParams"]
+class PublicTraceProductData(BaseSchema):
+    name: str
+    category_name: str
+    unit: str
+    description: str | None = None
+
+
+class PublicTraceBatchData(BaseSchema):
+    batch_no: str
+    origin: str
+    production_date: date
+    expiry_date: date
+    status: BatchStatus
+
+
+class PublicTraceInspectionItemData(BaseSchema):
+    name: str
+    value: str
+    unit: str | None
+    standard: str
+    is_qualified: bool
+
+
+class PublicTraceInspectionData(BaseSchema):
+    inspection_date: date
+    conclusion: InspectionConclusion
+    items: list[PublicTraceInspectionItemData]
+
+
+class PublicTraceTimelineEventData(BaseSchema):
+    event_type: TraceEventType
+    title: str
+    description: str
+    occurred_at: AwareDatetime
+
+
+class PublicTraceData(BaseSchema):
+    trace_code: str
+    product: PublicTraceProductData
+    batch: PublicTraceBatchData
+    latest_inspection: PublicTraceInspectionData | None
+    timeline: list[PublicTraceTimelineEventData]
+    data_notice: str
+    updated_at: AwareDatetime
+
+
+__all__ = [
+    "PublicTraceBatchData",
+    "PublicTraceData",
+    "PublicTraceInspectionData",
+    "PublicTraceInspectionItemData",
+    "PublicTraceProductData",
+    "PublicTraceTimelineEventData",
+    "TraceEventCreate",
+    "TraceEventData",
+    "TraceEventListParams",
+]

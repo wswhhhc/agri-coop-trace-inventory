@@ -45,7 +45,7 @@ from app.services.inventory_policy import (
     warehouse_ids,
 )
 from app.services.inventory_presenter import transaction_dict
-from app.services.traceability import TraceEventWriter
+from app.services.traceability import TraceabilityCache, TraceEventWriter
 
 
 def sync_batch_status(batch: Batch, quantity: Decimal) -> None:
@@ -62,11 +62,13 @@ class InventoryMutationService:
         session: AsyncSession,
         repository: InventoryRepository,
         idempotency_repository: IdempotencyRecordRepository,
+        cache: TraceabilityCache | None = None,
     ) -> None:
         self.session = session
         self.repository = repository
         self.idempotency = InventoryIdempotency(idempotency_repository)
         self.trace_writer = TraceEventWriter(session)
+        self.trace_cache = cache
 
     async def receive(
         self, context: AuthContext, payload: InventoryReceiptCreate, idempotency_key: str
@@ -232,7 +234,8 @@ class InventoryMutationService:
             await self.idempotency.complete(
                 context, cooperative_id, endpoint, idempotency_key, payload, data
             )
-            return cast(dict[str, object], data)
+        await self._invalidate_trace_cache(batch.trace_code)
+        return cast(dict[str, object], data)
 
     async def stocktake(
         self, context: AuthContext, payload: StocktakeCreate, idempotency_key: str
@@ -319,7 +322,8 @@ class InventoryMutationService:
             await self.idempotency.complete(
                 context, cooperative_id, endpoint, idempotency_key, payload, data
             )
-            return cast(dict[str, object], data)
+        await self._invalidate_trace_cache(batch.trace_code)
+        return cast(dict[str, object], data)
 
     async def _change_single(
         self,
@@ -412,13 +416,18 @@ class InventoryMutationService:
             await self.idempotency.complete(
                 context, cooperative_id, endpoint, idempotency_key, payload, data
             )
-            return data
+        await self._invalidate_trace_cache(batch.trace_code)
+        return data
 
     @staticmethod
     def _trace_description(event_type: TraceEventType, reason: str | None) -> str:
         if event_type is TraceEventType.OTHER and reason:
             return f"库存业务原因：{reason}"
         return "批次库存已完成业务变更"
+
+    async def _invalidate_trace_cache(self, trace_code: str) -> None:
+        if self.trace_cache is not None:
+            await self.trace_cache.invalidate(trace_code)
 
     async def _get_active_warehouse(
         self, context: AuthContext, cooperative_id: UUID, warehouse_id: UUID

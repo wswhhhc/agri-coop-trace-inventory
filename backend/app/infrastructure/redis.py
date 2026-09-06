@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from redis.asyncio import Redis
+from redis.exceptions import RedisError
 
 from app.core.config import Settings
 
@@ -42,8 +43,14 @@ async def dispose_redis_client() -> None:
     global redis_client
 
     if redis_client is not None:
-        await redis_client.aclose()
-    redis_client = None
+        try:
+            await redis_client.aclose()
+        except (RedisError, OSError, RuntimeError):
+            # 关闭阶段可能遇到已结束的事件循环或已断开的连接，
+            # 不能让资源清理异常覆盖应用的原始退出路径。
+            pass
+        finally:
+            redis_client = None
 
 
 __all__ = [

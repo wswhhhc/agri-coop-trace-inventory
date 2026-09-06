@@ -17,6 +17,7 @@ def test_traceability_routes_are_registered_in_api_v1() -> None:
     paths = set(create_app().openapi()["paths"])
 
     assert "/api/v1/batches/{batchId}/trace-events" in paths
+    assert "/api/v1/public/traces/{traceCode}" in paths
 
 
 def test_trace_event_response_maps_internal_event_fields() -> None:

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from pydantic import ValidationError
+from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.authorization import permission_denied, resource_not_found
@@ -18,10 +21,64 @@ from app.models import (
 )
 from app.repositories.batch import BatchRepository
 from app.repositories.traceability import TraceEventRepository
-from app.schemas.traceability import TraceEventCreate, TraceEventListParams
+from app.schemas.traceability import (
+    PublicTraceBatchData,
+    PublicTraceData,
+    PublicTraceInspectionData,
+    PublicTraceInspectionItemData,
+    PublicTraceProductData,
+    PublicTraceTimelineEventData,
+    TraceEventCreate,
+    TraceEventListParams,
+)
 
 TRACE_READ_PERMISSION = "trace:read"
 WAREHOUSE_STAFF_ROLE_CODE = "WAREHOUSE_STAFF"
+PUBLIC_TRACE_DATA_NOTICE = "本系统为毕业设计原型，当前演示数据为合成数据。"
+
+
+class TraceabilityCache:
+    """公开追溯缓存；Redis 故障时允许回源数据库。"""
+
+    def __init__(self, redis: Any, *, key_prefix: str, ttl_seconds: int) -> None:
+        if ttl_seconds <= 0:
+            raise ValueError("追溯缓存 TTL 必须大于 0")
+        self.redis = redis
+        self.key_prefix = key_prefix
+        self.ttl_seconds = ttl_seconds
+
+    def key(self, trace_code: str) -> str:
+        return f"{self.key_prefix}trace:{trace_code}"
+
+    async def get(self, trace_code: str) -> dict[str, Any] | None:
+        try:
+            raw = await self.redis.get(self.key(trace_code))
+        except (RedisError, OSError, RuntimeError):
+            return None
+        if raw is None:
+            return None
+        try:
+            payload = json.loads(raw)
+        except (TypeError, ValueError):
+            await self.invalidate(trace_code)
+            return None
+        return payload if isinstance(payload, dict) else None
+
+    async def set(self, trace_code: str, payload: Mapping[str, Any]) -> None:
+        try:
+            await self.redis.set(
+                self.key(trace_code),
+                json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+                ex=self.ttl_seconds,
+            )
+        except (RedisError, OSError, RuntimeError):
+            return
+
+    async def invalidate(self, trace_code: str) -> None:
+        try:
+            await self.redis.delete(self.key(trace_code))
+        except (RedisError, OSError, RuntimeError):
+            return
 
 
 class TraceEventWriter:
@@ -77,8 +134,114 @@ class TraceEventWriter:
         )
 
 
+class PublicTraceabilityService:
+    """通过追溯码查询公开脱敏投影，不直接序列化 ORM。"""
+
+    def __init__(self, session: AsyncSession, cache: TraceabilityCache) -> None:
+        self.session = session
+        self.repository = TraceEventRepository(session)
+        self.cache = cache
+
+    async def get_public(self, trace_code: str) -> PublicTraceData:
+        cached = await self.cache.get(trace_code)
+        if cached is not None:
+            try:
+                return PublicTraceData.model_validate(cached)
+            except ValidationError:
+                await self.cache.invalidate(trace_code)
+
+        async with transaction_scope(self.session):
+            batch = await self.repository.get_public_batch(trace_code)
+            if batch is None:
+                raise resource_not_found()
+            result = self._project(batch)
+
+        await self.cache.set(
+            trace_code, result.model_dump(mode="json", by_alias=True)
+        )
+        return result
+
+    @staticmethod
+    def _project(batch: Batch) -> PublicTraceData:
+        inspections = sorted(
+            batch.quality_inspections,
+            key=lambda inspection: (inspection.inspected_at, inspection.id),
+            reverse=True,
+        )
+        latest_inspection = (
+            PublicTraceInspectionData(
+                inspection_date=inspection.inspected_at.date(),
+                conclusion=inspection.conclusion,
+                items=[
+                    PublicTraceInspectionItemData(
+                        name=item.item_name,
+                        value=item.result_value,
+                        unit=item.unit,
+                        standard=item.standard_value,
+                        is_qualified=item.is_qualified,
+                    )
+                    for item in inspection.items
+                ],
+            )
+            if (inspection := (inspections[0] if inspections else None)) is not None
+            else None
+        )
+        events = sorted(
+            batch.trace_events,
+            key=lambda event: (event.event_time, event.id),
+        )
+        timeline = [
+            PublicTraceTimelineEventData(
+                event_type=event.event_type,
+                title=event.title,
+                description=PublicTraceabilityService._public_event_description(event),
+                occurred_at=event.event_time,
+            )
+            for event in events
+        ]
+        timestamps = [batch.created_at, *(event.created_at for event in events)]
+        return PublicTraceData(
+            trace_code=batch.trace_code,
+            product=PublicTraceProductData(
+                name=batch.product.name,
+                category_name=batch.product.category.name,
+                unit=batch.product.unit,
+            ),
+            batch=PublicTraceBatchData(
+                batch_no=batch.batch_no,
+                origin=batch.origin,
+                production_date=batch.production_date,
+                expiry_date=batch.expiry_date,
+                status=batch.status,
+            ),
+            latest_inspection=latest_inspection,
+            timeline=timeline,
+            data_notice=PUBLIC_TRACE_DATA_NOTICE,
+            updated_at=max(timestamps),
+        )
+
+    @staticmethod
+    def _public_event_description(event: TraceEvent) -> str:
+        if event.event_type is TraceEventType.PRODUCTION:
+            return "批次信息已登记"
+        if event.event_type is TraceEventType.INSPECTION:
+            conclusion = event.public_data.get("conclusion")
+            return (
+                f"检验结论：{conclusion}"
+                if isinstance(conclusion, str)
+                else "已完成质量检验"
+            )
+        descriptions = {
+            TraceEventType.INBOUND: "产品已完成入库",
+            TraceEventType.OUTBOUND: "产品已完成出库",
+            TraceEventType.TRANSFER: "产品已完成调拨",
+            TraceEventType.OTHER: "批次库存状态已更新",
+        }
+        return descriptions[event.event_type]
+
+
 class TraceabilityService:
-    """内部追溯查询用例；公开投影在后续阶段实现。"""
+    """内部追溯查询用例；公开投影使用独立服务。"""
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
@@ -125,4 +288,11 @@ class TraceabilityService:
         return None
 
 
-__all__ = ["TRACE_READ_PERMISSION", "TraceEventWriter", "TraceabilityService"]
+__all__ = [
+    "PUBLIC_TRACE_DATA_NOTICE",
+    "TRACE_READ_PERMISSION",
+    "PublicTraceabilityService",
+    "TraceEventWriter",
+    "TraceabilityCache",
+    "TraceabilityService",
+]

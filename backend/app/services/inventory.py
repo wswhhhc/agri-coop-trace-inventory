@@ -25,12 +25,15 @@ from app.services.inventory_policy import (
     require_read,
     warehouse_ids,
 )
+from app.services.traceability import TraceabilityCache
 
 
 class InventoryService:
     """库存业务门面；查询和变更分别委托给专门的用例服务。"""
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self, session: AsyncSession, cache: TraceabilityCache | None = None
+    ) -> None:
         self.session = session
         repository = InventoryRepository(session)
         self.repository = repository
@@ -38,6 +41,7 @@ class InventoryService:
             session,
             repository,
             IdempotencyRecordRepository(session),
+            cache,
         )
 
     async def list_current(

@@ -23,7 +23,7 @@ from app.models import (
 from app.repositories.batch import BatchRepository
 from app.repositories.product import ProductRepository
 from app.schemas.batch import BatchCreate, BatchListParams, BatchUpdate
-from app.services.traceability import TraceEventWriter
+from app.services.traceability import TraceabilityCache, TraceEventWriter
 
 WAREHOUSE_STAFF_ROLE_CODE = "WAREHOUSE_STAFF"
 COOPERATIVE_ADMIN_ROLE_CODE = "COOPERATIVE_ADMIN"
@@ -45,11 +45,14 @@ _ALLOWED_STATUS_TRANSITIONS: dict[BatchStatus, frozenset[BatchStatus]] = {
 class BatchService:
     """批次业务用例，负责产品启用状态和批次状态流转。"""
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self, session: AsyncSession, cache: TraceabilityCache | None = None
+    ) -> None:
         self.session = session
         self.repository = BatchRepository(session)
         self.product_repository = ProductRepository(session)
         self.trace_writer = TraceEventWriter(session)
+        self.trace_cache = cache
 
     async def list(
         self,
@@ -128,7 +131,8 @@ class BatchService:
                 source_id=created.id,
                 created_by=context.user_id,
             )
-            return created
+        await self._invalidate_trace_cache(created.trace_code)
+        return created
 
     async def update(
         self,
@@ -171,7 +175,13 @@ class BatchService:
                         current_status=batch.status.value,
                         allowed_statuses=sorted(status.value for status in allowed),
                     )
-            return await self.repository.update(batch, values)
+            updated = await self.repository.update(batch, values)
+        await self._invalidate_trace_cache(updated.trace_code)
+        return updated
+
+    async def _invalidate_trace_cache(self, trace_code: str) -> None:
+        if self.trace_cache is not None:
+            await self.trace_cache.invalidate(trace_code)
 
     @staticmethod
     def _new_trace_code() -> str:

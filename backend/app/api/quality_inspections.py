@@ -8,6 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.traceability import get_traceability_cache
 from app.core.audit.service import AuditEvent, AuditLogService
 from app.core.auth.dependencies import CurrentAuthContext, get_audit_log_service
 from app.core.exceptions import AppException
@@ -21,6 +22,7 @@ from app.schemas.quality_inspection import (
     QualityInspectionListParams,
 )
 from app.services.quality_inspection import QualityInspectionService
+from app.services.traceability import TraceabilityCache
 
 router = APIRouter(
     prefix="/batches/{batchId}/quality-inspections",
@@ -31,8 +33,9 @@ logger = logging.getLogger(__name__)
 
 def get_quality_inspection_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
+    cache: Annotated[TraceabilityCache, Depends(get_traceability_cache)],
 ) -> QualityInspectionService:
-    return QualityInspectionService(session)
+    return QualityInspectionService(session, cache=cache)
 
 
 def _quality_inspection_data(

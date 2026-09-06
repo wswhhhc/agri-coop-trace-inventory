@@ -4,9 +4,17 @@ from uuid import UUID
 
 from sqlalchemy import Select, asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
-from app.models import SortDirection, TraceEvent, TraceEventType
+from app.models import (
+    Batch,
+    Product,
+    QualityInspection,
+    SortDirection,
+    TraceEvent,
+    TraceEventType,
+)
 
 
 class TraceEventRepository:
@@ -63,6 +71,21 @@ class TraceEventRepository:
         if cooperative_id is not None:
             conditions.append(TraceEvent.cooperative_id == cooperative_id)
         return conditions
+
+    async def get_public_batch(self, trace_code: str) -> Batch | None:
+        """按全局唯一追溯码一次加载公开投影所需的关联数据。"""
+        statement = (
+            select(Batch)
+            .options(
+                selectinload(Batch.product).selectinload(Product.category),
+                selectinload(Batch.quality_inspections).selectinload(
+                    QualityInspection.items
+                ),
+                selectinload(Batch.trace_events),
+            )
+            .where(Batch.trace_code == trace_code)
+        )
+        return await self.session.scalar(statement)
 
 
 __all__ = ["TraceEventRepository"]

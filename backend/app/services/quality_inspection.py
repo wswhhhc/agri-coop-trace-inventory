@@ -24,7 +24,7 @@ from app.schemas.quality_inspection import (
     QualityInspectionCreate,
     QualityInspectionListParams,
 )
-from app.services.traceability import TraceEventWriter
+from app.services.traceability import TraceabilityCache, TraceEventWriter
 
 WAREHOUSE_STAFF_ROLE_CODE = "WAREHOUSE_STAFF"
 COOPERATIVE_ADMIN_ROLE_CODE = "COOPERATIVE_ADMIN"
@@ -56,12 +56,14 @@ class QualityInspectionService:
         self,
         session: AsyncSession,
         integration: QualityIntegrationPort | None = None,
+        cache: TraceabilityCache | None = None,
     ) -> None:
         self.session = session
         self.repository = QualityInspectionRepository(session)
         self.batch_repository = BatchRepository(session)
         self.file_repository = FileRepository(session)
         self.trace_writer = TraceEventWriter(session)
+        self.trace_cache = cache
         self.integration = integration or NullQualityIntegration()
 
     async def list(
@@ -152,7 +154,12 @@ class QualityInspectionService:
             await self.integration.inspection_created(created)
             if created.conclusion.value == "FAILED":
                 await self.integration.quality_failed(created)
-            return created
+        await self._invalidate_trace_cache(batch.trace_code)
+        return created
+
+    async def _invalidate_trace_cache(self, trace_code: str) -> None:
+        if self.trace_cache is not None:
+            await self.trace_cache.invalidate(trace_code)
 
     @staticmethod
     def _public_inspection_data(inspection: QualityInspection) -> dict[str, object]:
