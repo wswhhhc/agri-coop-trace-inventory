@@ -179,6 +179,19 @@ export interface AlertSummary {
   detectedAt: string
 }
 
+export interface AlertRuleSummary {
+  id: string
+  cooperativeId: string
+  warehouseId: string | null
+  productId: string | null
+  alertType: string
+  thresholdQuantity: number | string | null
+  thresholdDays: number | null
+  turnoverDays: number | null
+  severity: string
+  isEnabled: boolean
+}
+
 export interface ForecastSummary {
   id: string
   warehouseId: string
