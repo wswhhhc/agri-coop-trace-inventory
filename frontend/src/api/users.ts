@@ -21,6 +21,10 @@ export interface UserUpdatePayload {
   phone: string | null
 }
 
+export interface UserWarehouseAssignmentPayload {
+  warehouseIds: string[]
+}
+
 export interface UserCreateResult extends UserSummary {
   initialPassword: string
 }
@@ -42,5 +46,16 @@ export async function updateUser(
   payload: UserUpdatePayload,
 ): Promise<UserSummary> {
   const response = await http.patch<ApiResponse<UserSummary>>(`/users/${userId}`, payload)
+  return response.data.data
+}
+
+export async function replaceUserWarehouses(
+  userId: string,
+  payload: UserWarehouseAssignmentPayload,
+): Promise<UserSummary> {
+  const response = await http.put<ApiResponse<UserSummary>>(
+    `/users/${userId}/warehouses`,
+    payload,
+  )
   return response.data.data
 }

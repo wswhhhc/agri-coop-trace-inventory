@@ -2,7 +2,13 @@
 import { computed, reactive, ref } from 'vue'
 
 import { listCooperatives } from '@/api/cooperatives'
-import { createUser, listUsers, updateUser } from '@/api/users'
+import { listWarehouses } from '@/api/warehouses'
+import {
+  createUser,
+  listUsers,
+  replaceUserWarehouses,
+  updateUser,
+} from '@/api/users'
 import type { UserStatus } from '@/api/users'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -24,10 +30,13 @@ const cooperativeState = usePageData(
   () => (showCooperativeSelector.value ? listCooperatives() : Promise.resolve([])),
   [],
 )
+const warehouseState = usePageData(listWarehouses, [])
 const submitting = ref(false)
 const updating = ref(false)
+const authorizing = ref(false)
 const formError = ref('')
 const successMessage = ref('')
+const authorizationError = ref('')
 const createdCredentials = ref('')
 const editingUserId = ref<string | null>(null)
 const form = reactive({
@@ -42,12 +51,16 @@ const editForm = reactive<{
   role: string
   status: UserStatus
   phone: string
+  warehouseIds: string[]
 }>({
   displayName: '',
   role: 'WAREHOUSE_STAFF',
   status: 'ACTIVE',
   phone: '',
+  warehouseIds: [],
 })
+
+const canAuthorize = computed(() => authStore.role === 'COOPERATIVE_ADMIN')
 
 function resetForm(): void {
   form.username = ''
@@ -92,7 +105,9 @@ function beginEdit(user: (typeof items.value)[number]): void {
   editForm.role = user.role
   editForm.status = user.status === 'LOCKED' ? 'LOCKED' : user.status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE'
   editForm.phone = user.phone ?? ''
+  editForm.warehouseIds = [...user.warehouseIds]
   formError.value = ''
+  authorizationError.value = ''
   successMessage.value = ''
   createdCredentials.value = ''
 }
@@ -100,6 +115,7 @@ function beginEdit(user: (typeof items.value)[number]): void {
 function cancelEdit(): void {
   editingUserId.value = null
   formError.value = ''
+  authorizationError.value = ''
 }
 
 async function handleUpdate(): Promise<void> {
@@ -121,6 +137,23 @@ async function handleUpdate(): Promise<void> {
     formError.value = getApiErrorMessage(reason)
   } finally {
     updating.value = false
+  }
+}
+
+async function handleWarehouseAuthorization(): Promise<void> {
+  if (!editingUserId.value || editForm.role !== 'WAREHOUSE_STAFF') return
+  authorizing.value = true
+  authorizationError.value = ''
+  try {
+    await replaceUserWarehouses(editingUserId.value, {
+      warehouseIds: editForm.warehouseIds,
+    })
+    successMessage.value = '仓库授权更新成功。'
+    await loadData()
+  } catch (reason) {
+    authorizationError.value = getApiErrorMessage(reason)
+  } finally {
+    authorizing.value = false
   }
 }
 </script>
@@ -207,8 +240,25 @@ async function handleUpdate(): Promise<void> {
           maxlength="11"
         />
       </label>
+      <label v-if="canAuthorize && editForm.role === 'WAREHOUSE_STAFF'">
+        授权仓库
+        <select v-model="editForm.warehouseIds" multiple size="5">
+          <option v-for="warehouse in warehouseState.data" :key="warehouse.id" :value="warehouse.id">
+            {{ warehouse.name }}（{{ warehouse.code }}）
+          </option>
+        </select>
+      </label>
       <button type="submit" :disabled="updating">{{ updating ? '保存中…' : '保存' }}</button>
       <button type="button" :disabled="updating" @click="cancelEdit">取消</button>
+      <button
+        v-if="canAuthorize && editForm.role === 'WAREHOUSE_STAFF'"
+        type="button"
+        :disabled="authorizing"
+        @click="handleWarehouseAuthorization"
+      >
+        {{ authorizing ? '授权中…' : '保存仓库授权' }}
+      </button>
+      <p v-if="authorizationError" role="alert">{{ authorizationError }}</p>
     </form>
 
     <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">

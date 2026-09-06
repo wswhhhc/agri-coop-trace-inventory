@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { createUser, listUsers, updateUser } from './users'
+import { createUser, listUsers, replaceUserWarehouses, updateUser } from './users'
 
 vi.mock('./http', () => ({
-  default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), put: vi.fn() },
 }))
 
 describe('users api', () => {
@@ -55,5 +55,18 @@ describe('users api', () => {
       status: 'LOCKED',
     })
     expect(http.patch).toHaveBeenCalledWith('/users/user-1', payload)
+  })
+
+  it('replaces a warehouse staff user warehouse assignment', async () => {
+    const payload = { warehouseIds: ['warehouse-1', 'warehouse-2'] }
+    vi.mocked(http.put).mockResolvedValueOnce({
+      data: { data: { id: 'user-1', warehouseIds: payload.warehouseIds } },
+    })
+
+    await expect(replaceUserWarehouses('user-1', payload)).resolves.toMatchObject({
+      id: 'user-1',
+      warehouseIds: payload.warehouseIds,
+    })
+    expect(http.put).toHaveBeenCalledWith('/users/user-1/warehouses', payload)
   })
 })
