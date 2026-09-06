@@ -12,6 +12,15 @@ export interface BatchCreatePayload {
   responsiblePerson: string | null
 }
 
+export type BatchStatus = 'CREATED' | 'IN_STOCK' | 'DEPLETED' | 'BLOCKED' | 'EXPIRED'
+
+export interface BatchUpdatePayload {
+  origin: string
+  expiryDate: string
+  responsiblePerson: string | null
+  status: BatchStatus
+}
+
 export async function listBatches(): Promise<BatchSummary[]> {
   const response = await http.get<ListResponse<BatchSummary>>('/batches', {
     params: { page: 1, pageSize: 20 },
@@ -21,6 +30,14 @@ export async function listBatches(): Promise<BatchSummary[]> {
 
 export async function getBatch(batchId: string): Promise<BatchSummary> {
   const response = await http.get<ApiResponse<BatchSummary>>(`/batches/${batchId}`)
+  return response.data.data
+}
+
+export async function updateBatch(
+  batchId: string,
+  payload: BatchUpdatePayload,
+): Promise<BatchSummary> {
+  const response = await http.patch<ApiResponse<BatchSummary>>(`/batches/${batchId}`, payload)
   return response.data.data
 }
 

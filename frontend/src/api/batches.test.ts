@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { createBatch, getBatch } from './batches'
+import { createBatch, getBatch, updateBatch } from './batches'
 
 vi.mock('./http', () => ({
-  default: { get: vi.fn(), post: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
 }))
 
 describe('batches api', () => {
@@ -67,5 +67,36 @@ describe('batches api', () => {
       batchNo: 'APPLE-20260906-001',
     })
     expect(http.get).toHaveBeenCalledWith('/batches/batch-1')
+  })
+
+  it('updates editable batch fields and status', async () => {
+    vi.mocked(http.patch).mockResolvedValueOnce({
+      data: {
+        data: {
+          id: 'batch-1',
+          productId: 'product-1',
+          batchNo: 'APPLE-20260906-001',
+          traceCode: 'tr_ABC123',
+          origin: '山东青岛',
+          productionDate: '2026-09-06',
+          expiryDate: '2026-10-10',
+          responsiblePerson: '李四',
+          status: 'IN_STOCK',
+        },
+      },
+    })
+
+    const payload = {
+      origin: '山东青岛',
+      expiryDate: '2026-10-10',
+      responsiblePerson: '李四',
+      status: 'IN_STOCK' as const,
+    }
+
+    await expect(updateBatch('batch-1', payload)).resolves.toMatchObject({
+      origin: '山东青岛',
+      status: 'IN_STOCK',
+    })
+    expect(http.patch).toHaveBeenCalledWith('/batches/batch-1', payload)
   })
 })
