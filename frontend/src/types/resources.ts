@@ -24,6 +24,8 @@ export interface UserSummary {
   displayName: string
   role: string
   cooperativeId: string | null
+  warehouseIds: string[]
+  phone: string | null
   status: string
 }
 
