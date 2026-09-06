@@ -353,13 +353,16 @@ async function runAlertScan(): Promise<void> {
   font-size: var(--font-size-lg);
 }
 
-.alert-detail,
-.alert-rule-edit-form {
+.alert-detail {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-5);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
+}
+
+.alert-detail,
+.alert-rule-edit-form {
+  padding: var(--space-5);
 }
 
 .alert-detail {

@@ -144,8 +144,7 @@ h3 {
   line-height: var(--line-height-tight);
 }
 
-small,
-.muted {
+small {
   color: var(--color-text-muted);
 }
 
