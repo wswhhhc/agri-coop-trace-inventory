@@ -9,6 +9,7 @@ import TraceEventTimeline from '@/components/batches/TraceEventTimeline.vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import { usePageData } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
@@ -28,6 +29,13 @@ const form = reactive({
   responsiblePerson: '',
   status: 'CREATED' as BatchStatus,
 })
+
+function batchStatusTone(value: string): 'success' | 'warning' | 'danger' | 'info' {
+  if (value === 'IN_STOCK') return 'success'
+  if (value === 'EXPIRED' || value === 'BLOCKED') return 'danger'
+  if (value === 'DEPLETED') return 'warning'
+  return 'info'
+}
 
 watch(data, syncForm)
 
@@ -64,7 +72,7 @@ async function handleUpdate(): Promise<void> {
 
 <template>
   <section class="batch-detail-page">
-    <PageHeader title="批次详情" description="查看批次基础信息和服务端生成的追溯码。" />
+    <PageHeader eyebrow="批次档案" title="批次详情" description="查看批次基础信息和服务端生成的追溯码。" />
     <PageContext />
     <PageState
       :loading="loading"
@@ -81,7 +89,7 @@ async function handleUpdate(): Promise<void> {
         <div><dt>生产日期</dt><dd>{{ data?.productionDate }}</dd></div>
         <div><dt>到期日期</dt><dd>{{ data?.expiryDate }}</dd></div>
         <div><dt>负责人</dt><dd>{{ data?.responsiblePerson || '—' }}</dd></div>
-        <div><dt>状态</dt><dd>{{ data?.status }}</dd></div>
+        <div><dt>状态</dt><dd><StatusBadge v-if="data" :label="data.status" :tone="batchStatusTone(data.status)" /></dd></div>
       </dl>
       <section>
         <h2>公开追溯二维码</h2>
