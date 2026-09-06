@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import ThemeSwitcher from '@/components/common/ThemeSwitcher.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -23,6 +24,9 @@ async function handleLogout(): Promise<void> {
       <span class="app-header__display-name">{{ authStore.user?.displayName }}</span>
       <span class="app-header__role">{{ authStore.role }}</span>
     </div>
-    <button class="app-header__logout" type="button" @click="handleLogout">退出登录</button>
+    <div class="app-header__actions">
+      <ThemeSwitcher />
+      <button class="app-header__logout" type="button" @click="handleLogout">退出登录</button>
+    </div>
   </header>
 </template>
