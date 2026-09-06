@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.alerting import router as alerting_router
+from app.api.audit_logs import router as audit_logs_router
 from app.api.auth import router as auth_router
 from app.api.batches import router as batches_router
 from app.api.cooperatives import router as cooperatives_router
@@ -76,6 +77,7 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
     application.middleware("http")(request_id_middleware)
     register_exception_handlers(application)
     application.include_router(auth_router, prefix=app_settings.api_v1_prefix)
+    application.include_router(audit_logs_router, prefix=app_settings.api_v1_prefix)
     application.include_router(cooperatives_router, prefix=app_settings.api_v1_prefix)
     application.include_router(warehouses_router, prefix=app_settings.api_v1_prefix)
     application.include_router(users_router, prefix=app_settings.api_v1_prefix)

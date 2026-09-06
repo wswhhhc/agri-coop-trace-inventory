@@ -8,18 +8,9 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.audit.context import AuditContext
+from app.core.audit.redaction import iter_sensitive_detail_keys
 from app.models._common import utc_now
 from app.repositories.audit_log import AuditLogRepository
-
-_FORBIDDEN_DETAIL_KEYS = {
-    "password",
-    "password_hash",
-    "token",
-    "access_token",
-    "refresh_token",
-    "cookie",
-    "set-cookie",
-}
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,21 +70,9 @@ class AuditLogService:
 
 
 def _validate_detail(detail: dict[str, Any]) -> None:
-    forbidden = set(_iter_forbidden_detail_keys(detail))
+    forbidden = set(iter_sensitive_detail_keys(detail))
     if forbidden:
         raise ValueError(f"审计详情包含禁止记录的字段: {', '.join(sorted(forbidden))}")
-
-
-def _iter_forbidden_detail_keys(value: Any):
-    if isinstance(value, dict):
-        for key, nested_value in value.items():
-            normalized_key = str(key).lower()
-            if normalized_key in _FORBIDDEN_DETAIL_KEYS:
-                yield normalized_key
-            yield from _iter_forbidden_detail_keys(nested_value)
-    elif isinstance(value, (list, tuple)):
-        for nested_value in value:
-            yield from _iter_forbidden_detail_keys(nested_value)
 
 
 __all__ = ["AuditEvent", "AuditLogService"]
