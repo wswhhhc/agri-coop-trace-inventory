@@ -9,6 +9,12 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
+      path: '/trace/:traceCode',
+      name: 'public-trace',
+      component: () => import('@/views/trace/PublicTraceView.vue'),
+      meta: { title: '批次追溯' },
+    },
+    {
       path: '/login',
       name: 'login',
       component: () => import('@/views/LoginView.vue'),

@@ -12,6 +12,15 @@ describe('route access guard', () => {
     ).toEqual({ name: 'login', query: { redirect: '/inventory' } })
   })
 
+  it('allows unauthenticated users to open public trace pages', () => {
+    expect(
+      resolveRouteAccess(
+        { fullPath: '/trace/tr_ABC123', meta: {} },
+        { isAuthenticated: false, role: null, permissions: [] },
+      ),
+    ).toBe(true)
+  })
+
   it('redirects authenticated users away from login', () => {
     expect(
       resolveRouteAccess(

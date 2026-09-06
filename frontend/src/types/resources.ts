@@ -97,6 +97,41 @@ export interface TraceEventSummary {
   sourceId: string | null
 }
 
+export interface PublicTraceInspectionItemSummary {
+  name: string
+  value: string
+  unit: string | null
+  standard: string
+  isQualified: boolean
+}
+
+export interface PublicTraceInspectionSummary {
+  inspectionDate: string
+  conclusion: string
+  items: PublicTraceInspectionItemSummary[]
+}
+
+export interface PublicTraceSummary {
+  traceCode: string
+  product: { name: string; categoryName: string; unit: string; description: string | null }
+  batch: {
+    batchNo: string
+    origin: string
+    productionDate: string
+    expiryDate: string
+    status: string
+  }
+  latestInspection: PublicTraceInspectionSummary | null
+  timeline: Array<{
+    eventType: string
+    title: string
+    description: string
+    occurredAt: string
+  }>
+  dataNotice: string
+  updatedAt: string
+}
+
 export interface InventorySummary {
   id: string
   quantity: number
