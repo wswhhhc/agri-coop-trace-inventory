@@ -265,10 +265,15 @@ export interface ModelVersionSummary {
 
 export interface AuditLogSummary {
   id: string
+  cooperativeId: string | null
+  userId: string | null
   action: string
   module: string
   resourceType: string
+  resourceId: string | null
   result: string
+  requestId: string | null
+  detail: Record<string, unknown>
   createdAt: string
 }
 
