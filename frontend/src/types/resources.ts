@@ -64,6 +64,28 @@ export interface BatchSummary {
   responsiblePerson: string | null
 }
 
+export interface QualityInspectionItemSummary {
+  id: string
+  name: string
+  value: string
+  unit: string | null
+  standard: string
+  isQualified: boolean
+  sortOrder: number
+}
+
+export interface QualityInspectionSummary {
+  id: string
+  batchId: string
+  inspectionNo: string
+  inspectionDate: string
+  inspectorName: string
+  conclusion: string
+  remarks: string | null
+  items: QualityInspectionItemSummary[]
+  attachmentFileIds: string[]
+}
+
 export interface InventorySummary {
   id: string
   quantity: number

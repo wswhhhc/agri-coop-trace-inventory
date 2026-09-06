@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { getBatch, updateBatch, type BatchStatus } from '@/api/batches'
+import QualityInspectionPanel from '@/components/batches/QualityInspectionPanel.vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
@@ -105,5 +106,6 @@ async function handleUpdate(): Promise<void> {
         <p v-if="successMessage" role="status">{{ successMessage }}</p>
       </form>
     </PageState>
+    <QualityInspectionPanel v-if="data" :batch-id="batchId" :can-manage="canManage" />
   </section>
 </template>
