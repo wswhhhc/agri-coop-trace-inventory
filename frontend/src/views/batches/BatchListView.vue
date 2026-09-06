@@ -144,3 +144,81 @@ async function handleSubmit(): Promise<void> {
     </PageState>
   </section>
 </template>
+
+<style scoped>
+.batch-list-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.batch-list-page > .page-state {
+  overflow-x: auto;
+}
+
+.batch-list-page > .page-state table {
+  min-width: 64rem;
+}
+
+.batch-create-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.batch-create-form h2 {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+  font-size: var(--font-size-lg);
+}
+
+.batch-create-form > label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.batch-create-form > button {
+  justify-self: start;
+}
+
+.batch-create-form > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.batch-create-form > p[role='alert'] {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.batch-create-form > p[role='status'] {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+@media (max-width: 48rem) {
+  .batch-create-form {
+    grid-template-columns: 1fr;
+    padding: var(--space-4);
+  }
+
+  .batch-create-form h2,
+  .batch-create-form > p {
+    grid-column: auto;
+  }
+
+  .batch-create-form > button {
+    justify-self: stretch;
+  }
+}
+</style>

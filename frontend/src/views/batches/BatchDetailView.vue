@@ -132,3 +132,131 @@ async function handleUpdate(): Promise<void> {
     <TraceEventTimeline v-if="data" :batch-id="batchId" />
   </section>
 </template>
+
+<style scoped>
+.batch-detail-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.batch-detail-page > .page-state {
+  display: grid;
+  gap: var(--space-5);
+  place-items: stretch;
+  text-align: left;
+}
+
+.batch-detail-page > .page-state > dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.batch-detail-page > .page-state > dl > div {
+  display: grid;
+  gap: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: var(--color-surface-muted);
+}
+
+.batch-detail-page > .page-state dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.batch-detail-page > .page-state dd {
+  margin: 0;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.batch-detail-page > .page-state > section {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-5);
+}
+
+.batch-detail-page > .page-state > section h2 {
+  margin-bottom: 0;
+  font-size: var(--font-size-lg);
+}
+
+.batch-detail-page > .page-state > section img {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+  background: var(--color-white);
+}
+
+.batch-edit-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.batch-edit-form h2 {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+  font-size: var(--font-size-lg);
+}
+
+.batch-edit-form > label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.batch-edit-form > button {
+  justify-self: start;
+}
+
+.batch-edit-form > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.batch-edit-form > p[role='alert'] {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.batch-edit-form > p[role='status'] {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+@media (max-width: 48rem) {
+  .batch-detail-page > .page-state > dl {
+    grid-template-columns: 1fr;
+  }
+
+  .batch-edit-form {
+    grid-template-columns: 1fr;
+    padding: var(--space-4);
+  }
+
+  .batch-edit-form h2,
+  .batch-edit-form > p {
+    grid-column: auto;
+  }
+
+  .batch-edit-form > button {
+    justify-self: stretch;
+  }
+}
+</style>
