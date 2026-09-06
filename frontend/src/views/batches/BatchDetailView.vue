@@ -96,6 +96,8 @@ async function handleUpdate(): Promise<void> {
         <img
           :src="getPublicQrCodeUrl(data.traceCode)"
           :alt="`批次 ${data.batchNo} 的公开追溯二维码`"
+          loading="lazy"
+          decoding="async"
           width="180"
           height="180"
         />
