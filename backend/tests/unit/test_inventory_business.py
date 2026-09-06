@@ -7,12 +7,14 @@ from uuid import uuid4
 import httpx
 import pytest
 import pytest_asyncio
+from app.core.audit.service import AuditLogService
 from app.core.auth.context import AuthContext
-from app.core.auth.dependencies import get_auth_context
+from app.core.auth.dependencies import get_audit_log_service, get_auth_context
 from app.core.config import Settings
 from app.infrastructure.database import get_db_session
 from app.main import create_app
 from app.models import (
+    AuditLog,
     Batch,
     BatchStatus,
     Cooperative,
@@ -141,6 +143,9 @@ async def inventory_api(postgres_session_factory):
     application = create_app(_settings())
     application.dependency_overrides[get_db_session] = override_db_session
     application.dependency_overrides[get_auth_context] = override_auth_context
+    application.dependency_overrides[get_audit_log_service] = lambda: AuditLogService(
+        postgres_session_factory
+    )
     transport = httpx.ASGITransport(app=application)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         yield client, *ids, set_context, postgres_session_factory
@@ -199,6 +204,26 @@ async def test_inventory_receipt_issue_and_idempotency(inventory_api) -> None:
     assert listed.json()["data"][0]["warehouse"]["id"] == str(warehouse_id)
 
     async with postgres_session_factory() as session:
+        audit_logs = list(
+            await session.scalars(
+                select(AuditLog).order_by(AuditLog.created_at, AuditLog.id)
+            )
+        )
+    assert [log.action for log in audit_logs] == [
+        "INVENTORY_RECEIPT",
+        "INVENTORY_RECEIPT",
+        "INVENTORY_ISSUE",
+        "INVENTORY_ISSUE",
+    ]
+    assert [log.result for log in audit_logs] == [
+        "SUCCESS",
+        "SUCCESS",
+        "FAILURE",
+        "SUCCESS",
+    ]
+    assert audit_logs[2].detail["errorCode"] == "INSUFFICIENT_STOCK"
+
+    async with postgres_session_factory() as session:
         event_types = list(
             await session.scalars(
                 select(TraceEvent.event_type)
@@ -243,6 +268,18 @@ async def test_inventory_transfer_is_atomic_and_staff_scope_is_enforced(inventor
             )
         )
     assert transfer_events == [TraceEventType.INBOUND, TraceEventType.TRANSFER]
+
+    async with postgres_session_factory() as session:
+        audit_logs = list(
+            await session.scalars(
+                select(AuditLog).order_by(AuditLog.created_at, AuditLog.id)
+            )
+        )
+    assert [log.action for log in audit_logs] == [
+        "INVENTORY_RECEIPT",
+        "STOCK_TRANSFER",
+    ]
+    assert all(log.result == "SUCCESS" for log in audit_logs)
     transactions = await client.get("/api/v1/inventory-transactions")
     assert transactions.json()["pagination"]["totalItems"] == 3
 
@@ -316,3 +353,16 @@ async def test_inventory_loss_and_stocktake_append_other_trace_events(inventory_
     ]
     assert "包装破损" in (events[1].description or "")
     assert "月度盘点" in (events[2].description or "")
+
+    async with postgres_session_factory() as session:
+        audit_logs = list(
+            await session.scalars(
+                select(AuditLog).order_by(AuditLog.created_at, AuditLog.id)
+            )
+        )
+    assert [log.action for log in audit_logs] == [
+        "INVENTORY_RECEIPT",
+        "INVENTORY_LOSS",
+        "STOCKTAKE",
+    ]
+    assert all(log.result == "SUCCESS" for log in audit_logs)
