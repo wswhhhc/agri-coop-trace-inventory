@@ -71,7 +71,7 @@ async def list_alert_rules(
     context: CurrentAuthContext,
     service: Annotated[AlertingService, Depends(get_alerting_service)],
     page: Annotated[int, Query(ge=1)] = 1,
-    page_size: Annotated[int, Query(ge=1, le=100)] = 100,
+    page_size: Annotated[int, Query(alias="pageSize", ge=1, le=100)] = 20,
 ) -> ListResponse[AlertRuleData]:
     rules, total = await service.list_rules(context, page, page_size)
     return ListResponse(data=[_rule_data(rule) for rule in rules], pagination=build_pagination_meta(total, page, page_size))

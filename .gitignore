@@ -2,3 +2,9 @@
 coverage.json
 coverage.xml
 htmlcov/
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local

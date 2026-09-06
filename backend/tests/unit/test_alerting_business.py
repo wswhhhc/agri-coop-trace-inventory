@@ -75,9 +75,29 @@ def test_alerting_schemas_accept_camel_case_filters_and_reject_invalid_time_rang
 def test_alerting_router_is_registered() -> None:
     from app.main import create_app
 
-    paths = set(create_app().openapi()["paths"])
+    openapi = create_app().openapi()
+    paths = set(openapi["paths"])
     assert "/api/v1/alert-rules" in paths
     assert "/api/v1/alert-rules/{ruleId}" in paths
     assert "/api/v1/alerts" in paths
     assert "/api/v1/alerts/{alertId}" in paths
     assert "/api/v1/alert-scan-tasks" in paths
+
+    alert_rule_parameters = openapi["paths"]["/api/v1/alert-rules"]["get"][
+        "parameters"
+    ]
+    assert {parameter["name"] for parameter in alert_rule_parameters} == {
+        "page",
+        "pageSize",
+    }
+
+
+def test_async_task_response_schema_matches_frontend_contract() -> None:
+    from app.schemas.alerting import TaskData
+
+    fields = TaskData.model_json_schema()["properties"]
+
+    assert "id" in fields
+    assert "taskId" not in fields
+    assert "resultPayload" in fields
+    assert "statusUrl" not in fields
