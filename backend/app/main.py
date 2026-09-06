@@ -9,6 +9,7 @@ from app.api.auth import router as auth_router
 from app.api.batches import router as batches_router
 from app.api.cooperatives import router as cooperatives_router
 from app.api.files import router as files_router
+from app.api.inventory import router as inventory_router
 from app.api.products import category_router, product_router
 from app.api.quality_inspections import router as quality_inspections_router
 from app.api.users import router as users_router
@@ -77,6 +78,7 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
     application.include_router(category_router, prefix=app_settings.api_v1_prefix)
     application.include_router(product_router, prefix=app_settings.api_v1_prefix)
     application.include_router(batches_router, prefix=app_settings.api_v1_prefix)
+    application.include_router(inventory_router, prefix=app_settings.api_v1_prefix)
     application.include_router(files_router, prefix=app_settings.api_v1_prefix)
     application.include_router(
         quality_inspections_router, prefix=app_settings.api_v1_prefix

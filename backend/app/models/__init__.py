@@ -5,13 +5,22 @@ from app.models.cooperative import Cooperative
 from app.models.enums import (
     BatchStatus,
     CooperativeStatus,
+    IdempotencyStatus,
     InspectionConclusion,
+    InventoryOperationStatus,
+    InventoryOperationType,
+    InventoryRisk,
+    InventoryTransactionType,
     SortDirection,
     UserStatus,
     WarehouseStatus,
 )
 from app.models.file import File
+from app.models.idempotency_record import IdempotencyRecord
 from app.models.inspection_file import InspectionFile
+from app.models.inventory import Inventory
+from app.models.inventory_operation import InventoryOperation
+from app.models.inventory_transaction import InventoryTransaction
 from app.models.permission import Permission
 from app.models.product import Product
 from app.models.product_category import ProductCategory
@@ -32,8 +41,17 @@ __all__ = [
     "Cooperative",
     "CooperativeStatus",
     "File",
+    "IdempotencyRecord",
+    "IdempotencyStatus",
     "InspectionConclusion",
     "InspectionFile",
+    "Inventory",
+    "InventoryOperation",
+    "InventoryOperationStatus",
+    "InventoryOperationType",
+    "InventoryRisk",
+    "InventoryTransaction",
+    "InventoryTransactionType",
     "Permission",
     "Product",
     "ProductCategory",

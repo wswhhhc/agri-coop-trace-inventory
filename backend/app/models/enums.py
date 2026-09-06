@@ -41,10 +41,50 @@ class SortDirection(StrEnum):
     DESC = "DESC"
 
 
+class InventoryOperationType(StrEnum):
+    INBOUND = "INBOUND"
+    OUTBOUND = "OUTBOUND"
+    ADJUSTMENT = "ADJUSTMENT"
+    DAMAGE = "DAMAGE"
+    TRANSFER = "TRANSFER"
+
+
+class InventoryOperationStatus(StrEnum):
+    COMPLETED = "COMPLETED"
+    REVERSED = "REVERSED"
+
+
+class InventoryTransactionType(StrEnum):
+    INBOUND = "INBOUND"
+    OUTBOUND = "OUTBOUND"
+    ADJUSTMENT = "ADJUSTMENT"
+    DAMAGE = "DAMAGE"
+    TRANSFER_OUT = "TRANSFER_OUT"
+    TRANSFER_IN = "TRANSFER_IN"
+
+
+class InventoryRisk(StrEnum):
+    NORMAL = "NORMAL"
+    LOW_STOCK = "LOW_STOCK"
+    NEAR_EXPIRY = "NEAR_EXPIRY"
+    OVERSTOCK = "OVERSTOCK"
+
+
+class IdempotencyStatus(StrEnum):
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
 __all__ = [
     "BatchStatus",
     "CooperativeStatus",
+    "IdempotencyStatus",
     "InspectionConclusion",
+    "InventoryOperationStatus",
+    "InventoryOperationType",
+    "InventoryRisk",
+    "InventoryTransactionType",
     "SortDirection",
     "UserStatus",
     "WarehouseStatus",

@@ -139,6 +139,58 @@ ORM_TABLE_COLUMNS = {
         "created_at",
     },
     "inspection_files": {"inspection_id", "file_id", "created_at"},
+    "inventories": {
+        "id",
+        "cooperative_id",
+        "warehouse_id",
+        "batch_id",
+        "quantity",
+        "locked_quantity",
+        "version",
+        "updated_at",
+    },
+    "inventory_operations": {
+        "id",
+        "cooperative_id",
+        "operation_no",
+        "operation_type",
+        "source_warehouse_id",
+        "destination_warehouse_id",
+        "external_reference",
+        "reason",
+        "occurred_at",
+        "status",
+        "created_by",
+        "created_at",
+    },
+    "inventory_transactions": {
+        "id",
+        "cooperative_id",
+        "operation_id",
+        "warehouse_id",
+        "batch_id",
+        "transaction_type",
+        "quantity_delta",
+        "quantity_before",
+        "quantity_after",
+        "occurred_at",
+        "created_by",
+        "created_at",
+    },
+    "idempotency_records": {
+        "id",
+        "cooperative_id",
+        "user_id",
+        "endpoint",
+        "idempotency_key",
+        "request_hash",
+        "status",
+        "response_status",
+        "response_body",
+        "expires_at",
+        "created_at",
+        "updated_at",
+    },
 }
 
 
@@ -191,6 +243,24 @@ def test_target_tables_have_foreign_keys_and_expected_indexes() -> None:
     } == {
         "ix_quality_inspections_batch_time",
         "ix_quality_inspections_original",
+    }
+    assert {
+        foreign_key.target_fullname
+        for foreign_key in Base.metadata.tables["inventories"].foreign_keys
+    } == {"cooperatives.id", "warehouses.id", "batches.id"}
+    assert {
+        index.name for index in Base.metadata.tables["inventories"].indexes
+    } == {"ix_inventories_cooperative_warehouse"}
+    assert {
+        index.name
+        for index in Base.metadata.tables["inventory_operations"].indexes
+    } == {"uq_inventory_operations_external_reference"}
+    assert {
+        index.name
+        for index in Base.metadata.tables["inventory_transactions"].indexes
+    } == {
+        "ix_inventory_transactions_warehouse_time",
+        "ix_inventory_transactions_batch_time",
     }
 
 
