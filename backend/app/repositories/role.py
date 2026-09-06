@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models import Role
+from app.models import Permission, Role
 
 
 class RoleRepository:
@@ -30,6 +30,24 @@ class RoleRepository:
             .where(Role.code == code)
         )
         return await self.session.scalar(statement)
+
+    async def list_with_permissions(self) -> list[Role]:
+        statement = select(Role).options(selectinload(Role.permissions)).order_by(Role.code)
+        return list((await self.session.scalars(statement)).all())
+
+    async def list_permissions(self) -> list[Permission]:
+        statement = select(Permission).order_by(Permission.module, Permission.code)
+        return list((await self.session.scalars(statement)).all())
+
+    async def replace_permissions(
+        self,
+        role: Role,
+        permissions: list[Permission],
+    ) -> Role:
+        role.permissions = permissions
+        await self.session.flush()
+        await self.session.refresh(role, attribute_names=["permissions"])
+        return role
 
 
 __all__ = ["RoleRepository"]

@@ -198,3 +198,20 @@ export interface AuditLogSummary {
   result: string
   createdAt: string
 }
+
+export interface PermissionSummary {
+  id: string
+  code: string
+  name: string
+  module: string
+  description: string | null
+}
+
+export interface RoleSummary {
+  id: string
+  code: string
+  name: string
+  description: string | null
+  isSystem: boolean
+  permissions: PermissionSummary[]
+}
