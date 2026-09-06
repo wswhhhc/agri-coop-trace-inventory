@@ -28,3 +28,55 @@ const { items, loading, error, loadData } = useListPage(() => listTraceEvents(pr
     </ol>
   </section>
 </template>
+
+<style scoped>
+.trace-event-timeline {
+  display: grid;
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.trace-event-timeline h2 {
+  margin-bottom: 0;
+  font-size: var(--font-size-lg);
+}
+
+.trace-event-timeline ol {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0 0 0 var(--space-5);
+}
+
+.trace-event-timeline li {
+  display: grid;
+  gap: var(--space-1);
+  padding-left: var(--space-2);
+}
+
+.trace-event-timeline time {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.trace-event-timeline li strong {
+  color: var(--color-text);
+}
+
+.trace-event-timeline li p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+@media (max-width: 48rem) {
+  .trace-event-timeline {
+    padding: var(--space-4);
+  }
+}
+</style>

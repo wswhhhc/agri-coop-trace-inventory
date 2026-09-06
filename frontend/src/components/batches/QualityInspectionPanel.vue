@@ -163,3 +163,139 @@ async function handleSubmit(): Promise<void> {
     </form>
   </section>
 </template>
+
+<style scoped>
+.quality-inspection-panel {
+  display: grid;
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.quality-inspection-panel h2 {
+  margin-bottom: 0;
+  font-size: var(--font-size-lg);
+}
+
+.quality-inspection-panel > article {
+  display: grid;
+  gap: var(--space-3);
+  overflow-x: auto;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-4);
+}
+
+.quality-inspection-panel > article h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 0;
+  font-size: var(--font-size-md);
+}
+
+.quality-inspection-panel > article p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.quality-inspection-panel > article table {
+  min-width: 38rem;
+}
+
+.quality-inspection-create-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-5);
+}
+
+.quality-inspection-create-form h3,
+.quality-inspection-create-form > textarea,
+.quality-inspection-create-form > ul,
+.quality-inspection-create-form > fieldset,
+.quality-inspection-create-form > p {
+  grid-column: 1 / -1;
+}
+
+.quality-inspection-create-form > label,
+.quality-inspection-create-form fieldset label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.quality-inspection-create-form > ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.quality-inspection-create-form fieldset {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.quality-inspection-create-form legend {
+  padding-inline: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.quality-inspection-create-form fieldset label:last-of-type {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.quality-inspection-create-form > button {
+  justify-self: start;
+}
+
+.quality-inspection-create-form > p {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+@media (max-width: 48rem) {
+  .quality-inspection-panel {
+    padding: var(--space-4);
+  }
+
+  .quality-inspection-create-form,
+  .quality-inspection-create-form fieldset {
+    grid-template-columns: 1fr;
+  }
+
+  .quality-inspection-create-form h3,
+  .quality-inspection-create-form > textarea,
+  .quality-inspection-create-form > ul,
+  .quality-inspection-create-form > fieldset,
+  .quality-inspection-create-form > p {
+    grid-column: auto;
+  }
+
+  .quality-inspection-create-form > button {
+    justify-self: stretch;
+  }
+}
+</style>
