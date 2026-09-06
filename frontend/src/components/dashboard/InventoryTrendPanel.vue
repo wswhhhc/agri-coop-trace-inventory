@@ -68,8 +68,8 @@ const groupedTrends = computed(() => {
           </table>
         </section>
       </div>
-      <div class="inventory-trend-chart-placeholder" aria-label="库存趋势图表预留区域">
-        后续在这里接入库存趋势图表
+      <div class="inventory-trend-table-note" aria-label="库存趋势数据说明">
+        当前以明细表展示趋势数据，已包含入库、出库和期末库存。
       </div>
     </PageState>
   </section>
