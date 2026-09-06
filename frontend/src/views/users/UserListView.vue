@@ -14,6 +14,7 @@ import type { UserStatus } from '@/api/users'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useListPage, usePageData } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
@@ -180,7 +181,7 @@ async function handleResetPassword(): Promise<void> {
 
 <template>
   <section class="user-list-page">
-    <PageHeader title="用户管理" description="维护用户基本信息、角色和账号状态。" />
+    <PageHeader eyebrow="组织管理" title="用户管理" description="维护用户基本信息、角色和账号状态。" />
     <PageContext />
     <form v-if="canManage" class="user-create-form" @submit.prevent="handleSubmit">
       <h2>新增用户</h2>
@@ -304,7 +305,7 @@ async function handleResetPassword(): Promise<void> {
             <td>{{ user.displayName }}</td>
             <td>{{ user.role }}</td>
             <td>{{ user.phone || '—' }}</td>
-            <td>{{ user.status }}</td>
+            <td><StatusBadge :label="user.status" :tone="user.status === 'ACTIVE' ? 'success' : user.status === 'LOCKED' ? 'danger' : 'neutral'" /></td>
             <td v-if="canManage">
               <button type="button" @click="beginEdit(user)">编辑</button>
             </td>

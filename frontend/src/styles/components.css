@@ -1192,6 +1192,109 @@
   color: var(--color-success);
 }
 
+.cooperative-list-page,
+.warehouse-list-page,
+.user-list-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.cooperative-list-page > .page-state,
+.warehouse-list-page > .page-state,
+.user-list-page > .page-state {
+  overflow-x: auto;
+}
+
+.cooperative-list-page > .page-state table {
+  min-width: 48rem;
+}
+
+.warehouse-list-page > .page-state table {
+  min-width: 50rem;
+}
+
+.user-list-page > .page-state table {
+  min-width: 64rem;
+}
+
+.cooperative-create-form,
+.cooperative-edit-form,
+.warehouse-create-form,
+.warehouse-edit-form,
+.user-create-form,
+.user-edit-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.cooperative-create-form h2,
+.cooperative-edit-form h2,
+.warehouse-create-form h2,
+.warehouse-edit-form h2,
+.user-create-form h2,
+.user-edit-form h2 {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+  font-size: var(--font-size-lg);
+}
+
+.cooperative-create-form > label,
+.cooperative-edit-form > label,
+.warehouse-create-form > label,
+.warehouse-edit-form > label,
+.user-create-form > label,
+.user-edit-form > label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.cooperative-create-form > p,
+.cooperative-edit-form > p,
+.warehouse-create-form > p,
+.warehouse-edit-form > p,
+.user-create-form > p,
+.user-edit-form > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.cooperative-create-form > p[role='alert'],
+.cooperative-edit-form > p[role='alert'],
+.warehouse-create-form > p[role='alert'],
+.warehouse-edit-form > p[role='alert'],
+.user-create-form > p[role='alert'],
+.user-edit-form > p[role='alert'] {
+  color: var(--color-danger);
+}
+
+.cooperative-create-form > p[role='status'],
+.cooperative-edit-form > p[role='status'],
+.warehouse-create-form > p[role='status'],
+.warehouse-edit-form > p[role='status'],
+.user-create-form > p[role='status'],
+.user-edit-form > p[role='status'] {
+  color: var(--color-success);
+}
+
+.cooperative-create-form > button,
+.cooperative-edit-form > button,
+.warehouse-create-form > button,
+.warehouse-edit-form > button,
+.user-create-form > button,
+.user-edit-form > button {
+  justify-self: start;
+}
+
 .forecast-result-detail table {
   min-width: 34rem;
 }
@@ -1727,6 +1830,40 @@
   .product-edit-form > button,
   .product-category-create-form > button,
   .product-category-edit-form > button {
+    justify-self: stretch;
+  }
+
+  .cooperative-create-form,
+  .cooperative-edit-form,
+  .warehouse-create-form,
+  .warehouse-edit-form,
+  .user-create-form,
+  .user-edit-form {
+    grid-template-columns: 1fr;
+    padding: var(--space-4);
+  }
+
+  .cooperative-create-form h2,
+  .cooperative-edit-form h2,
+  .warehouse-create-form h2,
+  .warehouse-edit-form h2,
+  .user-create-form h2,
+  .user-edit-form h2,
+  .cooperative-create-form > p,
+  .cooperative-edit-form > p,
+  .warehouse-create-form > p,
+  .warehouse-edit-form > p,
+  .user-create-form > p,
+  .user-edit-form > p {
+    grid-column: auto;
+  }
+
+  .cooperative-create-form > button,
+  .cooperative-edit-form > button,
+  .warehouse-create-form > button,
+  .warehouse-edit-form > button,
+  .user-create-form > button,
+  .user-edit-form > button {
     justify-self: stretch;
   }
 

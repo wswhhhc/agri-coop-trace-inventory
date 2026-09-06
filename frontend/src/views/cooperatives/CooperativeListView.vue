@@ -10,6 +10,7 @@ import type { CooperativeStatus } from '@/api/cooperatives'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useListPage } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
@@ -115,7 +116,7 @@ async function handleUpdate(): Promise<void> {
 
 <template>
   <section class="cooperative-list-page">
-    <PageHeader title="合作社管理" description="维护平台合作社信息和启停状态。" />
+    <PageHeader eyebrow="组织管理" title="合作社管理" description="维护平台合作社信息和启停状态。" />
     <PageContext />
     <form v-if="canManage" class="cooperative-create-form" @submit.prevent="handleSubmit">
       <h2>新增合作社</h2>
@@ -206,7 +207,7 @@ async function handleUpdate(): Promise<void> {
             <td>{{ cooperative.contactName || '—' }}</td>
             <td>{{ cooperative.contactPhone || '—' }}</td>
             <td>{{ cooperative.address || '—' }}</td>
-            <td>{{ cooperative.status === 'ACTIVE' ? '启用' : '停用' }}</td>
+            <td><StatusBadge :label="cooperative.status === 'ACTIVE' ? '启用' : '停用'" :tone="cooperative.status === 'ACTIVE' ? 'success' : 'neutral'" /></td>
             <td v-if="canManage">
               <button type="button" @click="beginEdit(cooperative)">编辑</button>
             </td>
