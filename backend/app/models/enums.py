@@ -108,6 +108,17 @@ class TaskStatus(StrEnum):
     RETRY = "RETRY"
 
 
+class ModelType(StrEnum):
+    MOVING_AVERAGE = "MOVING_AVERAGE"
+    RANDOM_FOREST = "RANDOM_FOREST"
+    XGBOOST = "XGBOOST"
+
+
+class DataType(StrEnum):
+    SYNTHETIC = "SYNTHETIC"
+    REAL = "REAL"
+
+
 class IdempotencyStatus(StrEnum):
     PROCESSING = "PROCESSING"
     COMPLETED = "COMPLETED"
@@ -120,12 +131,14 @@ __all__ = [
     "AlertType",
     "BatchStatus",
     "CooperativeStatus",
+    "DataType",
     "IdempotencyStatus",
     "InspectionConclusion",
     "InventoryOperationStatus",
     "InventoryOperationType",
     "InventoryRisk",
     "InventoryTransactionType",
+    "ModelType",
     "SortDirection",
     "TaskStatus",
     "TraceEventType",

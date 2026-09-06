@@ -11,12 +11,14 @@ from app.models.enums import (
     AlertType,
     BatchStatus,
     CooperativeStatus,
+    DataType,
     IdempotencyStatus,
     InspectionConclusion,
     InventoryOperationStatus,
     InventoryOperationType,
     InventoryRisk,
     InventoryTransactionType,
+    ModelType,
     SortDirection,
     TaskStatus,
     TraceEventType,
@@ -24,11 +26,14 @@ from app.models.enums import (
     WarehouseStatus,
 )
 from app.models.file import File
+from app.models.forecast_point import ForecastPoint
+from app.models.forecast_result import ForecastResult
 from app.models.idempotency_record import IdempotencyRecord
 from app.models.inspection_file import InspectionFile
 from app.models.inventory import Inventory
 from app.models.inventory_operation import InventoryOperation
 from app.models.inventory_transaction import InventoryTransaction
+from app.models.model_version import ModelVersion
 from app.models.permission import Permission
 from app.models.product import Product
 from app.models.product_category import ProductCategory
@@ -56,7 +61,10 @@ __all__ = [
     "BatchStatus",
     "Cooperative",
     "CooperativeStatus",
+    "DataType",
     "File",
+    "ForecastPoint",
+    "ForecastResult",
     "IdempotencyRecord",
     "IdempotencyStatus",
     "InspectionConclusion",
@@ -68,6 +76,8 @@ __all__ = [
     "InventoryRisk",
     "InventoryTransaction",
     "InventoryTransactionType",
+    "ModelType",
+    "ModelVersion",
     "Permission",
     "Product",
     "ProductCategory",
