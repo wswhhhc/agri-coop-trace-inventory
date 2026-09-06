@@ -298,6 +298,17 @@ def _map_integrity_error(exc: IntegrityError) -> AppException:
     )
 
 
+def error_code_for_exception(exc: Exception) -> str:
+    """返回可安全写入审计详情的稳定错误码。"""
+    if isinstance(exc, AppException):
+        return exc.code
+    if isinstance(exc, IntegrityError):
+        return _map_integrity_error(exc).code
+    if isinstance(exc, SQLAlchemyError):
+        return "DATABASE_ERROR"
+    return "INTERNAL_ERROR"
+
+
 async def integrity_error_handler(
     request: Request, exc: IntegrityError
 ) -> JSONResponse:

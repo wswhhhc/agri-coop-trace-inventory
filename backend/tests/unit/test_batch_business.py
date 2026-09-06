@@ -5,12 +5,14 @@ from uuid import uuid4
 import httpx
 import pytest
 import pytest_asyncio
+from app.core.audit.service import AuditLogService
 from app.core.auth.context import AuthContext
-from app.core.auth.dependencies import get_auth_context
+from app.core.auth.dependencies import get_audit_log_service, get_auth_context
 from app.core.config import Settings
 from app.infrastructure.database import get_db_session
 from app.main import create_app
 from app.models import (
+    AuditLog,
     Cooperative,
     Permission,
     Product,
@@ -188,6 +190,9 @@ async def batch_api(postgres_session_factory):
     application = create_app(_settings())
     application.dependency_overrides[get_db_session] = override_db_session
     application.dependency_overrides[get_auth_context] = override_auth_context
+    application.dependency_overrides[get_audit_log_service] = lambda: AuditLogService(
+        postgres_session_factory
+    )
     transport = httpx.ASGITransport(app=application)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         yield client, *ids, set_context, postgres_session_factory
@@ -243,6 +248,21 @@ async def test_cooperative_admin_can_create_list_read_and_change_batch_status(ba
     assert restored.status_code == 200
     assert restored.json()["data"]["status"] == "CREATED"
 
+    async with postgres_session_factory() as session:
+        audit_logs = list(
+            await session.scalars(
+                select(AuditLog)
+                .where(AuditLog.object_id == data["id"])
+                .order_by(AuditLog.created_at, AuditLog.id)
+            )
+        )
+    assert [log.action for log in audit_logs] == [
+        "CREATE_BATCH",
+        "UPDATE_BATCH",
+        "UPDATE_BATCH",
+    ]
+    assert all(log.result == "SUCCESS" for log in audit_logs)
+
 
 @pytest.mark.asyncio
 async def test_batch_rejects_inactive_or_cross_cooperative_product(batch_api):
@@ -295,6 +315,19 @@ async def test_batch_enforces_unique_no_date_order_and_status_transition(batch_a
     duplicate = await client.post("/api/v1/batches", json=payload)
     assert duplicate.status_code == 409
     assert duplicate.json()["error"]["code"] == "UNIQUE_CONFLICT"
+
+    async with batch_api[-1]() as session:
+        duplicate_logs = list(
+            await session.scalars(
+                select(AuditLog)
+                .where(
+                    AuditLog.action == "CREATE_BATCH",
+                    AuditLog.result == "FAILURE",
+                )
+            )
+        )
+    assert duplicate_logs
+    assert duplicate_logs[-1].detail == {"errorCode": "UNIQUE_CONFLICT"}
 
     invalid_dates = await client.post(
         "/api/v1/batches",

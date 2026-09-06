@@ -1,14 +1,21 @@
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api._pagination import build_pagination_meta
 from app.api.traceability import get_traceability_cache
-from app.core.auth.dependencies import CurrentAuthContext
+from app.core.audit.service import (
+    AuditEvent,
+    AuditLogService,
+    audit_error_code,
+    record_audit_safely,
+)
+from app.core.auth.dependencies import CurrentAuthContext, get_audit_log_service
 from app.infrastructure.database import get_db_session
 from app.models import Batch
 from app.schemas.batch import BatchCreate, BatchData, BatchListParams, BatchUpdate
@@ -17,6 +24,7 @@ from app.services.batch import BatchService
 from app.services.traceability import TraceabilityCache
 
 router = APIRouter(prefix="/batches", tags=["batches"])
+logger = logging.getLogger(__name__)
 
 
 def get_batch_service(
@@ -47,9 +55,47 @@ async def list_batches(
 async def create_batch(
     payload: BatchCreate,
     context: CurrentAuthContext,
+    request: Request,
     service: Annotated[BatchService, Depends(get_batch_service)],
+    audit_log_service: Annotated[AuditLogService, Depends(get_audit_log_service)],
 ) -> ApiResponse[BatchData]:
-    return ApiResponse(data=_batch_data(await service.create(context, payload)))
+    try:
+        batch = await service.create(context, payload)
+    except Exception as error:
+        await record_audit_safely(
+            audit_log_service,
+            AuditEvent(
+                action="CREATE_BATCH",
+                module="BATCH",
+                object_type="BATCH",
+                result="FAILURE",
+                cooperative_id=context.cooperative_id,
+                user_id=context.user_id,
+                request_id=getattr(request.state, "request_id", None),
+                detail={"errorCode": audit_error_code(error)},
+            ),
+            logger,
+        )
+        raise
+    await record_audit_safely(
+        audit_log_service,
+        AuditEvent(
+            action="CREATE_BATCH",
+            module="BATCH",
+            object_type="BATCH",
+            result="SUCCESS",
+            cooperative_id=batch.cooperative_id,
+            user_id=context.user_id,
+            object_id=batch.id,
+            request_id=getattr(request.state, "request_id", None),
+            detail={
+                "batchNo": batch.batch_no,
+                "productId": str(batch.product_id),
+            },
+        ),
+        logger,
+    )
+    return ApiResponse(data=_batch_data(batch))
 
 
 @router.get("/{batchId}", response_model=ApiResponse[BatchData])
@@ -66,11 +112,49 @@ async def update_batch(
     batch_id: Annotated[UUID, Path(alias="batchId")],
     payload: BatchUpdate,
     context: CurrentAuthContext,
+    request: Request,
     service: Annotated[BatchService, Depends(get_batch_service)],
+    audit_log_service: Annotated[AuditLogService, Depends(get_audit_log_service)],
 ) -> ApiResponse[BatchData]:
-    return ApiResponse(
-        data=_batch_data(await service.update(context, batch_id, payload))
+    try:
+        batch = await service.update(context, batch_id, payload)
+    except Exception as error:
+        await record_audit_safely(
+            audit_log_service,
+            AuditEvent(
+                action="UPDATE_BATCH",
+                module="BATCH",
+                object_type="BATCH",
+                result="FAILURE",
+                cooperative_id=context.cooperative_id,
+                user_id=context.user_id,
+                object_id=batch_id,
+                request_id=getattr(request.state, "request_id", None),
+                detail={"errorCode": audit_error_code(error)},
+            ),
+            logger,
+        )
+        raise
+    await record_audit_safely(
+        audit_log_service,
+        AuditEvent(
+            action="UPDATE_BATCH",
+            module="BATCH",
+            object_type="BATCH",
+            result="SUCCESS",
+            cooperative_id=batch.cooperative_id,
+            user_id=context.user_id,
+            object_id=batch.id,
+            request_id=getattr(request.state, "request_id", None),
+            detail={
+                "updatedFields": sorted(
+                    payload.model_dump(exclude_unset=True).keys()
+                )
+            },
+        ),
+        logger,
     )
+    return ApiResponse(data=_batch_data(batch))
 
 
 __all__ = ["get_batch_service", "router"]

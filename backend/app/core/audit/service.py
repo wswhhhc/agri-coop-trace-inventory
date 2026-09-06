@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -9,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.audit.context import AuditContext
 from app.core.audit.redaction import iter_sensitive_detail_keys
+from app.core.exceptions import error_code_for_exception
 from app.models._common import utc_now
 from app.repositories.audit_log import AuditLogRepository
 
@@ -69,10 +71,32 @@ class AuditLogService:
             await AuditLogRepository(session).create(event)
 
 
+async def record_audit_safely(
+    audit_service: AuditLogService,
+    event: AuditEvent,
+    logger: logging.Logger,
+) -> None:
+    """记录审计失败时仅记录服务端日志，不影响主业务响应。"""
+    try:
+        await audit_service.record(event)
+    except Exception:
+        logger.exception("审计记录失败 action=%s", event.action)
+
+
+def audit_error_code(error: Exception) -> str:
+    """将业务异常转换为可安全写入审计详情的错误码。"""
+    return error_code_for_exception(error)
+
+
 def _validate_detail(detail: dict[str, Any]) -> None:
     forbidden = set(iter_sensitive_detail_keys(detail))
     if forbidden:
         raise ValueError(f"审计详情包含禁止记录的字段: {', '.join(sorted(forbidden))}")
 
 
-__all__ = ["AuditEvent", "AuditLogService"]
+__all__ = [
+    "AuditEvent",
+    "AuditLogService",
+    "audit_error_code",
+    "record_audit_safely",
+]
