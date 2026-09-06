@@ -34,7 +34,7 @@ function handleSearch(params: DashboardQueryParams): void {
 
 <template>
   <section class="dashboard-page">
-    <PageHeader title="数据看板" description="显示当前账号可访问范围内的库存与预警概览。" />
+    <PageHeader eyebrow="运营总览" title="数据看板" description="显示当前账号可访问范围内的库存与预警概览。" />
     <PageContext />
 
     <DashboardFilters :loading="loading" @search="handleSearch" />
