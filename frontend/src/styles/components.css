@@ -1,104 +1,11 @@
 .alert-detail,
-.audit-log-detail,
-.inventory-transaction-list-page__detail {
+.audit-log-detail {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
 }
 
-.inventory-list-page,
-.inventory-transaction-list-page {
-  display: grid;
-  gap: var(--space-5);
-}
-
-.inventory-list-page > form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
-}
-
-.inventory-list-page > form h2 {
-  grid-column: 1 / -1;
-  margin-bottom: 0;
-  font-size: var(--font-size-lg);
-}
-
-.inventory-list-page > form > label {
-  display: grid;
-  gap: var(--space-1);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-}
-
-.inventory-list-page > form > label:has(textarea) {
-  grid-column: 1 / -1;
-}
-
-.inventory-list-page > form > button {
-  justify-self: start;
-}
-
-.inventory-list-page > form > p {
-  grid-column: 1 / -1;
-  margin: 0;
-  padding: var(--space-3);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-}
-
-.inventory-list-page > form > p[role='alert'] {
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
-}
-
-.inventory-list-page > form > p[role='status'] {
-  background: var(--color-success-soft);
-  color: var(--color-success);
-}
-
-.inventory-list-page > .page-state,
-.inventory-transaction-list-page > .page-state {
-  overflow-x: auto;
-}
-
-.inventory-list-page > .page-state table {
-  min-width: 58rem;
-}
-
-.inventory-transaction-list-page > .page-state table {
-  min-width: 48rem;
-}
-
-.inventory-transaction-list-page__filter-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.inventory-transaction-list-page__filter-actions button:last-child {
-  border-color: var(--color-border-strong);
-  background: transparent;
-  color: var(--color-text-secondary);
-}
-
-.inventory-transaction-list-page__detail {
-  padding: var(--space-5);
-}
-
-.inventory-transaction-list-page__detail h2 {
-  margin-bottom: var(--space-4);
-  font-size: var(--font-size-lg);
-}
-
-.inventory-transaction-list-page__detail dl,
 .alert-detail dl,
 .audit-log-detail dl {
   display: grid;
@@ -106,7 +13,6 @@
   margin: 0;
 }
 
-.inventory-transaction-list-page__detail dl > div,
 .alert-detail dl > div,
 .audit-log-detail dl > div {
   display: grid;
@@ -116,14 +22,12 @@
   padding-bottom: var(--space-2);
 }
 
-.inventory-transaction-list-page__detail dt,
 .alert-detail dt,
 .audit-log-detail dt {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
 
-.inventory-transaction-list-page__detail dd,
 .alert-detail dd,
 .audit-log-detail dd {
   min-width: 0;
@@ -302,25 +206,10 @@
 }
 
 @media (max-width: 48rem) {
-  .inventory-transaction-list-page__detail dl > div,
   .alert-detail dl > div,
   .audit-log-detail dl > div {
     grid-template-columns: 1fr;
     gap: var(--space-1);
-  }
-
-  .inventory-list-page > form {
-    grid-template-columns: 1fr;
-    padding: var(--space-4);
-  }
-
-  .inventory-list-page > form > label:has(textarea),
-  .inventory-list-page > form > p {
-    grid-column: auto;
-  }
-
-  .inventory-list-page > form > button {
-    justify-self: stretch;
   }
 
   .alert-handle-form,

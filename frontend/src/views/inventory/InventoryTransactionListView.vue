@@ -137,3 +137,78 @@ function resetFilters(): void {
     </aside>
   </section>
 </template>
+
+<style scoped>
+.inventory-transaction-list-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.inventory-transaction-list-page > .page-state {
+  overflow-x: auto;
+}
+
+.inventory-transaction-list-page > .page-state table {
+  min-width: 48rem;
+}
+
+.inventory-transaction-list-page__filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.inventory-transaction-list-page__filter-actions button:last-child {
+  border-color: var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.inventory-transaction-list-page__detail {
+  display: grid;
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.inventory-transaction-list-page__detail h2 {
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-lg);
+}
+
+.inventory-transaction-list-page__detail dl {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.inventory-transaction-list-page__detail dl > div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.35fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-2);
+}
+
+.inventory-transaction-list-page__detail dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.inventory-transaction-list-page__detail dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 48rem) {
+  .inventory-transaction-list-page__detail dl > div {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+}
+</style>
