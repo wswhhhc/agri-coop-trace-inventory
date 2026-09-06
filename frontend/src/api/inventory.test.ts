@@ -6,6 +6,7 @@ import {
   createInventoryLoss,
   createInventoryReceipt,
   createStocktake,
+  createStockTransfer,
 } from './inventory'
 
 vi.mock('./http', () => ({
@@ -105,6 +106,29 @@ describe('inventory api', () => {
     })
     expect(http.post).toHaveBeenCalledWith('/inventory-losses', payload, {
       headers: { 'Idempotency-Key': 'idempotency-4' },
+    })
+  })
+
+  it('creates a stock transfer between two warehouses', async () => {
+    const payload = {
+      sourceWarehouseId: 'warehouse-1',
+      targetWarehouseId: 'warehouse-2',
+      batchId: 'batch-1',
+      quantity: 20,
+      occurredAt: '2026-09-06T14:00:00.000Z',
+      remark: '调拨补货',
+    }
+    vi.mocked(http.post).mockResolvedValueOnce({
+      data: { data: { transferId: 'transfer-1', outTransactionId: 'transaction-5', inTransactionId: 'transaction-6' } },
+    })
+
+    await expect(createStockTransfer(payload, 'idempotency-5')).resolves.toEqual({
+      transferId: 'transfer-1',
+      outTransactionId: 'transaction-5',
+      inTransactionId: 'transaction-6',
+    })
+    expect(http.post).toHaveBeenCalledWith('/stock-transfers', payload, {
+      headers: { 'Idempotency-Key': 'idempotency-5' },
     })
   })
 })

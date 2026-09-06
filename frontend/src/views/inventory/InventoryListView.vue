@@ -9,11 +9,13 @@ import {
   createInventoryLoss,
   createInventoryReceipt,
   createStocktake,
+  createStockTransfer,
   listInventory,
   type InventoryIssueCreatePayload,
   type InventoryLossCreatePayload,
   type InventoryReceiptCreatePayload,
   type StocktakeCreatePayload,
+  type StockTransferCreatePayload,
 } from '@/api/inventory'
 import { listBatches } from '@/api/batches'
 import { listWarehouses } from '@/api/warehouses'
@@ -70,6 +72,15 @@ const lossForm = reactive<InventoryLossCreatePayload & { occurredAtInput: string
   occurredAt: '',
   occurredAtInput: getLocalDateTimeValue(),
   reason: '',
+  remark: null,
+})
+const transferForm = reactive<StockTransferCreatePayload & { occurredAtInput: string }>({
+  sourceWarehouseId: '',
+  targetWarehouseId: '',
+  batchId: '',
+  quantity: 0,
+  occurredAt: '',
+  occurredAtInput: getLocalDateTimeValue(),
   remark: null,
 })
 
@@ -218,6 +229,46 @@ async function handleLoss(): Promise<void> {
     await loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
+  } finally {
+    submitting.value = false
+  }
+}
+
+function resetTransferForm(): void {
+  transferForm.sourceWarehouseId = ''
+  transferForm.targetWarehouseId = ''
+  transferForm.batchId = ''
+  transferForm.quantity = 0
+  transferForm.occurredAt = ''
+  transferForm.occurredAtInput = getLocalDateTimeValue()
+  transferForm.remark = null
+}
+
+async function handleTransfer(): Promise<void> {
+  submitting.value = true
+  formError.value = ''
+  successMessage.value = ''
+  try {
+    if (transferForm.sourceWarehouseId === transferForm.targetWarehouseId) {
+      throw new Error('调出仓库和调入仓库不能相同')
+    }
+    transferForm.occurredAt = new Date(transferForm.occurredAtInput).toISOString()
+    const result = await createStockTransfer(
+      {
+        sourceWarehouseId: transferForm.sourceWarehouseId,
+        targetWarehouseId: transferForm.targetWarehouseId,
+        batchId: transferForm.batchId,
+        quantity: transferForm.quantity,
+        occurredAt: transferForm.occurredAt,
+        remark: transferForm.remark?.trim() || null,
+      },
+      crypto.randomUUID(),
+    )
+    resetTransferForm()
+    successMessage.value = `调拨成功，调拨单号为 ${result.transferId}。`
+    await loadData()
+  } catch (reason) {
+    formError.value = getApiErrorMessage(reason, '调拨失败，请检查调拨信息')
   } finally {
     submitting.value = false
   }
@@ -399,6 +450,53 @@ async function handleLoss(): Promise<void> {
       </label>
       <button type="submit" :disabled="submitting || warehouseState.loading || batchState.loading">
         {{ submitting ? '提交中…' : '确认报损' }}
+      </button>
+      <p v-if="formError" role="alert">{{ formError }}</p>
+      <p v-if="successMessage" role="status">{{ successMessage }}</p>
+    </form>
+    <form v-if="canWrite" class="inventory-transfer-form" @submit.prevent="handleTransfer">
+      <h2>仓库调拨</h2>
+      <label>
+        调出仓库
+        <select v-model="transferForm.sourceWarehouseId" required name="sourceWarehouseId">
+          <option value="" disabled>请选择调出仓库</option>
+          <option v-for="warehouse in warehouseState.data" :key="warehouse.id" :value="warehouse.id">
+            {{ warehouse.name }}（{{ warehouse.code }}）
+          </option>
+        </select>
+      </label>
+      <label>
+        调入仓库
+        <select v-model="transferForm.targetWarehouseId" required name="targetWarehouseId">
+          <option value="" disabled>请选择调入仓库</option>
+          <option v-for="warehouse in warehouseState.data" :key="warehouse.id" :value="warehouse.id">
+            {{ warehouse.name }}（{{ warehouse.code }}）
+          </option>
+        </select>
+      </label>
+      <label>
+        批次
+        <select v-model="transferForm.batchId" required name="transferBatchId">
+          <option value="" disabled>请选择批次</option>
+          <option v-for="batch in batchState.data" :key="batch.id" :value="batch.id">
+            {{ batch.batchNo }}
+          </option>
+        </select>
+      </label>
+      <label>
+        数量
+        <input v-model.number="transferForm.quantity" type="number" min="0.001" step="0.001" required name="transferQuantity" />
+      </label>
+      <label>
+        调拨时间
+        <input v-model="transferForm.occurredAtInput" type="datetime-local" required name="transferOccurredAt" />
+      </label>
+      <label>
+        备注
+        <textarea v-model="transferForm.remark" maxlength="500" name="transferRemark" />
+      </label>
+      <button type="submit" :disabled="submitting || warehouseState.loading || batchState.loading">
+        {{ submitting ? '提交中…' : '确认调拨' }}
       </button>
       <p v-if="formError" role="alert">{{ formError }}</p>
       <p v-if="successMessage" role="status">{{ successMessage }}</p>
