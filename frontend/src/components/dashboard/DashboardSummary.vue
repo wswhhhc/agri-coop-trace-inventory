@@ -36,3 +36,103 @@ defineProps<{
     </section>
   </section>
 </template>
+
+<style scoped>
+.dashboard-summary {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard-section__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.dashboard-section__header h2,
+.dashboard-section__header h3 {
+  margin-bottom: var(--space-1);
+  font-size: var(--font-size-lg);
+}
+
+.dashboard-section__header p {
+  margin-bottom: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.dashboard-summary__metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.dashboard-inventory-overview {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-4);
+}
+
+.dashboard-inventory-overview h3 {
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.dashboard-inventory-overview__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-inventory-overview__list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.dashboard-inventory-overview__list strong {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 48rem) {
+  .dashboard-summary {
+    padding: var(--space-4);
+  }
+
+  .dashboard-section__header {
+    flex-direction: column;
+  }
+
+  .dashboard-summary__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 30rem) {
+  .dashboard-summary__metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (forced-colors: active) {
+  .dashboard-summary {
+    border: 1px solid CanvasText;
+  }
+}
+</style>

@@ -54,3 +54,50 @@ const emit = defineEmits<{
     </PageState>
   </section>
 </template>
+
+<style scoped>
+.dashboard-panel {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard-section__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.dashboard-section__header h2,
+.dashboard-section__header h3 {
+  margin-bottom: var(--space-1);
+  font-size: var(--font-size-lg);
+}
+
+.dashboard-section__header p {
+  margin-bottom: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+@media (max-width: 48rem) {
+  .dashboard-panel {
+    padding: var(--space-4);
+  }
+
+  .dashboard-section__header {
+    flex-direction: column;
+  }
+}
+
+@media (forced-colors: active) {
+  .dashboard-panel {
+    border: 1px solid CanvasText;
+  }
+}
+</style>

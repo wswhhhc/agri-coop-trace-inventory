@@ -112,3 +112,65 @@ onMounted(loadWarehouses)
     </p>
   </form>
 </template>
+
+<style scoped>
+.dashboard-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  background: var(--color-surface-muted);
+}
+
+.dashboard-filters__field {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.dashboard-filters__field label {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.dashboard-filters__field small,
+.dashboard-filters__validation-error {
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+}
+
+.dashboard-filters__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dashboard-filters__actions button:last-child {
+  border-color: var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.dashboard-filters__validation-error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+@media (max-width: 48rem) {
+  .dashboard-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-filters__actions {
+    justify-content: stretch;
+  }
+
+  .dashboard-filters__actions button {
+    flex: 1;
+  }
+}
+</style>

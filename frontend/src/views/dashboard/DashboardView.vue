@@ -106,3 +106,65 @@ function handleSearch(params: DashboardQueryParams): void {
     </section>
   </section>
 </template>
+
+<style scoped>
+.dashboard-page__modules {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.dashboard-module {
+  min-width: 0;
+}
+
+.dashboard-module--summary,
+.dashboard-module--forecast {
+  grid-column: 1 / -1;
+}
+
+.dashboard-page__modules > .inventory-trend-panel {
+  grid-column: span 8;
+}
+
+.dashboard-page__modules > .alert-distribution-panel,
+.dashboard-page__modules > .product-ranking-panel {
+  grid-column: span 4;
+}
+
+.dashboard-module--forecast {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard-module--forecast table {
+  min-width: 38rem;
+}
+
+.dashboard-module--forecast h2 {
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-lg);
+}
+
+@media (max-width: 48rem) {
+  .dashboard-page__modules {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-page__modules > .inventory-trend-panel,
+  .dashboard-page__modules > .alert-distribution-panel,
+  .dashboard-page__modules > .product-ranking-panel {
+    grid-column: 1;
+  }
+}
+
+@media (forced-colors: active) {
+  .dashboard-module--forecast {
+    border: 1px solid CanvasText;
+  }
+}
+</style>
