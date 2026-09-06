@@ -4,6 +4,7 @@
 
 html {
   min-width: 320px;
+  overflow-x: hidden;
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-family-sans);
@@ -116,6 +117,14 @@ a {
 
 a:hover {
   color: var(--color-brand-hover);
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  max-width: 100%;
 }
 
 h1,

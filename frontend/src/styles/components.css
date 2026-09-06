@@ -2058,3 +2058,51 @@
     padding: var(--space-5);
   }
 }
+
+@media (max-width: 30rem) {
+  .page-header__title {
+    font-size: var(--font-size-xl);
+  }
+
+  .page-state {
+    min-height: 8rem;
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .dashboard-summary__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header__actions,
+  .confirm-dialog__actions {
+    width: 100%;
+  }
+
+  .page-header__actions > button,
+  .confirm-dialog__actions > button {
+    flex: 1;
+  }
+
+  .task-progress__header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+}
+
+@media (forced-colors: active) {
+  .status-badge,
+  .metric-card,
+  .page-state,
+  .data-card,
+  .dashboard-panel,
+  .dashboard-summary,
+  .confirm-dialog,
+  .toast-notice {
+    border: 1px solid CanvasText;
+  }
+
+  .metric-card::before {
+    background: CanvasText;
+  }
+}
