@@ -10,9 +10,17 @@ from app.core.auth.context import AuthContext
 from app.core.exceptions import StatusNotAllowedError
 from app.core.validation import require_non_empty_update
 from app.infrastructure.transaction import transaction_scope
-from app.models import Alert, AlertHandlingLog, AlertRule, AlertStatus
+from app.models import (
+    Alert,
+    AlertHandlingLog,
+    AlertRule,
+    AlertStatus,
+    AlertType,
+    QualityInspection,
+)
 from app.repositories.alerting import AlertingRepository
 from app.schemas.alerting import AlertListParams, AlertRuleUpdate, AlertStatusUpdate
+from app.services.alerting_engine import evaluate_inventory_rule, evaluate_quality_rule
 from app.services.alerting_policy import (
     require_alert_handle,
     require_alert_read,
@@ -119,6 +127,61 @@ class AlertingService:
                 )
             )
             return alert
+
+    async def scan(self, cooperative_id: UUID | None = None) -> int:
+        """扫描启用规则并创建活动预警；重复扫描对活动预警保持幂等。"""
+        created_count = 0
+        async with transaction_scope(self.session):
+            rules = await self.repository.list_enabled_rules(cooperative_id)
+            inventories = await self.repository.list_inventory_candidates(cooperative_id)
+            failed_inspections = await self.repository.list_failed_inspections(cooperative_id)
+            latest_failed: dict[UUID, QualityInspection] = {}
+            for inspection in failed_inspections:
+                latest_failed.setdefault(inspection.batch_id, inspection)
+            for rule in rules:
+                evaluations = []
+                if rule.alert_type in {AlertType.LOW_STOCK, AlertType.NEAR_EXPIRY, AlertType.OVERSTOCK}:
+                    for inventory in inventories:
+                        if not _rule_matches_inventory(rule, inventory):
+                            continue
+                        if (evaluation := evaluate_inventory_rule(rule, inventory, datetime.now(UTC).date())) is not None:
+                            evaluations.append((inventory.cooperative_id, evaluation))
+                elif rule.alert_type is AlertType.QUALITY_FAILED:
+                    for inspection in latest_failed.values():
+                        if rule.cooperative_id != inspection.cooperative_id:
+                            continue
+                        if (evaluation := evaluate_quality_rule(rule, inspection)) is not None:
+                            evaluations.append((inspection.cooperative_id, evaluation))
+                for current_cooperative_id, evaluation in evaluations:
+                    if await self.repository.get_active_by_dedupe(current_cooperative_id, evaluation.dedupe_key):
+                        continue
+                    await self.repository.add_alert(
+                        Alert(
+                            cooperative_id=current_cooperative_id,
+                            rule_id=rule.id,
+                            alert_type=evaluation.alert_type,
+                            severity=evaluation.severity,
+                            status=AlertStatus.PENDING,
+                            warehouse_id=evaluation.warehouse_id,
+                            product_id=evaluation.product_id,
+                            batch_id=evaluation.batch_id,
+                            dedupe_key=evaluation.dedupe_key,
+                            title=evaluation.title,
+                            message=evaluation.message,
+                            evidence=evaluation.evidence,
+                            detected_at=datetime.now(UTC),
+                        )
+                    )
+                    created_count += 1
+        return created_count
+
+
+def _rule_matches_inventory(rule: AlertRule, inventory) -> bool:
+    if rule.cooperative_id != inventory.cooperative_id:
+        return False
+    if rule.warehouse_id is not None and rule.warehouse_id != inventory.warehouse_id:
+        return False
+    return rule.product_id is None or rule.product_id == inventory.batch.product_id
 
 
 __all__ = ["AlertingService", "allowed_status_transitions"]

@@ -8,7 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
-from app.models import Alert, AlertHandlingLog, AlertRule
+from app.models import (
+    Alert,
+    AlertHandlingLog,
+    AlertRule,
+    Batch,
+    Inventory,
+    QualityInspection,
+)
 
 
 class AlertingRepository:
@@ -113,6 +120,42 @@ class AlertingRepository:
         self.session.add(log)
         await self.session.flush()
         return log
+
+    async def list_enabled_rules(self, cooperative_id: UUID | None = None) -> list[AlertRule]:
+        statement = select(AlertRule).where(AlertRule.is_enabled.is_(True))
+        if cooperative_id is not None:
+            statement = statement.where(AlertRule.cooperative_id == cooperative_id)
+        result = await self.session.scalars(statement.order_by(AlertRule.id))
+        return list(result)
+
+    async def list_inventory_candidates(self, cooperative_id: UUID | None = None) -> list[Inventory]:
+        statement = (
+            select(Inventory)
+            .join(Inventory.batch)
+            .options(selectinload(Inventory.batch).selectinload(Batch.product))
+        )
+        if cooperative_id is not None:
+            statement = statement.where(Inventory.cooperative_id == cooperative_id)
+        result = await self.session.scalars(statement.order_by(Inventory.id))
+        return list(result)
+
+    async def list_failed_inspections(self, cooperative_id: UUID | None = None) -> list[QualityInspection]:
+        statement = select(QualityInspection).where(QualityInspection.conclusion == "FAILED")
+        if cooperative_id is not None:
+            statement = statement.where(QualityInspection.cooperative_id == cooperative_id)
+        result = await self.session.scalars(
+            statement.order_by(QualityInspection.inspected_at.desc(), QualityInspection.id)
+        )
+        return list(result)
+
+    async def get_active_by_dedupe(self, cooperative_id: UUID, dedupe_key: str) -> Alert | None:
+        return await self.session.scalar(
+            select(Alert).where(
+                Alert.cooperative_id == cooperative_id,
+                Alert.dedupe_key == dedupe_key,
+                Alert.status.in_(("PENDING", "PROCESSING")),
+            )
+        )
 
     @staticmethod
     def _cooperative_conditions(model, cooperative_id: UUID | None) -> list[ColumnElement[bool]]:
