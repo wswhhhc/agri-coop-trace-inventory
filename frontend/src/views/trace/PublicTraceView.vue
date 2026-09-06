@@ -3,15 +3,24 @@ import { useRoute } from 'vue-router'
 
 import { getPublicTrace } from '@/api/public-traceability'
 import PageState from '@/components/common/PageState.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import { usePageData } from '@/composables/usePageData'
 
 const route = useRoute()
 const traceCode = String(route.params.traceCode)
 const { data, loading, error, loadData } = usePageData(() => getPublicTrace(traceCode), null)
+
+function statusTone(value: string): 'success' | 'warning' | 'danger' | 'info' {
+  if (value === 'IN_STOCK' || value === 'PASSED') return 'success'
+  if (value === 'EXPIRED' || value === 'FAILED') return 'danger'
+  if (value === 'PENDING') return 'warning'
+  return 'info'
+}
 </script>
 
 <template>
   <main class="public-trace-page">
+    <p class="public-trace-page__kicker">可信农产信息</p>
     <h1>农产品批次追溯</h1>
     <PageState :loading="loading" :error="error" :empty="!data" empty-message="追溯码无效或已失效" @retry="loadData">
       <template v-if="data">
@@ -31,15 +40,19 @@ const { data, loading, error, loadData } = usePageData(() => getPublicTrace(trac
             <div><dt>产地</dt><dd>{{ data.batch.origin }}</dd></div>
             <div><dt>生产日期</dt><dd>{{ data.batch.productionDate }}</dd></div>
             <div><dt>到期日期</dt><dd>{{ data.batch.expiryDate }}</dd></div>
-            <div><dt>状态</dt><dd>{{ data.batch.status }}</dd></div>
+            <div><dt>状态</dt><dd><StatusBadge :label="data.batch.status" :tone="statusTone(data.batch.status)" /></dd></div>
           </dl>
         </section>
         <section v-if="data.latestInspection">
           <h2>最近质检</h2>
-          <p>{{ data.latestInspection.inspectionDate }}，结论：{{ data.latestInspection.conclusion }}</p>
+          <p>
+            {{ data.latestInspection.inspectionDate }}，结论：
+            <StatusBadge :label="data.latestInspection.conclusion" :tone="statusTone(data.latestInspection.conclusion)" />
+          </p>
           <ul>
             <li v-for="item in data.latestInspection.items" :key="item.name">
-              {{ item.name }}：{{ item.value }}{{ item.unit ? ` ${item.unit}` : '' }}，标准：{{ item.standard }}，{{ item.isQualified ? '合格' : '不合格' }}
+              {{ item.name }}：{{ item.value }}{{ item.unit ? ` ${item.unit}` : '' }}，标准：{{ item.standard }}，
+              <StatusBadge :label="item.isQualified ? '合格' : '不合格'" :tone="item.isQualified ? 'success' : 'danger'" />
             </li>
           </ul>
         </section>
