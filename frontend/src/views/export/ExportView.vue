@@ -5,6 +5,7 @@ import { downloadExportFile, getExportTask, submitExportTask } from '@/api/expor
 import { listWarehouses } from '@/api/warehouses'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import TaskProgress from '@/components/common/TaskProgress.vue'
 import { usePageData } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import type { TaskSummary } from '@/types/resources'
@@ -107,7 +108,7 @@ async function handleDownload(): Promise<void> {
       <label>结束日期 <input v-model="form.endDate" type="date" /></label>
       <button type="submit" :disabled="submitting">{{ submitting ? '生成中…' : '生成报表' }}</button>
     </form>
-    <p v-if="task" role="status">任务状态：{{ task.status }}，进度 {{ task.progress }}%</p>
+    <TaskProgress v-if="task" label="导出任务" :status="task.status" :progress="task.progress" />
     <button
       v-if="task?.status === 'SUCCESS'"
       type="button"
