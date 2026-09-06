@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
-import { getAlert, listAlertRules, listAlerts, updateAlertRule } from '@/api/alerts'
+import {
+  getAlert,
+  listAlertRules,
+  listAlerts,
+  updateAlert,
+  updateAlertRule,
+} from '@/api/alerts'
 import type { AlertRuleUpdatePayload } from '@/api/alerts'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -18,6 +24,7 @@ const authStore = useAuthStore()
 const canEditRules = computed(
   () => authStore.role === 'COOPERATIVE_ADMIN' && authStore.hasPermission('alert:read'),
 )
+const canHandleAlerts = computed(() => authStore.hasPermission('alert:handle'))
 const editingRuleId = ref<string | null>(null)
 const submitting = ref(false)
 const formError = ref('')
@@ -25,6 +32,10 @@ const successMessage = ref('')
 const selectedAlert = ref<AlertDetailSummary | null>(null)
 const alertDetailLoading = ref(false)
 const alertDetailError = ref('')
+const handling = ref(false)
+const handlingError = ref('')
+const handlingForm = reactive({ status: 'RESOLVED', handlingNote: '' })
+const alertStatuses = ['PENDING', 'PROCESSING', 'RESOLVED', 'IGNORED']
 const editForm = reactive({
   thresholdQuantity: '',
   thresholdDays: '',
@@ -39,10 +50,32 @@ async function loadAlertDetail(alertId: string): Promise<void> {
   alertDetailError.value = ''
   try {
     selectedAlert.value = await getAlert(alertId)
+    handlingForm.status = selectedAlert.value.status
+    handlingForm.handlingNote = ''
+    handlingError.value = ''
   } catch (reason) {
     alertDetailError.value = getApiErrorMessage(reason, '预警详情加载失败')
   } finally {
     alertDetailLoading.value = false
+  }
+}
+
+async function handleAlert(): Promise<void> {
+  if (!selectedAlert.value) return
+  handling.value = true
+  handlingError.value = ''
+  try {
+    selectedAlert.value = await updateAlert(selectedAlert.value.id, {
+      status: handlingForm.status,
+      handlingNote: handlingForm.handlingNote.trim() || null,
+    })
+    handlingForm.handlingNote = ''
+    successMessage.value = '预警处理成功。'
+    await alertState.loadData()
+  } catch (reason) {
+    handlingError.value = getApiErrorMessage(reason, '预警处理失败')
+  } finally {
+    handling.value = false
   }
 }
 
@@ -181,7 +214,32 @@ async function handleUpdate(): Promise<void> {
         <div><dt>批次</dt><dd>{{ selectedAlert.batchId || '—' }}</dd></div>
         <div><dt>证据</dt><dd><pre>{{ JSON.stringify(selectedAlert.evidence, null, 2) }}</pre></dd></div>
         <div><dt>检测时间</dt><dd>{{ selectedAlert.detectedAt }}</dd></div>
+        <div v-if="selectedAlert.handlingLogs.length">
+          <dt>处理记录</dt>
+          <dd>
+            <ul>
+              <li v-for="log in selectedAlert.handlingLogs" :key="log.id">
+                {{ log.fromStatus }} → {{ log.toStatus }}：{{ log.comment || '—' }}（{{ log.createdAt }}）
+              </li>
+            </ul>
+          </dd>
+        </div>
       </dl>
+      <form v-if="canHandleAlerts && selectedAlert" class="alert-handle-form" @submit.prevent="handleAlert">
+        <h3>处理预警</h3>
+        <label>
+          目标状态
+          <select v-model="handlingForm.status">
+            <option v-for="status in alertStatuses" :key="status" :value="status">{{ status }}</option>
+          </select>
+        </label>
+        <label>
+          处理说明
+          <textarea v-model="handlingForm.handlingNote" maxlength="500" />
+        </label>
+        <button type="submit" :disabled="handling">{{ handling ? '提交中…' : '提交处理' }}</button>
+        <p v-if="handlingError" role="alert">{{ handlingError }}</p>
+      </form>
     </aside>
 
     <form v-if="canEditRules && editingRuleId" class="alert-rule-edit-form" @submit.prevent="handleUpdate">

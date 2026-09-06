@@ -11,6 +11,11 @@ export interface AlertRuleUpdatePayload {
   isEnabled?: boolean
 }
 
+export interface AlertStatusUpdatePayload {
+  status: string
+  handlingNote: string | null
+}
+
 export async function listAlerts(): Promise<AlertSummary[]> {
   const response = await http.get<ListResponse<AlertSummary>>('/alerts', {
     params: { page: 1, pageSize: 20 },
@@ -27,6 +32,17 @@ export async function listAlertRules(): Promise<AlertRuleSummary[]> {
 
 export async function getAlert(alertId: string): Promise<AlertDetailSummary> {
   const response = await http.get<ApiResponse<AlertDetailSummary>>(`/alerts/${alertId}`)
+  return response.data.data
+}
+
+export async function updateAlert(
+  alertId: string,
+  payload: AlertStatusUpdatePayload,
+): Promise<AlertDetailSummary> {
+  const response = await http.patch<ApiResponse<AlertDetailSummary>>(
+    `/alerts/${alertId}`,
+    payload,
+  )
   return response.data.data
 }
 
