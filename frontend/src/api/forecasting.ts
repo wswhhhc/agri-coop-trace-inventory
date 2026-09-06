@@ -12,6 +12,13 @@ export interface ModelTrainingTaskPayload {
   parameters: Record<string, unknown>
 }
 
+export interface ForecastTaskPayload {
+  warehouseId: string
+  productId: string
+  horizon: 'SEVEN_DAYS' | 'THIRTY_DAYS'
+  modelVersionId?: string
+}
+
 export async function listForecastResults(): Promise<ForecastSummary[]> {
   const response = await http.get<ListResponse<ForecastSummary>>('/forecast-results', {
     params: { page: 1, pageSize: 20 },
@@ -44,6 +51,11 @@ export async function submitModelTrainingTask(
   payload: ModelTrainingTaskPayload,
 ): Promise<TaskSummary> {
   const response = await http.post<ApiResponse<TaskSummary>>('/model-training-tasks', payload)
+  return response.data.data
+}
+
+export async function submitForecastTask(payload: ForecastTaskPayload): Promise<TaskSummary> {
+  const response = await http.post<ApiResponse<TaskSummary>>('/forecast-tasks', payload)
   return response.data.data
 }
 

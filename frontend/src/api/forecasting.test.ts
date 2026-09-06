@@ -5,6 +5,7 @@ import {
   activateModel,
   getModelVersion,
   listModelVersions,
+  submitForecastTask,
   submitModelTrainingTask,
 } from './forecasting'
 
@@ -72,5 +73,22 @@ describe('forecasting api', () => {
       status: 'PENDING',
     })
     expect(http.post).toHaveBeenCalledWith('/model-training-tasks', payload)
+  })
+
+  it('submits a demand forecast task', async () => {
+    const payload = {
+      warehouseId: 'warehouse-1',
+      productId: 'product-1',
+      horizon: 'SEVEN_DAYS' as const,
+    }
+    vi.mocked(http.post).mockResolvedValueOnce({
+      data: { data: { id: 'task-2', taskType: 'FORECAST', status: 'PENDING', progress: 0 } },
+    })
+
+    await expect(submitForecastTask(payload)).resolves.toMatchObject({
+      id: 'task-2',
+      status: 'PENDING',
+    })
+    expect(http.post).toHaveBeenCalledWith('/forecast-tasks', payload)
   })
 })

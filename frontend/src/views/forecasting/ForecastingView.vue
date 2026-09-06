@@ -6,6 +6,7 @@ import {
   getForecastingTask,
   getModelVersion,
   listModelVersions,
+  submitForecastTask,
   submitModelTrainingTask,
 } from '@/api/forecasting'
 import { listProducts } from '@/api/products'
@@ -38,6 +39,14 @@ const successMessage = ref('')
 const trainingSubmitting = ref(false)
 const trainingError = ref('')
 const trainingTask = ref<TaskSummary | null>(null)
+const forecastSubmitting = ref(false)
+const forecastError = ref('')
+const forecastTask = ref<TaskSummary | null>(null)
+const forecastForm = reactive({
+  warehouseId: '',
+  productId: '',
+  horizon: 'SEVEN_DAYS' as 'SEVEN_DAYS' | 'THIRTY_DAYS',
+})
 const trainingForm = reactive({
   warehouseId: '',
   productId: '',
@@ -106,6 +115,24 @@ async function handleTrainingSubmit(): Promise<void> {
     trainingSubmitting.value = false
   }
 }
+
+async function handleForecastSubmit(): Promise<void> {
+  forecastSubmitting.value = true
+  forecastError.value = ''
+  forecastTask.value = null
+  try {
+    forecastTask.value = await submitForecastTask(forecastForm)
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      if (forecastTask.value.status === 'SUCCESS' || forecastTask.value.status === 'FAILURE') break
+      await wait(1000)
+      forecastTask.value = await getForecastingTask(forecastTask.value.id)
+    }
+  } catch (reason) {
+    forecastError.value = getApiErrorMessage(reason, '需求预测任务失败')
+  } finally {
+    forecastSubmitting.value = false
+  }
+}
 </script>
 
 <template>
@@ -140,6 +167,40 @@ async function handleTrainingSubmit(): Promise<void> {
       <p v-if="trainingTask" role="status">训练任务：{{ trainingTask.status }}，进度 {{ trainingTask.progress }}%</p>
       <p v-if="trainingTask?.errorMessage" role="alert">{{ trainingTask.errorMessage }}</p>
       <p v-if="trainingError" role="alert">{{ trainingError }}</p>
+    </form>
+    <form v-if="canTrain" class="forecast-task-form" @submit.prevent="handleForecastSubmit">
+      <h2>提交需求预测</h2>
+      <label>
+        仓库
+        <select v-model="forecastForm.warehouseId" required>
+          <option value="" disabled>请选择仓库</option>
+          <option v-for="warehouse in warehouseState.data" :key="warehouse.id" :value="warehouse.id">
+            {{ warehouse.name }}
+          </option>
+        </select>
+      </label>
+      <label>
+        产品
+        <select v-model="forecastForm.productId" required>
+          <option value="" disabled>请选择产品</option>
+          <option v-for="product in productState.data" :key="product.id" :value="product.id">
+            {{ product.name }}
+          </option>
+        </select>
+      </label>
+      <label>
+        预测周期
+        <select v-model="forecastForm.horizon" required>
+          <option value="SEVEN_DAYS">未来 7 天</option>
+          <option value="THIRTY_DAYS">未来 30 天</option>
+        </select>
+      </label>
+      <button type="submit" :disabled="forecastSubmitting">
+        {{ forecastSubmitting ? '预测中…' : '提交预测任务' }}
+      </button>
+      <p v-if="forecastTask" role="status">预测任务：{{ forecastTask.status }}，进度 {{ forecastTask.progress }}%</p>
+      <p v-if="forecastTask?.errorMessage" role="alert">{{ forecastTask.errorMessage }}</p>
+      <p v-if="forecastError" role="alert">{{ forecastError }}</p>
     </form>
     <p v-if="actionError" role="alert">{{ actionError }}</p>
     <p v-if="successMessage" role="status">{{ successMessage }}</p>
