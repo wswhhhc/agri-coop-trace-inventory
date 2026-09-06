@@ -7,7 +7,6 @@ import router from './router'
 import './styles/tokens.css'
 import './styles/base.css'
 import './styles/primitives.css'
-import './styles/layout.css'
 import './styles/components.css'
 
 initializeTheme()

@@ -26,3 +26,38 @@ const breadcrumbItems = computed(() =>
     </ol>
   </nav>
 </template>
+
+<style scoped>
+.app-breadcrumb {
+  padding: var(--space-5) var(--space-8) 0;
+}
+
+.app-breadcrumb__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  list-style: none;
+}
+
+.app-breadcrumb__item:not(:last-child)::after {
+  margin-left: var(--space-2);
+  color: var(--color-text-muted);
+  content: '/';
+}
+
+@media (max-width: 64rem) {
+  .app-breadcrumb {
+    padding-inline: var(--space-5);
+  }
+}
+
+@media (max-width: 48rem) {
+  .app-breadcrumb {
+    padding: var(--space-4) var(--space-4) 0;
+  }
+}
+</style>

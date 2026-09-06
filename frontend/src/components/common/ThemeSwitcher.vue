@@ -23,3 +23,30 @@ function handleChange(event: Event): void {
     </select>
   </label>
 </template>
+
+<style scoped>
+.theme-switcher {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.theme-switcher select {
+  min-height: 2.5rem;
+  padding-block: var(--space-1);
+}
+
+@media (max-width: 48rem) {
+  .theme-switcher > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+</style>
