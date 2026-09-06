@@ -18,6 +18,7 @@ export interface QualityInspectionCreatePayload {
   conclusion: InspectionConclusion
   items: QualityInspectionItemCreatePayload[]
   remarks: string | null
+  attachmentFileIds?: string[]
 }
 
 export async function listQualityInspections(

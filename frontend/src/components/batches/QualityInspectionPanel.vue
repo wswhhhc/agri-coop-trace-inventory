@@ -7,6 +7,7 @@ import {
   type InspectionConclusion,
   type QualityInspectionItemCreatePayload,
 } from '@/api/quality-inspections'
+import { uploadFile } from '@/api/files'
 import { useListPage } from '@/composables/usePageData'
 import { getApiErrorMessage } from '@/utils/api-error'
 
@@ -25,6 +26,7 @@ const form = reactive({
   remarks: '',
 })
 const inspectionItems = ref<QualityInspectionItemCreatePayload[]>([createItem()])
+const attachments = ref<File[]>([])
 
 function createItem(): QualityInspectionItemCreatePayload {
   return { name: '', value: '', unit: null, standard: '', isQualified: true }
@@ -43,6 +45,12 @@ function resetForm(): void {
   form.conclusion = 'PENDING'
   form.remarks = ''
   inspectionItems.value = [createItem()]
+  attachments.value = []
+}
+
+function handleFileChange(event: Event): void {
+  const input = event.target as HTMLInputElement
+  attachments.value = Array.from(input.files ?? [])
 }
 
 async function handleSubmit(): Promise<void> {
@@ -50,6 +58,7 @@ async function handleSubmit(): Promise<void> {
   formError.value = ''
   successMessage.value = ''
   try {
+    const uploadedFiles = await Promise.all(attachments.value.map((file) => uploadFile(file)))
     await createQualityInspection(props.batchId, {
       inspectionDate: form.inspectionDate,
       conclusion: form.conclusion,
@@ -61,6 +70,7 @@ async function handleSubmit(): Promise<void> {
         unit: item.unit?.trim() || null,
       })),
       remarks: form.remarks.trim() || null,
+      attachmentFileIds: uploadedFiles.map((file) => file.id),
     })
     resetForm()
     successMessage.value = '质检记录创建成功。'
@@ -120,6 +130,13 @@ async function handleSubmit(): Promise<void> {
         备注
         <textarea v-model="form.remarks" name="remarks" maxlength="500" />
       </label>
+      <label>
+        质检附件
+        <input type="file" multiple @change="handleFileChange" />
+      </label>
+      <ul v-if="attachments.length > 0">
+        <li v-for="file in attachments" :key="file.name">{{ file.name }}</li>
+      </ul>
       <fieldset v-for="(item, index) in inspectionItems" :key="index">
         <legend>检验项目 {{ index + 1 }}</legend>
         <label>项目名称 <input v-model="item.name" required maxlength="100" /></label>

@@ -29,6 +29,7 @@ describe('quality inspections api', () => {
         { name: '农残', value: '合格', unit: null, standard: '不得检出', isQualified: true },
       ],
       remarks: '抽检通过',
+      attachmentFileIds: [],
     }
     vi.mocked(http.post).mockResolvedValueOnce({
       data: { data: { id: 'inspection-1', inspectionNo: 'QC-001', conclusion: 'PASSED' } },
