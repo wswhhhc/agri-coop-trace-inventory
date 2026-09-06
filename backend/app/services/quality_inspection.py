@@ -6,11 +6,10 @@ from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth.authorization import permission_denied, resource_not_found
+from app.core.auth.authorization import resource_not_found
 from app.core.auth.context import AuthContext
 from app.infrastructure.transaction import transaction_scope
 from app.models import (
-    SYSTEM_ADMIN_ROLE_CODE,
     Batch,
     InspectionFile,
     QualityInspection,
@@ -24,11 +23,12 @@ from app.schemas.quality_inspection import (
     QualityInspectionCreate,
     QualityInspectionListParams,
 )
+from app.services.batch_policy import (
+    require_manage,
+    require_read_role,
+    warehouse_ids_for_query,
+)
 from app.services.traceability import TraceabilityCache, TraceEventWriter
-
-WAREHOUSE_STAFF_ROLE_CODE = "WAREHOUSE_STAFF"
-COOPERATIVE_ADMIN_ROLE_CODE = "COOPERATIVE_ADMIN"
-BATCH_MANAGE_PERMISSION = "batch:manage"
 
 
 class QualityIntegrationPort(Protocol):
@@ -72,7 +72,7 @@ class QualityInspectionService:
         batch_id: UUID,
         params: QualityInspectionListParams | None = None,
     ) -> tuple[list[QualityInspection], int]:
-        self._require_read_role(context)
+        require_read_role(context)
         params = params or QualityInspectionListParams()
         async with transaction_scope(self.session):
             batch = await self._get_batch(context, batch_id)
@@ -94,7 +94,7 @@ class QualityInspectionService:
         batch_id: UUID,
         payload: QualityInspectionCreate,
     ) -> QualityInspection:
-        self._require_manage(context)
+        require_manage(context)
         async with transaction_scope(self.session):
             batch = await self._get_batch(context, batch_id)
             if batch is None:
@@ -183,40 +183,13 @@ class QualityInspectionService:
     ) -> Batch | None:
         return await self.batch_repository.get_scoped(
             context.cooperative_id,
-            self._warehouse_ids_for_query(context),
+            warehouse_ids_for_query(context),
             batch_id,
         )
 
     @staticmethod
     def _new_inspection_no(inspection_date) -> str:
         return f"QC-{inspection_date:%Y%m%d}-{uuid4().hex[:10].upper()}"
-
-    @staticmethod
-    def _require_read_role(context: AuthContext) -> None:
-        if context.role_code not in {
-            SYSTEM_ADMIN_ROLE_CODE,
-            COOPERATIVE_ADMIN_ROLE_CODE,
-            WAREHOUSE_STAFF_ROLE_CODE,
-        }:
-            raise permission_denied()
-
-    @staticmethod
-    def _require_manage(context: AuthContext) -> None:
-        if context.role_code not in {
-            COOPERATIVE_ADMIN_ROLE_CODE,
-            WAREHOUSE_STAFF_ROLE_CODE,
-        } or not context.has_permission(BATCH_MANAGE_PERMISSION):
-            raise permission_denied()
-
-    @staticmethod
-    def _warehouse_ids_for_query(context: AuthContext) -> frozenset[UUID] | None:
-        if context.role_code in {
-            SYSTEM_ADMIN_ROLE_CODE,
-            COOPERATIVE_ADMIN_ROLE_CODE,
-        }:
-            return None
-        return context.warehouse_ids
-
 
 __all__ = [
     "NullQualityIntegration",

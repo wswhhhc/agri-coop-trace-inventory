@@ -43,6 +43,32 @@ def _require_read_role(context: AuthContext) -> None:
         raise permission_denied()
 
 
+def _require_manage(context: AuthContext) -> None:
+    if context.role_code != COOPERATIVE_ADMIN_ROLE_CODE or not context.has_permission(
+        PRODUCT_MANAGE_PERMISSION
+    ):
+        raise permission_denied()
+
+
+def _require_cooperative(context: AuthContext, resource_label: str) -> UUID:
+    if context.cooperative_id is None:
+        raise AppException(
+            code="BAD_REQUEST",
+            message=f"{resource_label}必须关联合作社",
+            status_code=400,
+        )
+    return context.cooperative_id
+
+
+def _warehouse_ids_for_query(context: AuthContext) -> frozenset[UUID] | None:
+    if context.role_code in {
+        SYSTEM_ADMIN_ROLE_CODE,
+        COOPERATIVE_ADMIN_ROLE_CODE,
+    }:
+        return None
+    return context.warehouse_ids
+
+
 class ProductCategoryService:
     """产品分类业务用例。"""
 
@@ -59,7 +85,7 @@ class ProductCategoryService:
         async with transaction_scope(self.session):
             return await self.repository.list_scoped(
                 context.cooperative_id,
-                self._warehouse_ids_for_query(context),
+                _warehouse_ids_for_query(context),
                 keyword=params.keyword,
                 is_active=params.is_active,
                 page=params.page,
@@ -73,8 +99,8 @@ class ProductCategoryService:
         context: AuthContext,
         payload: ProductCategoryCreate,
     ) -> ProductCategory:
-        self._require_manage(context)
-        cooperative_id = self._require_cooperative(context)
+        _require_manage(context)
+        cooperative_id = _require_cooperative(context, "产品分类")
         async with transaction_scope(self.session):
             return await self.repository.add(
                 ProductCategory(
@@ -89,44 +115,17 @@ class ProductCategoryService:
         category_id: UUID,
         payload: ProductCategoryUpdate,
     ) -> ProductCategory:
-        self._require_manage(context)
+        _require_manage(context)
         values = require_non_empty_update(payload.model_dump(exclude_unset=True))
         async with transaction_scope(self.session):
             category = await self.repository.get_scoped(
                 context.cooperative_id,
                 category_id,
-                self._warehouse_ids_for_query(context),
+                _warehouse_ids_for_query(context),
             )
             if category is None:
                 raise resource_not_found()
             return await self.repository.update(category, values)
-
-    @staticmethod
-    def _require_manage(context: AuthContext) -> None:
-        if context.role_code != COOPERATIVE_ADMIN_ROLE_CODE or not context.has_permission(
-            PRODUCT_MANAGE_PERMISSION
-        ):
-            raise permission_denied()
-
-    @staticmethod
-    def _require_cooperative(context: AuthContext) -> UUID:
-        if context.cooperative_id is None:
-            raise AppException(
-                code="BAD_REQUEST",
-                message="产品分类必须关联合作社",
-                status_code=400,
-            )
-        return context.cooperative_id
-
-    @staticmethod
-    def _warehouse_ids_for_query(context: AuthContext) -> frozenset[UUID] | None:
-        if context.role_code in {
-            SYSTEM_ADMIN_ROLE_CODE,
-            COOPERATIVE_ADMIN_ROLE_CODE,
-        }:
-            return None
-        return context.warehouse_ids
-
 
 class ProductService:
     """产品业务用例。"""
@@ -147,7 +146,7 @@ class ProductService:
         async with transaction_scope(self.session):
             return await self.repository.list_scoped(
                 context.cooperative_id,
-                self._warehouse_ids_for_query(context),
+                _warehouse_ids_for_query(context),
                 keyword=params.keyword,
                 category_id=params.category_id,
                 is_active=params.is_active,
@@ -163,7 +162,7 @@ class ProductService:
         async with transaction_scope(self.session):
             product = await self.repository.get_scoped(
                 context.cooperative_id,
-                self._warehouse_ids_for_query(context),
+                _warehouse_ids_for_query(context),
                 product_id,
             )
             if product is None:
@@ -175,8 +174,8 @@ class ProductService:
         context: AuthContext,
         payload: ProductCreate,
     ) -> Product:
-        self._require_manage(context)
-        cooperative_id = self._require_cooperative(context)
+        _require_manage(context)
+        cooperative_id = _require_cooperative(context, "产品")
         async with transaction_scope(self.session):
             category = await self.category_repository.get_scoped(
                 cooperative_id, payload.category_id, None
@@ -196,12 +195,12 @@ class ProductService:
         product_id: UUID,
         payload: ProductUpdate,
     ) -> Product:
-        self._require_manage(context)
+        _require_manage(context)
         values = require_non_empty_update(payload.model_dump(exclude_unset=True))
         async with transaction_scope(self.session):
             product = await self.repository.get_scoped(
                 context.cooperative_id,
-                self._warehouse_ids_for_query(context),
+                _warehouse_ids_for_query(context),
                 product_id,
             )
             if product is None:
@@ -214,32 +213,5 @@ class ProductService:
                 if category is None:
                     raise resource_not_found()
             return await self.repository.update(product, values)
-
-    @staticmethod
-    def _require_manage(context: AuthContext) -> None:
-        if context.role_code != COOPERATIVE_ADMIN_ROLE_CODE or not context.has_permission(
-            PRODUCT_MANAGE_PERMISSION
-        ):
-            raise permission_denied()
-
-    @staticmethod
-    def _require_cooperative(context: AuthContext) -> UUID:
-        if context.cooperative_id is None:
-            raise AppException(
-                code="BAD_REQUEST",
-                message="产品必须关联合作社",
-                status_code=400,
-            )
-        return context.cooperative_id
-
-    @staticmethod
-    def _warehouse_ids_for_query(context: AuthContext) -> frozenset[UUID] | None:
-        if context.role_code in {
-            SYSTEM_ADMIN_ROLE_CODE,
-            COOPERATIVE_ADMIN_ROLE_CODE,
-        }:
-            return None
-        return context.warehouse_ids
-
 
 __all__ = ["ProductCategoryService", "ProductService"]

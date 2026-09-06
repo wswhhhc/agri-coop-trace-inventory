@@ -16,7 +16,6 @@ from app.core.exceptions import AppException, StatusNotAllowedError
 from app.core.validation import require_non_empty_update
 from app.infrastructure.transaction import transaction_scope
 from app.models import (
-    SYSTEM_ADMIN_ROLE_CODE,
     Batch,
     BatchStatus,
     TraceEventType,
@@ -24,11 +23,13 @@ from app.models import (
 from app.repositories.batch import BatchRepository
 from app.repositories.product import ProductRepository
 from app.schemas.batch import BatchCreate, BatchListParams, BatchUpdate
+from app.services.batch_policy import (
+    WAREHOUSE_STAFF_ROLE_CODE,
+    require_manage,
+    require_read_role,
+    warehouse_ids_for_query,
+)
 from app.services.traceability import TraceabilityCache, TraceEventWriter
-
-WAREHOUSE_STAFF_ROLE_CODE = "WAREHOUSE_STAFF"
-COOPERATIVE_ADMIN_ROLE_CODE = "COOPERATIVE_ADMIN"
-BATCH_MANAGE_PERMISSION = "batch:manage"
 
 _ALLOWED_STATUS_TRANSITIONS: dict[BatchStatus, frozenset[BatchStatus]] = {
     BatchStatus.CREATED: frozenset(
@@ -60,13 +61,13 @@ class BatchService:
         context: AuthContext,
         params: BatchListParams,
     ) -> tuple[list[Batch], int]:
-        self._require_read_role(context)
+        require_read_role(context)
         if params.warehouse_id is not None:
             ensure_warehouse_scope(context, params.warehouse_id)
         async with transaction_scope(self.session):
             return await self.repository.list_scoped(
                 context.cooperative_id,
-                self._warehouse_ids_for_query(context),
+                warehouse_ids_for_query(context),
                 keyword=params.keyword,
                 product_id=params.product_id,
                 warehouse_id=params.warehouse_id,
@@ -80,11 +81,11 @@ class BatchService:
             )
 
     async def get(self, context: AuthContext, batch_id: UUID) -> Batch:
-        self._require_read_role(context)
+        require_read_role(context)
         async with transaction_scope(self.session):
             batch = await self.repository.get_scoped(
                 context.cooperative_id,
-                self._warehouse_ids_for_query(context),
+                warehouse_ids_for_query(context),
                 batch_id,
             )
             if batch is None:
@@ -92,13 +93,13 @@ class BatchService:
             return batch
 
     async def create(self, context: AuthContext, payload: BatchCreate) -> Batch:
-        self._require_manage(context)
+        require_manage(context)
         cooperative_id = self._require_cooperative(context)
         self._require_warehouse_access(context)
         async with transaction_scope(self.session):
             product = await self.product_repository.get_scoped(
                 cooperative_id,
-                self._warehouse_ids_for_query(context),
+                warehouse_ids_for_query(context),
                 payload.product_id,
             )
             if product is None:
@@ -141,11 +142,11 @@ class BatchService:
         batch_id: UUID,
         payload: BatchUpdate,
     ) -> Batch:
-        self._require_manage(context)
+        require_manage(context)
         async with transaction_scope(self.session):
             batch = await self.repository.get_scoped(
                 context.cooperative_id,
-                self._warehouse_ids_for_query(context),
+                warehouse_ids_for_query(context),
                 batch_id,
             )
             if batch is None:
@@ -183,23 +184,6 @@ class BatchService:
         return f"tr_{secrets.token_urlsafe(9)}"
 
     @staticmethod
-    def _require_read_role(context: AuthContext) -> None:
-        if context.role_code not in {
-            SYSTEM_ADMIN_ROLE_CODE,
-            COOPERATIVE_ADMIN_ROLE_CODE,
-            WAREHOUSE_STAFF_ROLE_CODE,
-        }:
-            raise permission_denied()
-
-    @staticmethod
-    def _require_manage(context: AuthContext) -> None:
-        if context.role_code not in {
-            COOPERATIVE_ADMIN_ROLE_CODE,
-            WAREHOUSE_STAFF_ROLE_CODE,
-        } or not context.has_permission(BATCH_MANAGE_PERMISSION):
-            raise permission_denied()
-
-    @staticmethod
     def _require_cooperative(context: AuthContext) -> UUID:
         if context.cooperative_id is None:
             raise AppException(
@@ -216,15 +200,5 @@ class BatchService:
             and not context.warehouse_ids
         ):
             raise resource_not_found()
-
-    @staticmethod
-    def _warehouse_ids_for_query(context: AuthContext) -> frozenset[UUID] | None:
-        if context.role_code in {
-            SYSTEM_ADMIN_ROLE_CODE,
-            COOPERATIVE_ADMIN_ROLE_CODE,
-        }:
-            return None
-        return context.warehouse_ids
-
 
 __all__ = ["BatchService"]
