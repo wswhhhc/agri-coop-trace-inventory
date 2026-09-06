@@ -66,3 +66,72 @@ watch(
     </div>
   </Teleport>
 </template>
+
+<style scoped>
+.confirm-dialog__backdrop {
+  position: fixed;
+  z-index: 60;
+  display: grid;
+  inset: 0;
+  place-items: center;
+  padding: var(--space-5);
+  background: var(--color-overlay);
+}
+
+.confirm-dialog {
+  width: min(100%, 32rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-md);
+}
+
+.confirm-dialog h2 {
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-lg);
+}
+
+.confirm-dialog p {
+  margin-bottom: var(--space-6);
+  color: var(--color-text-secondary);
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.confirm-dialog__actions button:first-child {
+  border-color: var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.confirm-dialog__confirm--danger {
+  background: var(--color-danger);
+}
+
+@media (max-width: 48rem) {
+  .confirm-dialog {
+    padding: var(--space-5);
+  }
+}
+
+@media (max-width: 30rem) {
+  .confirm-dialog__actions {
+    width: 100%;
+  }
+
+  .confirm-dialog__actions > button {
+    flex: 1;
+  }
+}
+
+@media (forced-colors: active) {
+  .confirm-dialog {
+    border: 1px solid CanvasText;
+  }
+}
+</style>

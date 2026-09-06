@@ -235,20 +235,13 @@
   content: '/';
 }
 
-.page-container {
-  width: min(100%, 96rem);
-  margin: 0 auto;
-  padding: var(--space-6) var(--space-8) var(--space-12);
-}
-
 .app-layout__scrim {
   display: none;
 }
 
 @media (max-width: 64rem) {
   .app-header,
-  .app-breadcrumb,
-  .page-container {
+  .app-breadcrumb {
     padding-inline: var(--space-5);
   }
 }
@@ -303,10 +296,6 @@
     border-radius: 0;
     padding: 0;
     background: var(--color-overlay);
-  }
-
-  .page-container {
-    padding: var(--space-5) var(--space-4) var(--space-10);
   }
 
   .app-breadcrumb {

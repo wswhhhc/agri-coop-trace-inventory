@@ -60,7 +60,7 @@ function resetFilters(): void {
     <PageHeader eyebrow="库存审计" title="库存流水" description="按仓库、批次和流水类型查询不可变库存流水。" />
     <PageContext />
 
-    <form class="inventory-transaction-list-page__filters" @submit.prevent="loadData">
+    <form class="filter-bar inventory-transaction-list-page__filters" @submit.prevent="loadData">
       <label>
         仓库
         <select v-model="filters.warehouseId">

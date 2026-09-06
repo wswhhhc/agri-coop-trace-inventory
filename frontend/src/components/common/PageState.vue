@@ -41,3 +41,98 @@ const emit = defineEmits<{
 
   <slot v-else />
 </template>
+
+<style scoped>
+.page-state {
+  display: grid;
+  min-height: 10rem;
+  place-items: center;
+  gap: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.page-state__message {
+  max-width: 45rem;
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.page-state--error {
+  border-color: color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
+  background: var(--color-danger-soft);
+}
+
+.page-state--error .page-state__message {
+  color: var(--color-danger);
+}
+
+.page-state--empty {
+  background: var(--color-surface-muted);
+}
+
+.page-state__mark {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+}
+
+.page-state__skeleton {
+  display: grid;
+  width: min(100%, 32rem);
+  gap: var(--space-3);
+}
+
+.page-state__skeleton span {
+  display: block;
+  height: 0.875rem;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-muted) 0%,
+    var(--color-border) 50%,
+    var(--color-surface-muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: page-state-shimmer 1.4s var(--ease-standard) infinite;
+}
+
+.page-state__skeleton span:nth-child(2) {
+  width: 82%;
+}
+
+.page-state__skeleton span:nth-child(3) {
+  width: 64%;
+}
+
+@keyframes page-state-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (max-width: 30rem) {
+  .page-state {
+    min-height: 8rem;
+    padding: var(--space-6) var(--space-4);
+  }
+}
+
+@media (forced-colors: active) {
+  .page-state {
+    border: 1px solid CanvasText;
+  }
+}
+</style>
