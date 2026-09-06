@@ -54,11 +54,14 @@ export interface ProductCategorySummary {
 
 export interface BatchSummary {
   id: string
+  productId: string
   batchNo: string
   traceCode: string
+  origin: string
   status: string
   productionDate: string
   expiryDate: string
+  responsiblePerson: string | null
 }
 
 export interface InventorySummary {
