@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { getBatch, updateBatch, type BatchStatus } from '@/api/batches'
+import { getPublicQrCodeUrl } from '@/api/public-traceability'
 import QualityInspectionPanel from '@/components/batches/QualityInspectionPanel.vue'
 import TraceEventTimeline from '@/components/batches/TraceEventTimeline.vue'
 import PageContext from '@/components/common/PageContext.vue'
@@ -82,6 +83,16 @@ async function handleUpdate(): Promise<void> {
         <div><dt>负责人</dt><dd>{{ data?.responsiblePerson || '—' }}</dd></div>
         <div><dt>状态</dt><dd>{{ data?.status }}</dd></div>
       </dl>
+      <section>
+        <h2>公开追溯二维码</h2>
+        <img
+          :src="getPublicQrCodeUrl(data.traceCode)"
+          :alt="`批次 ${data.batchNo} 的公开追溯二维码`"
+          width="180"
+          height="180"
+        />
+        <p><RouterLink :to="{ name: 'public-trace', params: { traceCode: data.traceCode } }">打开公开追溯页</RouterLink></p>
+      </section>
       <form v-if="canManage && data" class="batch-edit-form" @submit.prevent="handleUpdate">
         <h2>编辑批次</h2>
         <label>

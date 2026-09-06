@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { getPublicTrace } from './public-traceability'
+import { getPublicQrCodeUrl, getPublicTrace } from './public-traceability'
 
 vi.mock('./http', () => ({
   default: { get: vi.fn() },
@@ -38,5 +38,9 @@ describe('public traceability api', () => {
       batch: { batchNo: 'APPLE-001' },
     })
     expect(http.get).toHaveBeenCalledWith('/public/traces/tr_ABC123')
+  })
+
+  it('builds the backend QR code URL with an encoded trace code', () => {
+    expect(getPublicQrCodeUrl('tr/ABC 123')).toContain('/public/qr-codes/tr%2FABC%20123.png')
   })
 })
