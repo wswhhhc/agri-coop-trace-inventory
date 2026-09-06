@@ -27,8 +27,8 @@
 
 - [completed] D0 现状盘点与契约冻结
 - [completed] D1 查询契约、聚合模型与权限边界
-- [in_progress] D2 汇总与库存趋势查询
-- [pending] D3 预警分布与产品排行查询
+- [completed] D2 汇总与库存趋势查询
+- [in_progress] D3 预警分布与产品排行查询
 - [pending] D4 预测对比查询与缓存策略
 - [pending] D5 路由注册、文档同步与接口回归
 - [pending] D6 全面复查、质量门禁与最终提交
@@ -73,3 +73,10 @@
 - 新增 `backend/app/services/dashboard_cache.py`：缓存键包含合作社、可见仓库集合和筛选条件；Redis 故障自动降级为未命中。
 - 新增 `backend/tests/unit/test_dashboard_contract.py`：覆盖 camelCase 参数、时间范围、数量上限、权限和缓存键隔离。
 - 验证：`uv run pytest backend/tests/unit/test_dashboard_contract.py -q`，5 passed。
+
+### D2 汇总与库存趋势查询
+
+- 新增 `backend/app/repositories/dashboard.py`：通过聚合 SQL 查询产品/批次、按单位库存、待处理预警、到期批次、低库存产品和按日库存流水趋势。
+- 新增 `backend/app/services/dashboard.py`：建立只读事务边界，复用认证范围，补齐默认最近 30 日日期。
+- 新增 `backend/tests/unit/test_dashboard_business.py`：真实 PostgreSQL 验证单位分组、库存结余、日期范围、预警/到期/低库存统计。
+- 验证：`uv run pytest backend/tests/unit/test_dashboard_business.py backend/tests/unit/test_dashboard_contract.py -q`，6 passed；相关 Ruff、mypy 通过。
