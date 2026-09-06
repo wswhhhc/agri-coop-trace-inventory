@@ -5,6 +5,7 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID
 
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.context import AuthContext
@@ -219,9 +220,13 @@ class DashboardService:
         if self.cache is None or key is None:
             return None
         raw = await self.cache.get(key)
-        if many:
-            return [model_type.model_validate(item) for item in raw] if isinstance(raw, list) else None
-        return model_type.model_validate(raw) if isinstance(raw, dict) else None
+        try:
+            if many:
+                return [model_type.model_validate(item) for item in raw] if isinstance(raw, list) else None
+            return model_type.model_validate(raw) if isinstance(raw, dict) else None
+        except ValidationError:
+            await self.cache.delete(key)
+            return None
 
     async def _cache_set(
         self, key: str | None, value: BaseSchema | Sequence[BaseSchema]

@@ -127,3 +127,13 @@ async def test_dashboard_cache_round_trips_json_payload() -> None:
     await cache.set("agri:key", {"count": 2, "units": ["KG"]})
 
     assert await cache.get("agri:key") == {"count": 2, "units": ["KG"]}
+
+
+@pytest.mark.asyncio
+async def test_dashboard_cache_discards_malformed_json() -> None:
+    redis = MemoryRedis()
+    redis.values["agri:bad"] = "{not-json"
+    cache = DashboardCache(redis, key_prefix="agri:", ttl_seconds=300)
+
+    assert await cache.get("agri:bad") is None
+    assert "agri:bad" not in redis.values

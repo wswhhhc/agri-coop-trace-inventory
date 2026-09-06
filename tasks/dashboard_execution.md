@@ -31,7 +31,7 @@
 - [completed] D3 预警分布与产品排行查询
 - [completed] D4 预测对比查询与缓存策略
 - [completed] D5 路由注册、文档同步与接口回归
-- [in_progress] D6 全面复查、质量门禁与最终提交
+- [completed] D6 全面复查、质量门禁与最终提交
 
 ## 每阶段执行规则
 
@@ -63,6 +63,8 @@
 | 错误 | 次数 | 解决方案 |
 |---|---:|---|
 | 技能路径初次拼接错误 | 1 | 按实际目录改为 `agent-skills/skills/<skill>/SKILL.md` |
+| PostgreSQL 测试数据 flush 后服务再次 begin 事务冲突 | 1 | 按现有测试约定提交准备数据后再调用自持事务的 Service |
+| 提交前敏感词扫描误报测试字段名 | 1 | 改用凭据值模式扫描，确认没有真实凭据后继续提交 |
 
 ## 阶段记录
 
@@ -101,3 +103,10 @@
 - `backend/app/main.py` 注册 dashboard 路由；`docs/接口设计说明书.md` 补充趋势、分布、排行和预测对比响应字段及日期/数量限制。
 - 新增 `backend/tests/unit/test_dashboard_api.py`，验证五条路径在 OpenAPI 注册并返回 CamelCase API 数据。
 - 验证：dashboard 合同/业务/API 测试 `8 passed`；相关 Ruff、mypy 通过。
+
+### D6 全面复查、质量门禁与最终提交
+
+- 全面复查维度：查询结果正确性、合作社/仓库/模型权限、Redis 异常降级、聚合查询无 N+1、缓存键范围隔离、Schema 和路由契约、重复代码和敏感信息。
+- 复查修正：缓存 JSON 结构合法但字段不符合 Schema 时删除缓存并回源数据库；新增对应回归测试。
+- 严格门禁：`262 passed, 2 warnings`；总覆盖率 `82.17%`，关键模块覆盖率 `95%`；mypy `139 source files` 通过；全仓 Ruff 通过。
+- 相关变更已完成最终提交；保留工作区既有 `task_plan.md`、`progress.md`、`findings.md`、`tasks/plan.md`、`tasks/todo.md` 修改和 `.idea/workspace.xml` 未跟踪文件，不纳入 dashboard 代码提交。
