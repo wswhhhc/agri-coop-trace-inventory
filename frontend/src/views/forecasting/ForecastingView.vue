@@ -339,3 +339,161 @@ async function handleForecastSubmit(): Promise<void> {
     </section>
   </section>
 </template>
+
+<style scoped>
+.forecasting-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.model-training-form,
+.forecast-task-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.model-training-form h2,
+.forecast-task-form h2,
+.model-training-form > p,
+.forecast-task-form > p,
+.model-training-form > .task-progress,
+.forecast-task-form > .task-progress {
+  grid-column: 1 / -1;
+}
+
+.model-training-form > label,
+.forecast-task-form > label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.model-training-form > p,
+.forecast-task-form > p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.model-training-form > p[role='alert'],
+.forecast-task-form > p[role='alert'] {
+  color: var(--color-danger);
+}
+
+.forecasting-page > .page-state,
+.forecast-results > .page-state {
+  overflow-x: auto;
+}
+
+.forecasting-page > .page-state table,
+.forecast-results > .page-state table {
+  min-width: 58rem;
+}
+
+.forecasting-page > .page-state,
+.forecast-results {
+  min-width: 0;
+}
+
+.forecast-results {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.model-version-detail,
+.forecast-result-detail {
+  display: grid;
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.forecast-result-detail h2,
+.model-version-detail h2 {
+  margin-bottom: 0;
+  font-size: var(--font-size-lg);
+}
+
+.forecast-result-detail > div {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.forecast-result-detail > div > p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.model-version-detail dl,
+.forecast-result-detail dl {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.model-version-detail dl > div,
+.forecast-result-detail dl > div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.35fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-2);
+}
+
+.model-version-detail dt,
+.forecast-result-detail dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.model-version-detail dd,
+.forecast-result-detail dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.forecast-result-detail table {
+  min-width: 34rem;
+}
+
+@media (max-width: 48rem) {
+  .model-training-form,
+  .forecast-task-form {
+    grid-template-columns: 1fr;
+    padding: var(--space-4);
+  }
+
+  .model-training-form h2,
+  .forecast-task-form h2,
+  .model-training-form > p,
+  .forecast-task-form > p,
+  .model-training-form > .task-progress,
+  .forecast-task-form > .task-progress {
+    grid-column: auto;
+  }
+
+  .model-training-form > button,
+  .forecast-task-form > button {
+    justify-self: stretch;
+  }
+
+  .model-version-detail dl > div,
+  .forecast-result-detail dl > div {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+}
+</style>

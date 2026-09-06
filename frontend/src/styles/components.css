@@ -1,8 +1,6 @@
 .alert-detail,
 .audit-log-detail,
-.inventory-transaction-list-page__detail,
-.model-version-detail,
-.forecast-result-detail {
+.inventory-transaction-list-page__detail {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
@@ -102,9 +100,7 @@
 
 .inventory-transaction-list-page__detail dl,
 .alert-detail dl,
-.audit-log-detail dl,
-.model-version-detail dl,
-.forecast-result-detail dl {
+.audit-log-detail dl {
   display: grid;
   gap: var(--space-2);
   margin: 0;
@@ -112,9 +108,7 @@
 
 .inventory-transaction-list-page__detail dl > div,
 .alert-detail dl > div,
-.audit-log-detail dl > div,
-.model-version-detail dl > div,
-.forecast-result-detail dl > div {
+.audit-log-detail dl > div {
   display: grid;
   grid-template-columns: minmax(6rem, 0.35fr) minmax(0, 1fr);
   gap: var(--space-4);
@@ -124,18 +118,14 @@
 
 .inventory-transaction-list-page__detail dt,
 .alert-detail dt,
-.audit-log-detail dt,
-.model-version-detail dt,
-.forecast-result-detail dt {
+.audit-log-detail dt {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
 
 .inventory-transaction-list-page__detail dd,
 .alert-detail dd,
-.audit-log-detail dd,
-.model-version-detail dd,
-.forecast-result-detail dd {
+.audit-log-detail dd {
   min-width: 0;
   margin: 0;
   color: var(--color-text-secondary);
@@ -217,95 +207,6 @@
 .alert-rule-edit-form > p[role='alert'] {
   margin: 0;
   color: var(--color-danger);
-  font-size: var(--font-size-sm);
-}
-
-.forecasting-page {
-  display: grid;
-  gap: var(--space-5);
-}
-
-.model-training-form,
-.forecast-task-form {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
-}
-
-.model-training-form h2,
-.forecast-task-form h2,
-.model-training-form > p,
-.forecast-task-form > p,
-.model-training-form > .task-progress,
-.forecast-task-form > .task-progress {
-  grid-column: 1 / -1;
-}
-
-.model-training-form > label,
-.forecast-task-form > label {
-  display: grid;
-  gap: var(--space-1);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-}
-
-.model-training-form > p,
-.forecast-task-form > p {
-  margin: 0;
-  font-size: var(--font-size-sm);
-}
-
-.model-training-form > p[role='alert'],
-.forecast-task-form > p[role='alert'] {
-  color: var(--color-danger);
-}
-
-.forecasting-page > .page-state,
-.forecast-results > .page-state {
-  overflow-x: auto;
-}
-
-.forecasting-page > .page-state table,
-.forecast-results > .page-state table {
-  min-width: 58rem;
-}
-
-.forecasting-page > .page-state,
-.forecast-results {
-  min-width: 0;
-}
-
-.forecast-results {
-  display: grid;
-  gap: var(--space-5);
-}
-
-.forecast-result-detail {
-  display: grid;
-  gap: var(--space-4);
-  padding: var(--space-5);
-}
-
-.forecast-result-detail h2,
-.model-version-detail h2 {
-  margin-bottom: 0;
-  font-size: var(--font-size-lg);
-}
-
-.forecast-result-detail > div {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.forecast-result-detail > div > p {
-  margin: 0;
-  color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
 }
 
@@ -653,22 +554,10 @@
   font-size: var(--font-size-lg);
 }
 
-.forecast-result-detail table {
-  min-width: 34rem;
-}
-
-.model-version-detail {
-  display: grid;
-  gap: var(--space-4);
-  padding: var(--space-5);
-}
-
 @media (max-width: 48rem) {
   .inventory-transaction-list-page__detail dl > div,
   .alert-detail dl > div,
-  .audit-log-detail dl > div,
-  .model-version-detail dl > div,
-  .forecast-result-detail dl > div {
+  .audit-log-detail dl > div {
     grid-template-columns: 1fr;
     gap: var(--space-1);
   }
@@ -701,26 +590,6 @@
 
   .alert-handle-form > button,
   .alert-rule-edit-form > button {
-    justify-self: stretch;
-  }
-
-  .model-training-form,
-  .forecast-task-form {
-    grid-template-columns: 1fr;
-    padding: var(--space-4);
-  }
-
-  .model-training-form h2,
-  .forecast-task-form h2,
-  .model-training-form > p,
-  .forecast-task-form > p,
-  .model-training-form > .task-progress,
-  .forecast-task-form > .task-progress {
-    grid-column: auto;
-  }
-
-  .model-training-form > button,
-  .forecast-task-form > button {
     justify-self: stretch;
   }
 
