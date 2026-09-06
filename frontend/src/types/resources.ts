@@ -246,3 +246,20 @@ export interface RoleSummary {
   isSystem: boolean
   permissions: PermissionSummary[]
 }
+
+export interface TaskSummary {
+  id: string
+  cooperativeId: string | null
+  taskType: string
+  celeryTaskId: string
+  status: string
+  progress: number
+  resultPayload: Record<string, unknown> | null
+  errorCode: string | null
+  errorMessage: string | null
+  requestedBy: string | null
+  startedAt: string | null
+  finishedAt: string | null
+  createdAt: string
+  updatedAt: string
+}

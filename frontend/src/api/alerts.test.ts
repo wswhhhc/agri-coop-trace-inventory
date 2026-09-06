@@ -1,10 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { getAlert, listAlertRules, updateAlert, updateAlertRule } from './alerts'
+import {
+  getAlert,
+  getTask,
+  listAlertRules,
+  submitAlertScanTask,
+  updateAlert,
+  updateAlertRule,
+} from './alerts'
 
 vi.mock('./http', () => ({
-  default: { get: vi.fn(), patch: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
 }))
 
 describe('alerts api', () => {
@@ -69,5 +76,16 @@ describe('alerts api', () => {
       status: 'RESOLVED',
     })
     expect(http.patch).toHaveBeenCalledWith('/alerts/alert-1', payload)
+  })
+
+  it('submits an alert scan task and reads its status', async () => {
+    const task = { id: 'task-1', taskType: 'ALERT_SCAN', status: 'PENDING', progress: 0 }
+    vi.mocked(http.post).mockResolvedValueOnce({ data: { data: task } })
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: { ...task, status: 'SUCCESS', progress: 100 } } })
+
+    await expect(submitAlertScanTask()).resolves.toEqual(task)
+    await expect(getTask('task-1')).resolves.toMatchObject({ status: 'SUCCESS', progress: 100 })
+    expect(http.post).toHaveBeenCalledWith('/alert-scan-tasks')
+    expect(http.get).toHaveBeenCalledWith('/tasks/task-1')
   })
 })

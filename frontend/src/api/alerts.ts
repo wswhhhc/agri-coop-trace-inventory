@@ -1,5 +1,10 @@
 import type { ApiResponse, ListResponse } from '@/types/api'
-import type { AlertDetailSummary, AlertRuleSummary, AlertSummary } from '@/types/resources'
+import type {
+  AlertDetailSummary,
+  AlertRuleSummary,
+  AlertSummary,
+  TaskSummary,
+} from '@/types/resources'
 
 import http from './http'
 
@@ -43,6 +48,16 @@ export async function updateAlert(
     `/alerts/${alertId}`,
     payload,
   )
+  return response.data.data
+}
+
+export async function submitAlertScanTask(): Promise<TaskSummary> {
+  const response = await http.post<ApiResponse<TaskSummary>>('/alert-scan-tasks')
+  return response.data.data
+}
+
+export async function getTask(taskId: string): Promise<TaskSummary> {
+  const response = await http.get<ApiResponse<TaskSummary>>(`/tasks/${taskId}`)
   return response.data.data
 }
 

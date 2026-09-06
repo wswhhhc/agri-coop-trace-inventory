@@ -3,8 +3,10 @@ import { computed, reactive, ref } from 'vue'
 
 import {
   getAlert,
+  getTask,
   listAlertRules,
   listAlerts,
+  submitAlertScanTask,
   updateAlert,
   updateAlertRule,
 } from '@/api/alerts'
@@ -14,7 +16,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import { useListPage } from '@/composables/usePageData'
 import { usePageData } from '@/composables/usePageData'
-import type { AlertDetailSummary } from '@/types/resources'
+import type { AlertDetailSummary, TaskSummary } from '@/types/resources'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 
@@ -36,6 +38,10 @@ const handling = ref(false)
 const handlingError = ref('')
 const handlingForm = reactive({ status: 'RESOLVED', handlingNote: '' })
 const alertStatuses = ['PENDING', 'PROCESSING', 'RESOLVED', 'IGNORED']
+const canScan = computed(() => ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN'].includes(authStore.role ?? ''))
+const scanSubmitting = ref(false)
+const scanError = ref('')
+const scanTask = ref<TaskSummary | null>(null)
 const editForm = reactive({
   thresholdQuantity: '',
   thresholdDays: '',
@@ -122,12 +128,43 @@ async function handleUpdate(): Promise<void> {
     submitting.value = false
   }
 }
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds))
+}
+
+async function runAlertScan(): Promise<void> {
+  scanSubmitting.value = true
+  scanError.value = ''
+  scanTask.value = null
+  try {
+    scanTask.value = await submitAlertScanTask()
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      if (scanTask.value.status === 'SUCCESS' || scanTask.value.status === 'FAILURE') break
+      await wait(1000)
+      scanTask.value = await getTask(scanTask.value.id)
+    }
+    await alertState.loadData()
+  } catch (reason) {
+    scanError.value = getApiErrorMessage(reason, '预警扫描任务失败')
+  } finally {
+    scanSubmitting.value = false
+  }
+}
 </script>
 
 <template>
   <section class="alert-list-page">
     <PageHeader title="预警规则" description="查看库存、临期和质量预警规则。" />
     <PageContext />
+    <button v-if="canScan" type="button" :disabled="scanSubmitting" @click="runAlertScan">
+      {{ scanSubmitting ? '扫描中…' : '立即扫描预警' }}
+    </button>
+    <p v-if="scanTask" role="status">
+      扫描任务：{{ scanTask.status }}，进度 {{ scanTask.progress }}%
+      <span v-if="scanTask.errorMessage">，{{ scanTask.errorMessage }}</span>
+    </p>
+    <p v-if="scanError" role="alert">{{ scanError }}</p>
     <p v-if="formError" role="alert">{{ formError }}</p>
     <p v-if="successMessage" role="status">{{ successMessage }}</p>
     <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
