@@ -55,7 +55,7 @@ async function loadData(): Promise<void> {
 
 <template>
   <section class="role-list-page">
-    <PageHeader title="角色与权限" description="查看角色权限并维护系统角色授权。" />
+    <PageHeader eyebrow="权限治理" title="角色与权限" description="查看角色权限并维护系统角色授权。" />
     <PageContext />
     <PageState
       :loading="roleState.loading || permissionState.loading"
