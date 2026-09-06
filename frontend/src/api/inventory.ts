@@ -25,6 +25,15 @@ export interface StocktakeCreatePayload {
   remark: string | null
 }
 
+export interface InventoryLossCreatePayload {
+  warehouseId: string
+  batchId: string
+  quantity: number
+  occurredAt: string
+  reason: string
+  remark: string | null
+}
+
 export interface InventoryReceiptResult {
   transactionId: string
   transactionNo?: string
@@ -85,6 +94,18 @@ export async function createStocktake(
 ): Promise<StocktakeResult> {
   const response = await http.post<ApiResponse<StocktakeResult>>(
     '/stocktakes',
+    payload,
+    { headers: { 'Idempotency-Key': idempotencyKey } },
+  )
+  return response.data.data
+}
+
+export async function createInventoryLoss(
+  payload: InventoryLossCreatePayload,
+  idempotencyKey: string = crypto.randomUUID(),
+): Promise<InventoryReceiptResult> {
+  const response = await http.post<ApiResponse<InventoryReceiptResult>>(
+    '/inventory-losses',
     payload,
     { headers: { 'Idempotency-Key': idempotencyKey } },
   )

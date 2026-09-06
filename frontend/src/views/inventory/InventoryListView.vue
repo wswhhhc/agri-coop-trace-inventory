@@ -6,10 +6,12 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import {
   createInventoryIssue,
+  createInventoryLoss,
   createInventoryReceipt,
   createStocktake,
   listInventory,
   type InventoryIssueCreatePayload,
+  type InventoryLossCreatePayload,
   type InventoryReceiptCreatePayload,
   type StocktakeCreatePayload,
 } from '@/api/inventory'
@@ -56,6 +58,15 @@ const stocktakeForm = reactive<StocktakeCreatePayload & { occurredAtInput: strin
   warehouseId: '',
   batchId: '',
   countedQuantity: 0,
+  occurredAt: '',
+  occurredAtInput: getLocalDateTimeValue(),
+  reason: '',
+  remark: null,
+})
+const lossForm = reactive<InventoryLossCreatePayload & { occurredAtInput: string }>({
+  warehouseId: '',
+  batchId: '',
+  quantity: 0,
   occurredAt: '',
   occurredAtInput: getLocalDateTimeValue(),
   reason: '',
@@ -167,6 +178,43 @@ async function handleStocktake(): Promise<void> {
     )
     resetStocktakeForm()
     successMessage.value = `盘点完成，差异数量为 ${result.differenceQuantity}。`
+    await loadData()
+  } catch (reason) {
+    formError.value = getApiErrorMessage(reason)
+  } finally {
+    submitting.value = false
+  }
+}
+
+function resetLossForm(): void {
+  lossForm.warehouseId = ''
+  lossForm.batchId = ''
+  lossForm.quantity = 0
+  lossForm.occurredAt = ''
+  lossForm.occurredAtInput = getLocalDateTimeValue()
+  lossForm.reason = ''
+  lossForm.remark = null
+}
+
+async function handleLoss(): Promise<void> {
+  submitting.value = true
+  formError.value = ''
+  successMessage.value = ''
+  try {
+    lossForm.occurredAt = new Date(lossForm.occurredAtInput).toISOString()
+    const result = await createInventoryLoss(
+      {
+        warehouseId: lossForm.warehouseId,
+        batchId: lossForm.batchId,
+        quantity: lossForm.quantity,
+        occurredAt: lossForm.occurredAt,
+        reason: lossForm.reason.trim(),
+        remark: lossForm.remark?.trim() || null,
+      },
+      crypto.randomUUID(),
+    )
+    resetLossForm()
+    successMessage.value = `报损成功，库存结余为 ${result.quantityAfter}。`
     await loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
@@ -309,6 +357,48 @@ async function handleStocktake(): Promise<void> {
       </label>
       <button type="submit" :disabled="submitting || warehouseState.loading || batchState.loading">
         {{ submitting ? '提交中…' : '确认盘点' }}
+      </button>
+      <p v-if="formError" role="alert">{{ formError }}</p>
+      <p v-if="successMessage" role="status">{{ successMessage }}</p>
+    </form>
+    <form v-if="canWrite" class="inventory-loss-form" @submit.prevent="handleLoss">
+      <h2>报损</h2>
+      <label>
+        仓库
+        <select v-model="lossForm.warehouseId" required name="lossWarehouseId">
+          <option value="" disabled>请选择仓库</option>
+          <option v-for="warehouse in warehouseState.data" :key="warehouse.id" :value="warehouse.id">
+            {{ warehouse.name }}（{{ warehouse.code }}）
+          </option>
+        </select>
+      </label>
+      <label>
+        批次
+        <select v-model="lossForm.batchId" required name="lossBatchId">
+          <option value="" disabled>请选择批次</option>
+          <option v-for="batch in batchState.data" :key="batch.id" :value="batch.id">
+            {{ batch.batchNo }}
+          </option>
+        </select>
+      </label>
+      <label>
+        报损数量
+        <input v-model.number="lossForm.quantity" type="number" min="0.001" step="0.001" required name="lossQuantity" />
+      </label>
+      <label>
+        报损时间
+        <input v-model="lossForm.occurredAtInput" type="datetime-local" required name="lossOccurredAt" />
+      </label>
+      <label>
+        原因
+        <input v-model="lossForm.reason" maxlength="500" required name="lossReason" />
+      </label>
+      <label>
+        备注
+        <textarea v-model="lossForm.remark" maxlength="500" name="lossRemark" />
+      </label>
+      <button type="submit" :disabled="submitting || warehouseState.loading || batchState.loading">
+        {{ submitting ? '提交中…' : '确认报损' }}
       </button>
       <p v-if="formError" role="alert">{{ formError }}</p>
       <p v-if="successMessage" role="status">{{ successMessage }}</p>
