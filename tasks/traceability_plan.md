@@ -44,10 +44,10 @@
 
 ### 阶段 1：追溯事件基础能力（大功能提交点 A）
 
-- [ ] T1.1 新增追溯事件枚举、ORM 模型、批次/合作社/用户关系和模型注册，补充 ORM/SQL 结构一致性测试。
-- [ ] T1.2 新增事件 Schema、Repository 和追加写入 Service，覆盖事件类型、长度、时间、来源和公开字段校验。
-- [ ] T1.3 新增内部追溯事件列表接口 `GET /batches/{batchId}/trace-events`，覆盖登录、权限、合作社/仓库范围、分页和稳定时间排序。
-- [ ] T1.4 编写基础能力测试并完成本阶段代码复查。
+- [x] T1.1 新增追溯事件枚举、ORM 模型、批次/合作社/用户关系和模型注册，补充 ORM/SQL 结构一致性测试。
+- [x] T1.2 新增事件 Schema、Repository 和追加写入 Service，覆盖事件类型、长度、时间、来源和公开字段校验。
+- [x] T1.3 新增内部追溯事件列表接口 `GET /batches/{batchId}/trace-events`，覆盖登录、权限、合作社/仓库范围、分页和稳定时间排序。
+- [x] T1.4 编写基础能力测试并完成本阶段代码复查。
 
 验收：可在真实 PostgreSQL 测试库中为批次追加事件，并通过内部接口按权限分页查询；跨范围数据不可见，历史事件不可修改/删除。
 
@@ -116,7 +116,17 @@
 - 状态：已完成。
 - 契约复核：`trace_events` SQL/Alembic 表、接口文档的事件类型、公开响应字段、Redis TTL/前缀和公开限流配置均已有对应基础。
 - 已冻结：库存盘点和报损不新增数据库枚举，按 `OTHER` 记录并保留原因；公开追溯只返回批次、产品、最新质检和脱敏事件时间线。
-- 风险记录：追溯 ORM 尚未注册到 `Base.metadata`，需要在阶段 1 补齐并做 ORM/SQL 一致性验证。
+- 风险记录：追溯 ORM 尚未注册到 `Base.metadata`；该风险已在阶段 1 处理，后续由阶段 1 验收记录验证。
+
+### 2026-09-06：T1.1–T1.3
+
+- 状态：实现完成，待提交前复查。
+- 完成内容：新增 `TraceEventType`、`TraceEvent` ORM、批次/合作社/用户关系、模型注册、追溯 Schema、Repository、追加写入 Service、内部追溯查询 Service 和 `GET /batches/{batchId}/trace-events` 路由。
+- 测试：追溯模型、业务、API 和 ORM/SQL 一致性聚焦测试 `11 passed`；`.env` PostgreSQL 测试已实际执行；新增 Service/API 文件 mypy 通过；相关 Ruff 通过。
+- 事务与安全：事件写入只 `flush` 不提交，由调用方事务控制；内部查询要求 `trace:read`，批次先经过合作社/仓库上下文范围查询；事件模型移除 `updated_at`，不提供修改/删除入口。
+- 数据库：复用既有 `trace_events` 表及初始 Alembic 迁移，ORM/SQL 列、外键和索引一致性已验证，无需新增迁移。
+- 提交前复查：已完成正确性、可读性、架构、权限/敏感数据和查询性能五维复查；未发现必须修改项。曾发现并修正一个遗留未使用导入，修正后门禁通过。
+- 严格门禁：`uv run python backend/scripts/test_gate.py` 结果为 `200 passed, 2 warnings`，总覆盖率 `85.46%`，关键模块覆盖率 `94%`，mypy `99 source files` 通过，Ruff 通过。
 
 ## 7. 错误与阻塞记录
 

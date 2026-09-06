@@ -5,6 +5,7 @@ from app.repositories.inventory import InventoryRepository
 from app.repositories.permission import PermissionRepository
 from app.repositories.quality_inspection import QualityInspectionRepository
 from app.repositories.role import RoleRepository
+from app.repositories.traceability import TraceEventRepository
 from app.repositories.user import UserRepository
 from app.repositories.warehouse import WarehouseRepository
 
@@ -16,6 +17,7 @@ __all__ = [
     "PermissionRepository",
     "QualityInspectionRepository",
     "RoleRepository",
+    "TraceEventRepository",
     "UserRepository",
     "WarehouseRepository",
 ]

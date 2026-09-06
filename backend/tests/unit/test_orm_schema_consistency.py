@@ -191,6 +191,20 @@ ORM_TABLE_COLUMNS = {
         "created_at",
         "updated_at",
     },
+    "trace_events": {
+        "id",
+        "cooperative_id",
+        "batch_id",
+        "event_type",
+        "title",
+        "description",
+        "event_time",
+        "source_type",
+        "source_id",
+        "public_data",
+        "created_by",
+        "created_at",
+    },
 }
 
 
@@ -262,6 +276,13 @@ def test_target_tables_have_foreign_keys_and_expected_indexes() -> None:
         "ix_inventory_transactions_warehouse_time",
         "ix_inventory_transactions_batch_time",
     }
+    assert {
+        foreign_key.target_fullname
+        for foreign_key in Base.metadata.tables["trace_events"].foreign_keys
+    } == {"cooperatives.id", "batches.id", "users.id"}
+    assert {
+        index.name for index in Base.metadata.tables["trace_events"].indexes
+    } == {"ix_trace_events_batch_time"}
 
 
 @pytest.mark.asyncio

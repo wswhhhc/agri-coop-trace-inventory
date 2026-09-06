@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 import pytest_asyncio
+from app.core.config import DatabaseSettings
 from app.models import Base
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -20,7 +21,15 @@ from tests.support import skip_or_fail
 
 
 def _database_url_from_environment() -> str | None:
-    return os.getenv("TEST_POSTGRES_DATABASE_URL") or os.getenv("TEST_DATABASE_URL")
+    explicit_url = os.getenv("TEST_POSTGRES_DATABASE_URL") or os.getenv(
+        "TEST_DATABASE_URL"
+    )
+    if explicit_url:
+        return explicit_url
+    try:
+        return DatabaseSettings().sqlalchemy_database_url
+    except ValueError:
+        return None
 
 
 def _asyncpg_url(url: str) -> str:

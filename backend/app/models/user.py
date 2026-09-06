@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from app.models.file import File
     from app.models.quality_inspection import QualityInspection
     from app.models.role import Role
+    from app.models.trace_event import TraceEvent
     from app.models.user_warehouse import UserWarehouse
 
 SYSTEM_ADMIN_ROLE_CODE = "SYSTEM_ADMIN"
@@ -84,6 +85,9 @@ class User(Base):
     )
     quality_inspections: Mapped[list[QualityInspection]] = relationship(
         "QualityInspection", back_populates="inspector", foreign_keys="QualityInspection.inspector_id"
+    )
+    trace_events: Mapped[list[TraceEvent]] = relationship(
+        "TraceEvent", back_populates="creator", foreign_keys="TraceEvent.created_by"
     )
     uploaded_files: Mapped[list[File]] = relationship(
         "File", back_populates="uploader", foreign_keys="File.uploaded_by"

@@ -36,6 +36,15 @@ class InspectionConclusion(StrEnum):
     FAILED = "FAILED"
 
 
+class TraceEventType(StrEnum):
+    PRODUCTION = "PRODUCTION"
+    INSPECTION = "INSPECTION"
+    INBOUND = "INBOUND"
+    OUTBOUND = "OUTBOUND"
+    TRANSFER = "TRANSFER"
+    OTHER = "OTHER"
+
+
 class SortDirection(StrEnum):
     ASC = "ASC"
     DESC = "DESC"
@@ -86,6 +95,7 @@ __all__ = [
     "InventoryRisk",
     "InventoryTransactionType",
     "SortDirection",
+    "TraceEventType",
     "UserStatus",
     "WarehouseStatus",
     "enum_sql_values",

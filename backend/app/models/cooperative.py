@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from app.models.product import Product
     from app.models.product_category import ProductCategory
     from app.models.quality_inspection import QualityInspection
+    from app.models.trace_event import TraceEvent
     from app.models.user import User
     from app.models.warehouse import Warehouse
 
@@ -66,6 +67,9 @@ class Cooperative(Base):
     batches: Mapped[list[Batch]] = relationship("Batch", back_populates="cooperative")
     quality_inspections: Mapped[list[QualityInspection]] = relationship(
         "QualityInspection", back_populates="cooperative"
+    )
+    trace_events: Mapped[list[TraceEvent]] = relationship(
+        "TraceEvent", back_populates="cooperative"
     )
     files: Mapped[list[File]] = relationship("File", back_populates="cooperative")
 

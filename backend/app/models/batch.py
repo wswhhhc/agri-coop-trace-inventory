@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from app.models.cooperative import Cooperative
     from app.models.product import Product
     from app.models.quality_inspection import QualityInspection
+    from app.models.trace_event import TraceEvent
     from app.models.user import User
 
 
@@ -88,6 +89,9 @@ class Batch(Base):
     )
     quality_inspections: Mapped[list[QualityInspection]] = relationship(
         "QualityInspection", back_populates="batch"
+    )
+    trace_events: Mapped[list[TraceEvent]] = relationship(
+        "TraceEvent", back_populates="batch"
     )
 
 
