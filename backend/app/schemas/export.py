@@ -4,7 +4,7 @@ from datetime import date
 from enum import StrEnum
 from uuid import UUID
 
-from pydantic import Field, model_validator
+from pydantic import AwareDatetime, Field, model_validator
 
 from app.schemas.common import BaseSchema
 
@@ -36,7 +36,7 @@ class ExportTaskCreate(BaseSchema):
 
 class ExportTaskResult(BaseSchema):
     download_url: str
-    expires_at: str
+    expires_at: AwareDatetime
     filename: str
 
 

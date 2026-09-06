@@ -34,9 +34,9 @@
 
 ### 2. 导出查询与任务提交
 
-- [ ] 新增导出 Repository，按筛选条件查询库存/预警明细并显式限制合作社和仓库范围。
-- [ ] 新增 Export Service，创建 `EXPORT_REPORT` 任务记录、校验请求范围、提交 Celery，并处理提交失败状态。
-- [ ] 新增 `POST /export-tasks`，返回 202 和统一任务数据。
+- [x] 新增导出 Repository，按筛选条件查询库存/预警明细并显式限制合作社和仓库范围。
+- [x] 新增 Export Service，创建 `EXPORT_REPORT` 任务记录、校验请求范围、提交 Celery，并处理提交失败状态。
+- [x] 新增 `POST /export-tasks`，返回 202 和统一任务数据。
 - 验证：查询隔离、日期边界、权限、任务创建和入队失败测试。
 - Git：复查后提交一次。
 
@@ -61,6 +61,7 @@
 
 - 2026-09-06：已完成执行书、代码基线和接口契约冻结；确认库存/预警明细导出、合作社管理员权限、`task_records`/Celery 复用及短时下载边界。
 - 2026-09-06：E1 已完成。新增导出 Schema、合作社管理员权限策略、库存/预警工作簿生成器；聚焦测试 `5 passed`，Ruff、mypy 通过。工作簿公共逻辑仅复用表格写入与基础格式化。
+- 2026-09-06：E2 已完成。新增导出查询仓储、任务提交 Service、`POST /export-tasks`、Celery 生成任务和导出存储配置；导出相关聚焦测试 `9 passed`，真实 PostgreSQL 查询验证通过，Ruff、mypy 通过。
 
 ## 错误与阻塞记录
 
@@ -68,6 +69,7 @@
 |---|---|---|
 | 2026-09-06 | 规划技能要求路径与实际目录结构不同 | 改用 `agent-skills/skills/<skill>/SKILL.md` 读取 |
 | 2026-09-06 | 工作簿模块误从 `collections.abc` 导入 `BinaryIO` | 改从 `typing` 导入，并通过聚焦测试验证 |
+| 2026-09-06 | 导出任务异常时事务回滚会清掉 `started_at`，直接写 `finished_at` 触发约束错误 | 失败回写时补齐 `started_at`，保证 `task_records` 时间约束成立 |
 
 ## 最终状态
 

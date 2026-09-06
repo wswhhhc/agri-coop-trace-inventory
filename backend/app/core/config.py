@@ -167,6 +167,8 @@ class Settings(DatabaseSettings):
     # 文件存储
     file_storage_backend: Literal["local", "s3"] = "local"
     file_storage_dir: str = "storage/uploads"
+    export_storage_dir: str = "storage/exports"
+    export_download_ttl_seconds: int = Field(default=900, ge=60)
     max_upload_size_bytes: int = Field(default=10 * 1024 * 1024, ge=1)
     allowed_upload_content_types: str = "application/pdf,image/png,image/jpeg"
     s3_endpoint_url: str | None = None
@@ -263,6 +265,11 @@ class Settings(DatabaseSettings):
     @property
     def file_storage_path(self) -> Path:
         path = Path(self.file_storage_dir)
+        return path if path.is_absolute() else PROJECT_ROOT / path
+
+    @property
+    def export_storage_path(self) -> Path:
+        path = Path(self.export_storage_dir)
         return path if path.is_absolute() else PROJECT_ROOT / path
 
     @property

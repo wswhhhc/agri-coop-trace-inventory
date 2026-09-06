@@ -11,6 +11,7 @@ from app.api.auth import router as auth_router
 from app.api.batches import router as batches_router
 from app.api.cooperatives import router as cooperatives_router
 from app.api.dashboard import router as dashboard_router
+from app.api.export import router as export_router
 from app.api.files import router as files_router
 from app.api.forecasting import router as forecasting_router
 from app.api.inventory import router as inventory_router
@@ -81,6 +82,7 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
     application.include_router(audit_logs_router, prefix=app_settings.api_v1_prefix)
     application.include_router(cooperatives_router, prefix=app_settings.api_v1_prefix)
     application.include_router(dashboard_router, prefix=app_settings.api_v1_prefix)
+    application.include_router(export_router, prefix=app_settings.api_v1_prefix)
     application.include_router(warehouses_router, prefix=app_settings.api_v1_prefix)
     application.include_router(users_router, prefix=app_settings.api_v1_prefix)
     application.include_router(category_router, prefix=app_settings.api_v1_prefix)
