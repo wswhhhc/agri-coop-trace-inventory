@@ -15,6 +15,7 @@ from app.models import (
     InspectionFile,
     QualityInspection,
     QualityInspectionItem,
+    TraceEventType,
 )
 from app.repositories.batch import BatchRepository
 from app.repositories.file import FileRepository
@@ -23,6 +24,7 @@ from app.schemas.quality_inspection import (
     QualityInspectionCreate,
     QualityInspectionListParams,
 )
+from app.services.traceability import TraceEventWriter
 
 WAREHOUSE_STAFF_ROLE_CODE = "WAREHOUSE_STAFF"
 COOPERATIVE_ADMIN_ROLE_CODE = "COOPERATIVE_ADMIN"
@@ -59,6 +61,7 @@ class QualityInspectionService:
         self.repository = QualityInspectionRepository(session)
         self.batch_repository = BatchRepository(session)
         self.file_repository = FileRepository(session)
+        self.trace_writer = TraceEventWriter(session)
         self.integration = integration or NullQualityIntegration()
 
     async def list(
@@ -135,10 +138,38 @@ class QualityInspectionService:
                 InspectionFile(file_id=file.id) for file in files
             ]
             created = await self.repository.add(inspection)
+            await self.trace_writer.record(
+                batch=batch,
+                event_type=TraceEventType.INSPECTION,
+                title="质量检验完成",
+                description=f"检验结论：{created.conclusion.value}",
+                event_time=created.inspected_at,
+                source_type="QUALITY_INSPECTION",
+                source_id=created.id,
+                public_data=self._public_inspection_data(created),
+                created_by=context.user_id,
+            )
             await self.integration.inspection_created(created)
             if created.conclusion.value == "FAILED":
                 await self.integration.quality_failed(created)
             return created
+
+    @staticmethod
+    def _public_inspection_data(inspection: QualityInspection) -> dict[str, object]:
+        return {
+            "inspectionDate": inspection.inspected_at.date().isoformat(),
+            "conclusion": inspection.conclusion.value,
+            "items": [
+                {
+                    "name": item.item_name,
+                    "value": item.result_value,
+                    "unit": item.unit,
+                    "standard": item.standard_value,
+                    "isQualified": item.is_qualified,
+                }
+                for item in inspection.items
+            ],
+        }
 
     async def _get_batch(
         self, context: AuthContext, batch_id: UUID

@@ -20,10 +20,13 @@ from app.models import (
     Product,
     ProductCategory,
     Role,
+    TraceEvent,
+    TraceEventType,
     User,
     UserWarehouse,
     Warehouse,
 )
+from sqlalchemy import select
 
 pytestmark = pytest.mark.postgres
 
@@ -140,12 +143,12 @@ async def inventory_api(postgres_session_factory):
     application.dependency_overrides[get_auth_context] = override_auth_context
     transport = httpx.ASGITransport(app=application)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client, *ids, set_context
+        yield client, *ids, set_context, postgres_session_factory
 
 
 @pytest.mark.asyncio
 async def test_inventory_receipt_issue_and_idempotency(inventory_api) -> None:
-    client, _, warehouse_id, _, batch_id, _, _, _ = inventory_api
+    client, _, warehouse_id, _, batch_id, _, _, _, postgres_session_factory = inventory_api
     receipt = {
         "warehouseId": str(warehouse_id),
         "batchId": str(batch_id),
@@ -195,10 +198,20 @@ async def test_inventory_receipt_issue_and_idempotency(inventory_api) -> None:
     assert listed.json()["data"][0]["quantity"] == 15
     assert listed.json()["data"][0]["warehouse"]["id"] == str(warehouse_id)
 
+    async with postgres_session_factory() as session:
+        event_types = list(
+            await session.scalars(
+                select(TraceEvent.event_type)
+                .where(TraceEvent.batch_id == batch_id)
+                .order_by(TraceEvent.event_time, TraceEvent.id)
+            )
+        )
+    assert event_types == [TraceEventType.INBOUND, TraceEventType.OUTBOUND]
+
 
 @pytest.mark.asyncio
 async def test_inventory_transfer_is_atomic_and_staff_scope_is_enforced(inventory_api) -> None:
-    client, cooperative_id, warehouse_id, second_warehouse_id, batch_id, _, staff_id, _ = inventory_api
+    client, cooperative_id, warehouse_id, second_warehouse_id, batch_id, _, staff_id, _, postgres_session_factory = inventory_api
     await client.post(
         "/api/v1/inventory-receipts",
         json={
@@ -221,10 +234,19 @@ async def test_inventory_transfer_is_atomic_and_staff_scope_is_enforced(inventor
         headers={"Idempotency-Key": "transfer-1"},
     )
     assert transfer.status_code == 201
+    async with postgres_session_factory() as session:
+        transfer_events = list(
+            await session.scalars(
+                select(TraceEvent.event_type)
+                .where(TraceEvent.batch_id == batch_id)
+                .order_by(TraceEvent.event_time, TraceEvent.id)
+            )
+        )
+    assert transfer_events == [TraceEventType.INBOUND, TraceEventType.TRANSFER]
     transactions = await client.get("/api/v1/inventory-transactions")
     assert transactions.json()["pagination"]["totalItems"] == 3
 
-    set_context = inventory_api[-1]
+    set_context = inventory_api[-2]
     set_context(
         _context(
             user_id=staff_id,
@@ -239,3 +261,58 @@ async def test_inventory_transfer_is_atomic_and_staff_scope_is_enforced(inventor
     assert all(item["warehouse"]["id"] == str(warehouse_id) for item in scoped.json()["data"])
     forbidden_scope = await client.get(f"/api/v1/inventories?warehouseId={second_warehouse_id}")
     assert forbidden_scope.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_inventory_loss_and_stocktake_append_other_trace_events(inventory_api) -> None:
+    client, _, warehouse_id, _, batch_id, _, _, _, postgres_session_factory = inventory_api
+    await client.post(
+        "/api/v1/inventory-receipts",
+        json={
+            "warehouseId": str(warehouse_id),
+            "batchId": str(batch_id),
+            "quantity": "10.000",
+            "occurredAt": "2026-09-06T10:00:00+08:00",
+        },
+        headers={"Idempotency-Key": "other-receipt"},
+    )
+    loss = await client.post(
+        "/api/v1/inventory-losses",
+        json={
+            "warehouseId": str(warehouse_id),
+            "batchId": str(batch_id),
+            "quantity": "2.000",
+            "reason": "包装破损",
+            "occurredAt": "2026-09-06T11:00:00+08:00",
+        },
+        headers={"Idempotency-Key": "loss-1"},
+    )
+    assert loss.status_code == 201
+    stocktake = await client.post(
+        "/api/v1/stocktakes",
+        json={
+            "warehouseId": str(warehouse_id),
+            "batchId": str(batch_id),
+            "countedQuantity": "9.000",
+            "reason": "月度盘点",
+            "occurredAt": "2026-09-06T12:00:00+08:00",
+        },
+        headers={"Idempotency-Key": "stocktake-1"},
+    )
+    assert stocktake.status_code == 201
+
+    async with postgres_session_factory() as session:
+        events = list(
+            await session.scalars(
+                select(TraceEvent)
+                .where(TraceEvent.batch_id == batch_id)
+                .order_by(TraceEvent.event_time, TraceEvent.id)
+            )
+        )
+    assert [event.event_type for event in events] == [
+        TraceEventType.INBOUND,
+        TraceEventType.OTHER,
+        TraceEventType.OTHER,
+    ]
+    assert "包装破损" in (events[1].description or "")
+    assert "月度盘点" in (events[2].description or "")

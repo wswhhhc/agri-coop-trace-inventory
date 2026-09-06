@@ -22,6 +22,7 @@ from app.models import (
     InventoryOperationType,
     InventoryTransaction,
     InventoryTransactionType,
+    TraceEventType,
     Warehouse,
     WarehouseStatus,
 )
@@ -44,6 +45,7 @@ from app.services.inventory_policy import (
     warehouse_ids,
 )
 from app.services.inventory_presenter import transaction_dict
+from app.services.traceability import TraceEventWriter
 
 
 def sync_batch_status(batch: Batch, quantity: Decimal) -> None:
@@ -64,6 +66,7 @@ class InventoryMutationService:
         self.session = session
         self.repository = repository
         self.idempotency = InventoryIdempotency(idempotency_repository)
+        self.trace_writer = TraceEventWriter(session)
 
     async def receive(
         self, context: AuthContext, payload: InventoryReceiptCreate, idempotency_key: str
@@ -211,6 +214,16 @@ class InventoryMutationService:
                 target, quantity=target_after, version=target.version + 1
             )
             sync_batch_status(batch, source_after)
+            await self.trace_writer.record(
+                batch=batch,
+                event_type=TraceEventType.TRANSFER,
+                title="产品已完成调拨",
+                description="批次库存已完成仓库调拨",
+                event_time=payload.occurred_at,
+                source_type="INVENTORY_OPERATION",
+                source_id=operation.id,
+                created_by=context.user_id,
+            )
             data = TransferData(
                 transfer_id=operation.id,
                 out_transaction_id=out_transaction.id,
@@ -283,6 +296,19 @@ class InventoryMutationService:
                 version=inventory.version + 1,
             )
             sync_batch_status(batch, payload.counted_quantity)
+            await self.trace_writer.record(
+                batch=batch,
+                event_type=TraceEventType.OTHER,
+                title="库存盘点调整",
+                description=self._trace_description(
+                    TraceEventType.OTHER,
+                    payload.reason + (f"；{payload.remark}" if payload.remark else ""),
+                ),
+                event_time=payload.occurred_at,
+                source_type="INVENTORY_TRANSACTION",
+                source_id=transaction.id,
+                created_by=context.user_id,
+            )
             data = StocktakeData(
                 operation_id=operation.id,
                 transaction_id=transaction.id,
@@ -360,11 +386,39 @@ class InventoryMutationService:
                 inventory, quantity=after, version=inventory.version + 1
             )
             sync_batch_status(batch, after)
+            event_type = (
+                TraceEventType.INBOUND
+                if transaction_type is InventoryTransactionType.INBOUND
+                else TraceEventType.OUTBOUND
+                if transaction_type is InventoryTransactionType.OUTBOUND
+                else TraceEventType.OTHER
+            )
+            event_title = {
+                TraceEventType.INBOUND: "产品已入库",
+                TraceEventType.OUTBOUND: "产品已出库",
+                TraceEventType.OTHER: "批次发生报损",
+            }[event_type]
+            await self.trace_writer.record(
+                batch=batch,
+                event_type=event_type,
+                title=event_title,
+                description=self._trace_description(event_type, reason),
+                event_time=payload.occurred_at,
+                source_type="INVENTORY_TRANSACTION",
+                source_id=transaction.id,
+                created_by=context.user_id,
+            )
             data = transaction_dict(transaction, operation.operation_no)
             await self.idempotency.complete(
                 context, cooperative_id, endpoint, idempotency_key, payload, data
             )
             return data
+
+    @staticmethod
+    def _trace_description(event_type: TraceEventType, reason: str | None) -> str:
+        if event_type is TraceEventType.OTHER and reason:
+            return f"库存业务原因：{reason}"
+        return "批次库存已完成业务变更"
 
     async def _get_active_warehouse(
         self, context: AuthContext, cooperative_id: UUID, warehouse_id: UUID

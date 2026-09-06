@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import secrets
+from datetime import UTC, datetime, time
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,10 +18,12 @@ from app.models import (
     SYSTEM_ADMIN_ROLE_CODE,
     Batch,
     BatchStatus,
+    TraceEventType,
 )
 from app.repositories.batch import BatchRepository
 from app.repositories.product import ProductRepository
 from app.schemas.batch import BatchCreate, BatchListParams, BatchUpdate
+from app.services.traceability import TraceEventWriter
 
 WAREHOUSE_STAFF_ROLE_CODE = "WAREHOUSE_STAFF"
 COOPERATIVE_ADMIN_ROLE_CODE = "COOPERATIVE_ADMIN"
@@ -46,6 +49,7 @@ class BatchService:
         self.session = session
         self.repository = BatchRepository(session)
         self.product_repository = ProductRepository(session)
+        self.trace_writer = TraceEventWriter(session)
 
     async def list(
         self,
@@ -113,7 +117,18 @@ class BatchService:
                 status=BatchStatus.CREATED,
                 created_by=context.user_id,
             )
-            return await self.repository.add(batch)
+            created = await self.repository.add(batch)
+            await self.trace_writer.record(
+                batch=created,
+                event_type=TraceEventType.PRODUCTION,
+                title="生产批次建立",
+                description="批次信息已登记",
+                event_time=datetime.combine(payload.production_date, time.min, tzinfo=UTC),
+                source_type="BATCH",
+                source_id=created.id,
+                created_by=context.user_id,
+            )
+            return created
 
     async def update(
         self,

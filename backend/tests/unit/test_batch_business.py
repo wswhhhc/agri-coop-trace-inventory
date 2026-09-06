@@ -16,10 +16,13 @@ from app.models import (
     Product,
     ProductCategory,
     Role,
+    TraceEvent,
+    TraceEventType,
     User,
     UserWarehouse,
     Warehouse,
 )
+from sqlalchemy import select
 
 pytestmark = pytest.mark.postgres
 
@@ -192,7 +195,7 @@ async def batch_api(postgres_session_factory):
 
 @pytest.mark.asyncio
 async def test_cooperative_admin_can_create_list_read_and_change_batch_status(batch_api):
-    client, cooperative_id, _, product_id, _, _, _, admin_id, _, _, _ = batch_api
+    client, cooperative_id, _, product_id, _, _, _, admin_id, _, _, postgres_session_factory = batch_api
 
     created = await client.post(
         "/api/v1/batches",
@@ -212,6 +215,14 @@ async def test_cooperative_admin_can_create_list_read_and_change_batch_status(ba
     assert data["createdBy"] == str(admin_id)
     assert data["traceCode"].startswith("tr_")
     assert data["status"] == "CREATED"
+
+    async with postgres_session_factory() as session:
+        event = await session.scalar(
+            select(TraceEvent).where(TraceEvent.batch_id == data["id"])
+        )
+    assert event is not None
+    assert event.event_type is TraceEventType.PRODUCTION
+    assert event.source_type == "BATCH"
 
     listed = await client.get("/api/v1/batches?pageSize=10")
     assert listed.status_code == 200

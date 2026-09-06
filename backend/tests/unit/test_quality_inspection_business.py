@@ -6,7 +6,12 @@ from datetime import date
 import pytest
 from app.core.auth.context import AuthContext
 from app.core.exceptions import AppException
-from app.models import InspectionConclusion, QualityInspection
+from app.models import (
+    InspectionConclusion,
+    QualityInspection,
+    TraceEvent,
+    TraceEventType,
+)
 from app.schemas.quality_inspection import QualityInspectionCreate
 from app.services.quality_inspection import QualityInspectionService
 from sqlalchemy import select
@@ -66,6 +71,16 @@ async def test_quality_service_creates_and_lists_inspection(
     assert created.conclusion is InspectionConclusion.PASSED
     assert created.inspector_id == user.id
     assert created.inspection_no.startswith("QC-")
+
+    event = await postgres_session.scalar(
+        select(TraceEvent).where(TraceEvent.batch_id == batch.id)
+    )
+    assert event is not None
+    assert event.event_type is TraceEventType.INSPECTION
+    assert event.source_type == "QUALITY_INSPECTION"
+    assert event.public_data["conclusion"] == "PASSED"
+    assert "remarks" not in event.public_data
+    await postgres_session.commit()
 
     listed, total = await service.list(context, batch.id)
     assert total == 1
