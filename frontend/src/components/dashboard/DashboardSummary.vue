@@ -20,9 +20,9 @@ defineProps<{
     <div class="dashboard-summary__metrics">
       <MetricCard label="产品数量" :value="summary.productCount" />
       <MetricCard label="批次数量" :value="summary.batchCount" />
-      <MetricCard label="待处理预警" :value="summary.pendingAlertCount" />
-      <MetricCard label="临期批次" :value="summary.expiringBatchCount" />
-      <MetricCard label="低库存产品" :value="summary.lowStockProductCount" />
+      <MetricCard label="待处理预警" :value="summary.pendingAlertCount" tone="warning" />
+      <MetricCard label="临期批次" :value="summary.expiringBatchCount" tone="warning" />
+      <MetricCard label="低库存产品" :value="summary.lowStockProductCount" tone="danger" />
     </div>
 
     <section class="dashboard-inventory-overview" aria-labelledby="inventory-overview-title">
