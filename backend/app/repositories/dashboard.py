@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
-from typing import TypedDict
+from typing import TypedDict, cast
 from uuid import UUID
 
 from sqlalchemy import and_, case, func, select
@@ -12,9 +12,11 @@ from app.models import (
     Alert,
     AlertStatus,
     Batch,
+    ForecastResult,
     Inventory,
     InventoryTransaction,
     InventoryTransactionType,
+    ModelVersion,
     Product,
 )
 
@@ -295,6 +297,72 @@ class DashboardRepository:
             for row in rows.all()
         ]
 
+    async def forecast_comparison(
+        self,
+        cooperative_id: UUID | None,
+        warehouse_ids: frozenset[UUID] | None,
+        *,
+        start_date: date,
+        end_date: date,
+    ) -> list[tuple[UUID, UUID, UUID, UUID, str, date, date, Decimal, Decimal, dict[str, float]]]:
+        if warehouse_ids == frozenset():
+            return []
+        start_at = datetime.combine(start_date, time.min, tzinfo=UTC)
+        end_at = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=UTC)
+        actual_demand = (
+            select(func.coalesce(func.sum(-InventoryTransaction.quantity_delta), 0))
+            .select_from(InventoryTransaction)
+            .join(Batch, Batch.id == InventoryTransaction.batch_id)
+            .where(
+                InventoryTransaction.cooperative_id == ForecastResult.cooperative_id,
+                InventoryTransaction.warehouse_id == ForecastResult.warehouse_id,
+                Batch.product_id == ForecastResult.product_id,
+                InventoryTransaction.transaction_type == InventoryTransactionType.OUTBOUND,
+                InventoryTransaction.occurred_at >= ForecastResult.forecast_start_date,
+                InventoryTransaction.occurred_at
+                < ForecastResult.forecast_end_date + timedelta(days=1),
+            )
+            .correlate(ForecastResult)
+            .scalar_subquery()
+        )
+        rows = await self.session.execute(
+            select(
+                ForecastResult.id,
+                ForecastResult.warehouse_id,
+                ForecastResult.product_id,
+                ForecastResult.model_version_id,
+                ModelVersion.version,
+                ForecastResult.forecast_start_date,
+                ForecastResult.forecast_end_date,
+                ForecastResult.predicted_demand,
+                actual_demand,
+                ForecastResult.metrics,
+            )
+            .select_from(ForecastResult)
+            .join(ModelVersion, ModelVersion.id == ForecastResult.model_version_id)
+            .where(
+                *self._forecast_scope(cooperative_id, warehouse_ids),
+                ForecastResult.generated_at >= start_at,
+                ForecastResult.generated_at < end_at,
+            )
+            .order_by(ForecastResult.generated_at.desc(), ForecastResult.id)
+        )
+        return [
+            (
+                row[0],
+                row[1],
+                row[2],
+                row[3],
+                row[4],
+                row[5],
+                row[6],
+                cast(Decimal, row[7]),
+                cast(Decimal, row[8]),
+                cast(dict[str, float], row[9]),
+            )
+            for row in rows.all()
+        ]
+
     @staticmethod
     def _cooperative_scope(model, cooperative_id: UUID | None):
         return [model.cooperative_id == cooperative_id] if cooperative_id is not None else []
@@ -326,6 +394,15 @@ class DashboardRepository:
         conditions = DashboardRepository._cooperative_scope(Alert, cooperative_id)
         if warehouse_ids is not None:
             conditions.append(Alert.warehouse_id.in_(warehouse_ids))
+        return conditions
+
+    @staticmethod
+    def _forecast_scope(
+        cooperative_id: UUID | None, warehouse_ids: frozenset[UUID] | None
+    ):
+        conditions = DashboardRepository._cooperative_scope(ForecastResult, cooperative_id)
+        if warehouse_ids is not None:
+            conditions.append(ForecastResult.warehouse_id.in_(warehouse_ids))
         return conditions
 
 

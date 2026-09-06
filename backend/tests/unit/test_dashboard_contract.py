@@ -14,6 +14,20 @@ from app.services.dashboard_policy import (
 )
 
 
+class MemoryRedis:
+    def __init__(self) -> None:
+        self.values: dict[str, str] = {}
+
+    async def get(self, key: str) -> str | None:
+        return self.values.get(key)
+
+    async def set(self, key: str, value: str, *, ex: int) -> None:
+        self.values[key] = value
+
+    async def delete(self, key: str) -> None:
+        self.values.pop(key, None)
+
+
 def _context(*, role_code: str, permissions: set[str]) -> AuthContext:
     return AuthContext(
         user_id=uuid4(),
@@ -99,3 +113,13 @@ def test_dashboard_cache_key_is_stable_and_scope_aware() -> None:
     assert first == second
     assert first != other_scope
     assert first.startswith("agri:dashboard:summary:")
+
+
+@pytest.mark.asyncio
+async def test_dashboard_cache_round_trips_json_payload() -> None:
+    redis = MemoryRedis()
+    cache = DashboardCache(redis, key_prefix="agri:", ttl_seconds=300)
+
+    await cache.set("agri:key", {"count": 2, "units": ["KG"]})
+
+    assert await cache.get("agri:key") == {"count": 2, "units": ["KG"]}

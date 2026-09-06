@@ -14,11 +14,15 @@ from app.models import (
     Batch,
     BatchStatus,
     Cooperative,
+    DataType,
+    ForecastResult,
     Inventory,
     InventoryOperation,
     InventoryOperationType,
     InventoryTransaction,
     InventoryTransactionType,
+    ModelType,
+    ModelVersion,
     Product,
     ProductCategory,
     Role,
@@ -178,6 +182,42 @@ async def test_dashboard_summary_and_inventory_trends_group_units_and_respect_da
             detected_at=datetime(2026, 9, 2, 2, tzinfo=UTC),
         )
     )
+    model = ModelVersion(
+        cooperative_id=cooperative.id,
+        warehouse_id=warehouse.id,
+        product_id=product.id,
+        model_type=ModelType.XGBOOST,
+        version=f"v-{uuid4().hex[:8]}",
+        data_type=DataType.SYNTHETIC,
+        training_start_date=date(2026, 8, 1),
+        training_end_date=date(2026, 8, 31),
+        random_seed=42,
+        parameters={},
+        metrics={"mae": 5.0},
+        is_active=True,
+        created_by=user.id,
+    )
+    postgres_session.add(model)
+    await postgres_session.flush()
+    postgres_session.add(
+        ForecastResult(
+            cooperative_id=cooperative.id,
+            warehouse_id=warehouse.id,
+            product_id=product.id,
+            model_version_id=model.id,
+            horizon_days=7,
+            forecast_start_date=date(2026, 9, 1),
+            forecast_end_date=date(2026, 9, 7),
+            predicted_demand=Decimal("25.000"),
+            current_stock=Decimal("80.000"),
+            recommended_replenishment=Decimal("0.000"),
+            data_type=DataType.SYNTHETIC,
+            metrics={"mae": 5.0},
+            important_factors=["最近7日出库量"],
+            limitation_notice="测试数据",
+            generated_at=datetime(2026, 9, 3, 1, tzinfo=UTC),
+        )
+    )
     await postgres_session.flush()
     await postgres_session.commit()
 
@@ -186,7 +226,7 @@ async def test_dashboard_summary_and_inventory_trends_group_units_and_respect_da
         username=user.username,
         real_name=user.real_name,
         role_code="COOPERATIVE_ADMIN",
-        permission_codes=frozenset({"inventory:read"}),
+        permission_codes=frozenset({"inventory:read", "model:read"}),
         cooperative_id=cooperative.id,
         warehouse_ids=None,
         session_id="dashboard-session",
@@ -200,6 +240,9 @@ async def test_dashboard_summary_and_inventory_trends_group_units_and_respect_da
     distribution = await service.alert_distribution(context, params)
     ranking = await service.product_ranking(
         context, ProductRankingParams(startDate="2026-09-01", endDate="2026-09-02")
+    )
+    comparisons = await service.forecast_comparison(
+        context, DashboardQueryParams(startDate="2026-09-01", endDate="2026-09-07")
     )
 
     assert summary.product_count == 2
@@ -222,3 +265,6 @@ async def test_dashboard_summary_and_inventory_trends_group_units_and_respect_da
     assert ranking[0].product_name == "番茄"
     assert ranking[0].outbound_quantity == 20.0
     assert ranking[0].outbound_count == 1
+    assert comparisons[0].predicted_demand == 25.0
+    assert comparisons[0].actual_demand == 20.0
+    assert comparisons[0].absolute_error == 5.0

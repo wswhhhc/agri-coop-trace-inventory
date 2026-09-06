@@ -29,8 +29,8 @@
 - [completed] D1 查询契约、聚合模型与权限边界
 - [completed] D2 汇总与库存趋势查询
 - [completed] D3 预警分布与产品排行查询
-- [in_progress] D4 预测对比查询与缓存策略
-- [pending] D5 路由注册、文档同步与接口回归
+- [completed] D4 预测对比查询与缓存策略
+- [in_progress] D5 路由注册、文档同步与接口回归
 - [pending] D6 全面复查、质量门禁与最终提交
 
 ## 每阶段执行规则
@@ -87,3 +87,10 @@
 - `DashboardService` 新增预警分布和产品排行用例，排行数量受 Schema 上限约束，出库量按出库流水的绝对变动量统计。
 - 扩展 `backend/tests/unit/test_dashboard_business.py`，验证预警分布、出库排行结果。
 - 验证：`uv run pytest backend/tests/unit/test_dashboard_business.py backend/tests/unit/test_dashboard_contract.py -q`，6 passed；相关 Ruff、mypy 通过。
+
+### D4 预测对比查询与缓存策略
+
+- `DashboardRepository` 新增预测结果与预测区间内实际出库量的聚合查询，复用模型版本和数据范围过滤。
+- `DashboardService` 新增预测对比用例，并将 `DashboardCache` 接入五个查询用例；缓存 JSON 反序列化失败按未命中处理，Redis 异常回源数据库。
+- 扩展合同测试覆盖缓存 JSON 往返，业务测试覆盖预测值、实际值和绝对误差。
+- 验证：`uv run pytest backend/tests/unit/test_dashboard_business.py backend/tests/unit/test_dashboard_contract.py -q`，7 passed；相关 Ruff、mypy 通过。
