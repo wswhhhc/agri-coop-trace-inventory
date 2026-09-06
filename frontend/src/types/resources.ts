@@ -221,6 +221,26 @@ export interface ForecastSummary {
   generatedAt: string
 }
 
+export interface ModelVersionSummary {
+  id: string
+  cooperativeId: string
+  warehouseId: string
+  productId: string
+  taskId: string | null
+  modelType: string
+  version: string
+  artifactPath: string | null
+  dataType: string
+  trainingStartDate: string
+  trainingEndDate: string
+  randomSeed: number
+  parameters: Record<string, unknown>
+  metrics: Record<string, unknown>
+  isActive: boolean
+  createdBy: string
+  createdAt: string
+}
+
 export interface AuditLogSummary {
   id: string
   action: string
