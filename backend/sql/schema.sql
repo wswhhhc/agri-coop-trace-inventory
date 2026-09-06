@@ -200,6 +200,7 @@ CREATE TABLE quality_inspections (
     inspector_id UUID NOT NULL, 
     conclusion VARCHAR(16) DEFAULT 'PENDING' NOT NULL, 
     remarks VARCHAR(500), 
+    original_inspection_id UUID,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL, 
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL, 
     PRIMARY KEY (id), 
@@ -207,15 +208,18 @@ CREATE TABLE quality_inspections (
     CONSTRAINT uq_quality_inspections_cooperative_no UNIQUE (cooperative_id, inspection_no), 
     FOREIGN KEY(cooperative_id) REFERENCES cooperatives (id) ON DELETE RESTRICT, 
     FOREIGN KEY(batch_id) REFERENCES batches (id) ON DELETE RESTRICT, 
-    FOREIGN KEY(inspector_id) REFERENCES users (id) ON DELETE RESTRICT
+    FOREIGN KEY(inspector_id) REFERENCES users (id) ON DELETE RESTRICT,
+    FOREIGN KEY(original_inspection_id) REFERENCES quality_inspections (id) ON DELETE RESTRICT
 );
 
-CREATE INDEX ix_quality_inspections_batch_time ON quality_inspections (batch_id, inspected_at DESC);
+CREATE INDEX ix_quality_inspections_batch_time ON quality_inspections (batch_id, inspected_at);
+CREATE INDEX ix_quality_inspections_original ON quality_inspections (original_inspection_id);
 
 CREATE TABLE quality_inspection_items (
     id UUID DEFAULT gen_random_uuid() NOT NULL, 
     inspection_id UUID NOT NULL, 
     item_name VARCHAR(100) NOT NULL, 
+    unit VARCHAR(20),
     standard_value VARCHAR(100) NOT NULL, 
     result_value VARCHAR(100) NOT NULL, 
     is_qualified BOOLEAN NOT NULL, 

@@ -24,6 +24,8 @@ from app.models.enums import UserStatus, enum_sql_values
 if TYPE_CHECKING:
     from app.models.batch import Batch
     from app.models.cooperative import Cooperative
+    from app.models.file import File
+    from app.models.quality_inspection import QualityInspection
     from app.models.role import Role
     from app.models.user_warehouse import UserWarehouse
 
@@ -79,6 +81,12 @@ class User(Base):
     )
     created_batches: Mapped[list[Batch]] = relationship(
         "Batch", back_populates="creator", foreign_keys="Batch.created_by"
+    )
+    quality_inspections: Mapped[list[QualityInspection]] = relationship(
+        "QualityInspection", back_populates="inspector", foreign_keys="QualityInspection.inspector_id"
+    )
+    uploaded_files: Mapped[list[File]] = relationship(
+        "File", back_populates="uploader", foreign_keys="File.uploaded_by"
     )
 
     def validate_cooperative_scope(self) -> None:

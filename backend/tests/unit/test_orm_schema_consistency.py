@@ -103,6 +103,42 @@ ORM_TABLE_COLUMNS = {
         "created_at",
         "updated_at",
     },
+    "files": {
+        "id",
+        "cooperative_id",
+        "original_name",
+        "storage_key",
+        "mime_type",
+        "size_bytes",
+        "sha256",
+        "uploaded_by",
+        "created_at",
+    },
+    "quality_inspections": {
+        "id",
+        "cooperative_id",
+        "batch_id",
+        "inspection_no",
+        "inspected_at",
+        "inspector_id",
+        "conclusion",
+        "remarks",
+        "original_inspection_id",
+        "created_at",
+        "updated_at",
+    },
+    "quality_inspection_items": {
+        "id",
+        "inspection_id",
+        "item_name",
+        "unit",
+        "standard_value",
+        "result_value",
+        "is_qualified",
+        "sort_order",
+        "created_at",
+    },
+    "inspection_files": {"inspection_id", "file_id", "created_at"},
 }
 
 
@@ -112,7 +148,9 @@ def _schema_columns(table_name: str) -> set[str]:
         rf"CREATE TABLE {table_name} \((.*?)\n\);", schema, flags=re.DOTALL
     )
     assert match is not None, f"schema.sql 缺少表 {table_name}"
-    return set(re.findall(r"^    ([a-z_]+)\s+", match.group(1), flags=re.MULTILINE))
+    return set(
+        re.findall(r"^    ([a-z_][a-z0-9_]*)\s+", match.group(1), flags=re.MULTILINE)
+    )
 
 
 def test_orm_columns_match_schema_sql_for_the_current_orm_scope() -> None:
@@ -139,6 +177,21 @@ def test_target_tables_have_foreign_keys_and_expected_indexes() -> None:
         "ix_batches_cooperative_product_production",
         "ix_batches_cooperative_expiry",
     }
+    assert {
+        foreign_key.target_fullname
+        for foreign_key in Base.metadata.tables["quality_inspections"].foreign_keys
+    } == {
+        "cooperatives.id",
+        "batches.id",
+        "users.id",
+        "quality_inspections.id",
+    }
+    assert {
+        index.name for index in Base.metadata.tables["quality_inspections"].indexes
+    } == {
+        "ix_quality_inspections_batch_time",
+        "ix_quality_inspections_original",
+    }
 
 
 @pytest.mark.asyncio
@@ -158,7 +211,7 @@ async def test_alembic_check_has_no_differences_for_the_shared_metadata(
             )
         )
         await connection.execute(
-            text("INSERT INTO alembic_version (version_num) VALUES ('e5f6a7b8c9d0')")
+                text("INSERT INTO alembic_version (version_num) VALUES ('f6a7b8c9d0e1')")
         )
         await connection.run_sync(
             lambda sync_connection: command.check(

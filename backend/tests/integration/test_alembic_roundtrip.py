@@ -57,7 +57,7 @@ async def test_alembic_upgrade_head_then_downgrade_base(
 
         async with engine.connect() as connection:
             version = await connection.scalar(text("SELECT version_num FROM alembic_version"))
-        assert version == "e5f6a7b8c9d0"
+        assert version == "f6a7b8c9d0e1"
 
         async with engine.begin() as connection:
             await connection.run_sync(

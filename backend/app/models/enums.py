@@ -30,6 +30,12 @@ class BatchStatus(StrEnum):
     EXPIRED = "EXPIRED"
 
 
+class InspectionConclusion(StrEnum):
+    PENDING = "PENDING"
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+
+
 class SortDirection(StrEnum):
     ASC = "ASC"
     DESC = "DESC"
@@ -38,6 +44,7 @@ class SortDirection(StrEnum):
 __all__ = [
     "BatchStatus",
     "CooperativeStatus",
+    "InspectionConclusion",
     "SortDirection",
     "UserStatus",
     "WarehouseStatus",

@@ -23,6 +23,7 @@ from app.models.enums import BatchStatus, enum_sql_values
 if TYPE_CHECKING:
     from app.models.cooperative import Cooperative
     from app.models.product import Product
+    from app.models.quality_inspection import QualityInspection
     from app.models.user import User
 
 
@@ -84,6 +85,9 @@ class Batch(Base):
     product: Mapped[Product] = relationship("Product", back_populates="batches")
     creator: Mapped[User] = relationship(
         "User", back_populates="created_batches", foreign_keys=[created_by]
+    )
+    quality_inspections: Mapped[list[QualityInspection]] = relationship(
+        "QualityInspection", back_populates="batch"
     )
 
 

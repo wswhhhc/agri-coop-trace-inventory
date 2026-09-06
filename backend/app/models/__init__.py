@@ -5,13 +5,18 @@ from app.models.cooperative import Cooperative
 from app.models.enums import (
     BatchStatus,
     CooperativeStatus,
+    InspectionConclusion,
     SortDirection,
     UserStatus,
     WarehouseStatus,
 )
+from app.models.file import File
+from app.models.inspection_file import InspectionFile
 from app.models.permission import Permission
 from app.models.product import Product
 from app.models.product_category import ProductCategory
+from app.models.quality_inspection import QualityInspection
+from app.models.quality_inspection_item import QualityInspectionItem
 from app.models.role import Role
 from app.models.role_permission import role_permissions
 from app.models.user import SYSTEM_ADMIN_ROLE_CODE, User
@@ -26,9 +31,14 @@ __all__ = [
     "BatchStatus",
     "Cooperative",
     "CooperativeStatus",
+    "File",
+    "InspectionConclusion",
+    "InspectionFile",
     "Permission",
     "Product",
     "ProductCategory",
+    "QualityInspection",
+    "QualityInspectionItem",
     "Role",
     "SortDirection",
     "User",

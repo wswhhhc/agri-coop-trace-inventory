@@ -48,3 +48,24 @@ def test_catalog_and_batch_repositories_require_scope_conditions() -> None:
                 and node.func.attr == "_scope_conditions"
                 for node in ast.walk(methods[method_name])
             ), f"{filename}:{method_name} must apply data scope"
+
+
+def test_quality_repository_requires_cooperative_and_batch_scope() -> None:
+    repository_root = Path(__file__).resolve().parents[2] / "app" / "repositories"
+    tree = ast.parse(
+        (repository_root / "quality_inspection.py").read_text(encoding="utf-8"),
+        filename=str(repository_root / "quality_inspection.py"),
+    )
+    methods = {
+        node.name: node
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef))
+    }
+    assert {"get_scoped", "list_scoped", "_scope_conditions"} <= methods.keys()
+    for method_name in ("get_scoped", "list_scoped"):
+        assert any(
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "_scope_conditions"
+            for node in ast.walk(methods[method_name])
+        ), f"quality_inspection.py:{method_name} must apply data scope"

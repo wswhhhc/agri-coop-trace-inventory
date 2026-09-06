@@ -17,8 +17,10 @@ from app.models.enums import CooperativeStatus, enum_sql_values
 
 if TYPE_CHECKING:
     from app.models.batch import Batch
+    from app.models.file import File
     from app.models.product import Product
     from app.models.product_category import ProductCategory
+    from app.models.quality_inspection import QualityInspection
     from app.models.user import User
     from app.models.warehouse import Warehouse
 
@@ -62,6 +64,10 @@ class Cooperative(Base):
         "Product", back_populates="cooperative"
     )
     batches: Mapped[list[Batch]] = relationship("Batch", back_populates="cooperative")
+    quality_inspections: Mapped[list[QualityInspection]] = relationship(
+        "QualityInspection", back_populates="cooperative"
+    )
+    files: Mapped[list[File]] = relationship("File", back_populates="cooperative")
 
 
 __all__ = ["Cooperative"]
