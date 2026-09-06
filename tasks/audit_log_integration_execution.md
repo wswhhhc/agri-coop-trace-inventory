@@ -101,7 +101,7 @@
 - 敏感信息检查确认用户审计详情不包含初始密码、临时密码、密码哈希、Token 或 Cookie。
 - 复查发现并修正既有 `backend/app/ml/forecasting.py:177` 的 mypy 类型错误，仅提取 `rolling_7` 浮点中间值，业务逻辑不变。
 - 全量测试：`273 passed, 2 warnings`；相关预测与用户测试：`8 passed`；Ruff、全量 mypy、覆盖率门禁和 `git diff --check` 已通过。
-- 最终复查提交：待完成本次提交操作后补充 commit ID。
+- 最终复查提交：`e09d81c`（全面复查并修正后端类型问题）。
 
 ## 错误与阻塞记录
 
