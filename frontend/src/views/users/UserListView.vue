@@ -7,6 +7,7 @@ import {
   createUser,
   listUsers,
   replaceUserWarehouses,
+  resetUserPassword,
   updateUser,
 } from '@/api/users'
 import type { UserStatus } from '@/api/users'
@@ -34,9 +35,11 @@ const warehouseState = usePageData(listWarehouses, [])
 const submitting = ref(false)
 const updating = ref(false)
 const authorizing = ref(false)
+const resetting = ref(false)
 const formError = ref('')
 const successMessage = ref('')
 const authorizationError = ref('')
+const resetCredential = ref('')
 const createdCredentials = ref('')
 const editingUserId = ref<string | null>(null)
 const form = reactive({
@@ -108,6 +111,7 @@ function beginEdit(user: (typeof items.value)[number]): void {
   editForm.warehouseIds = [...user.warehouseIds]
   formError.value = ''
   authorizationError.value = ''
+  resetCredential.value = ''
   successMessage.value = ''
   createdCredentials.value = ''
 }
@@ -154,6 +158,22 @@ async function handleWarehouseAuthorization(): Promise<void> {
     authorizationError.value = getApiErrorMessage(reason)
   } finally {
     authorizing.value = false
+  }
+}
+
+async function handleResetPassword(): Promise<void> {
+  if (!editingUserId.value || !window.confirm('确定重置该用户密码吗？')) return
+  resetting.value = true
+  formError.value = ''
+  resetCredential.value = ''
+  try {
+    const result = await resetUserPassword(editingUserId.value)
+    resetCredential.value = `新的临时密码：${result.temporaryPassword}`
+    successMessage.value = '密码重置成功，请安全传递临时密码。'
+  } catch (reason) {
+    formError.value = getApiErrorMessage(reason)
+  } finally {
+    resetting.value = false
   }
 }
 </script>
@@ -258,7 +278,11 @@ async function handleWarehouseAuthorization(): Promise<void> {
       >
         {{ authorizing ? '授权中…' : '保存仓库授权' }}
       </button>
+      <button type="button" :disabled="resetting" @click="handleResetPassword">
+        {{ resetting ? '重置中…' : '重置密码' }}
+      </button>
       <p v-if="authorizationError" role="alert">{{ authorizationError }}</p>
+      <p v-if="resetCredential" role="status">{{ resetCredential }}</p>
     </form>
 
     <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">

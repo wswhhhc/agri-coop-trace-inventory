@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { createUser, listUsers, replaceUserWarehouses, updateUser } from './users'
+import {
+  createUser,
+  listUsers,
+  replaceUserWarehouses,
+  resetUserPassword,
+  updateUser,
+} from './users'
 
 vi.mock('./http', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), put: vi.fn() },
@@ -68,5 +74,16 @@ describe('users api', () => {
       warehouseIds: payload.warehouseIds,
     })
     expect(http.put).toHaveBeenCalledWith('/users/user-1/warehouses', payload)
+  })
+
+  it('resets a user password', async () => {
+    vi.mocked(http.post).mockResolvedValueOnce({
+      data: { data: { temporaryPassword: 'temporary-2' } },
+    })
+
+    await expect(resetUserPassword('user-1')).resolves.toEqual({
+      temporaryPassword: 'temporary-2',
+    })
+    expect(http.post).toHaveBeenCalledWith('/users/user-1/password-resets')
   })
 })

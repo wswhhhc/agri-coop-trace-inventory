@@ -29,6 +29,10 @@ export interface UserCreateResult extends UserSummary {
   initialPassword: string
 }
 
+export interface PasswordResetResult {
+  temporaryPassword: string
+}
+
 export async function listUsers(): Promise<UserSummary[]> {
   const response = await http.get<ListResponse<UserSummary>>('/users', {
     params: { page: 1, pageSize: 20 },
@@ -56,6 +60,13 @@ export async function replaceUserWarehouses(
   const response = await http.put<ApiResponse<UserSummary>>(
     `/users/${userId}/warehouses`,
     payload,
+  )
+  return response.data.data
+}
+
+export async function resetUserPassword(userId: string): Promise<PasswordResetResult> {
+  const response = await http.post<ApiResponse<PasswordResetResult>>(
+    `/users/${userId}/password-resets`,
   )
   return response.data.data
 }
