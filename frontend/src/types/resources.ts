@@ -86,6 +86,17 @@ export interface QualityInspectionSummary {
   attachmentFileIds: string[]
 }
 
+export interface TraceEventSummary {
+  id: string
+  batchId: string
+  eventType: string
+  title: string
+  description: string | null
+  eventTime: string
+  sourceType: string | null
+  sourceId: string | null
+}
+
 export interface InventorySummary {
   id: string
   quantity: number

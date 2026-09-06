@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 
 import { getBatch, updateBatch, type BatchStatus } from '@/api/batches'
 import QualityInspectionPanel from '@/components/batches/QualityInspectionPanel.vue'
+import TraceEventTimeline from '@/components/batches/TraceEventTimeline.vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
@@ -107,5 +108,6 @@ async function handleUpdate(): Promise<void> {
       </form>
     </PageState>
     <QualityInspectionPanel v-if="data" :batch-id="batchId" :can-manage="canManage" />
+    <TraceEventTimeline v-if="data" :batch-id="batchId" />
   </section>
 </template>
