@@ -57,7 +57,7 @@ function resetFilters(): void {
 
 <template>
   <section class="inventory-transaction-list-page">
-    <PageHeader title="库存流水" description="按仓库、批次和流水类型查询不可变库存流水。" />
+    <PageHeader eyebrow="库存审计" title="库存流水" description="按仓库、批次和流水类型查询不可变库存流水。" />
     <PageContext />
 
     <form class="inventory-transaction-list-page__filters" @submit.prevent="loadData">

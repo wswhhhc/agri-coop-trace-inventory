@@ -4,6 +4,7 @@ import { computed, reactive, ref } from 'vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import {
   createInventoryIssue,
   createInventoryLoss,
@@ -277,7 +278,7 @@ async function handleTransfer(): Promise<void> {
 
 <template>
   <section class="inventory-list-page">
-    <PageHeader title="库存管理" description="查看库存并办理入库业务。" />
+    <PageHeader eyebrow="库存运营" title="库存管理" description="查看库存并办理入库业务。" />
     <PageContext />
     <form v-if="canWrite" class="inventory-receipt-form" @submit.prevent="handleReceipt">
       <h2>入库</h2>
@@ -514,7 +515,12 @@ async function handleTransfer(): Promise<void> {
             <td>{{ inventory.batch.batchNo }}</td>
             <td>{{ inventory.quantity }} {{ inventory.product.unit }}</td>
             <td>{{ inventory.availableQuantity }} {{ inventory.product.unit }}</td>
-            <td>{{ inventory.riskFlags.join('、') || '正常' }}</td>
+            <td>
+              <StatusBadge
+                :label="inventory.riskFlags.join('、') || '正常'"
+                :tone="inventory.riskFlags.length ? 'warning' : 'success'"
+              />
+            </td>
           </tr>
         </tbody>
       </table>

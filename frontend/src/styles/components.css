@@ -380,6 +380,88 @@
   font-size: var(--font-size-lg);
 }
 
+.inventory-list-page,
+.inventory-transaction-list-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.inventory-list-page > .page-state,
+.inventory-transaction-list-page > .page-state {
+  overflow-x: auto;
+}
+
+.inventory-list-page > .page-state table {
+  min-width: 58rem;
+}
+
+.inventory-transaction-list-page > .page-state table {
+  min-width: 48rem;
+}
+
+.inventory-transaction-list-page__filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.inventory-transaction-list-page__filter-actions button:last-child {
+  border-color: var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.inventory-transaction-list-page__detail {
+  padding: var(--space-5);
+}
+
+.inventory-transaction-list-page__detail h2 {
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-lg);
+}
+
+.inventory-transaction-list-page__detail dl,
+.alert-detail dl,
+.audit-log-detail dl,
+.model-version-detail dl,
+.forecast-result-detail dl {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.inventory-transaction-list-page__detail dl > div,
+.alert-detail dl > div,
+.audit-log-detail dl > div,
+.model-version-detail dl > div,
+.forecast-result-detail dl > div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.35fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-2);
+}
+
+.inventory-transaction-list-page__detail dt,
+.alert-detail dt,
+.audit-log-detail dt,
+.model-version-detail dt,
+.forecast-result-detail dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.inventory-transaction-list-page__detail dd,
+.alert-detail dd,
+.audit-log-detail dd,
+.model-version-detail dd,
+.forecast-result-detail dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
 .toast-notice {
   position: fixed;
   z-index: 50;
@@ -709,6 +791,15 @@
 
   .dashboard-summary__metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .inventory-transaction-list-page__detail dl > div,
+  .alert-detail dl > div,
+  .audit-log-detail dl > div,
+  .model-version-detail dl > div,
+  .forecast-result-detail dl > div {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
   }
 
   .toast-notice {
