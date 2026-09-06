@@ -14,6 +14,8 @@ import type { AlertRuleUpdatePayload } from '@/api/alerts'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
+import TaskProgress from '@/components/common/TaskProgress.vue'
 import { useListPage } from '@/composables/usePageData'
 import { usePageData } from '@/composables/usePageData'
 import type { AlertDetailSummary, TaskSummary } from '@/types/resources'
@@ -50,6 +52,18 @@ const editForm = reactive({
   isEnabled: true,
 })
 const severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+
+function severityTone(value: string): 'success' | 'warning' | 'danger' | 'info' {
+  if (value === 'CRITICAL' || value === 'HIGH') return 'danger'
+  if (value === 'MEDIUM') return 'warning'
+  return 'info'
+}
+
+function statusTone(value: string): 'success' | 'warning' | 'danger' | 'info' {
+  if (value === 'RESOLVED') return 'success'
+  if (value === 'PENDING' || value === 'PROCESSING') return 'warning'
+  return 'info'
+}
 
 async function loadAlertDetail(alertId: string): Promise<void> {
   alertDetailLoading.value = true
@@ -155,15 +169,13 @@ async function runAlertScan(): Promise<void> {
 
 <template>
   <section class="alert-list-page">
-    <PageHeader title="预警规则" description="查看库存、临期和质量预警规则。" />
+    <PageHeader eyebrow="风险中心" title="预警规则" description="查看库存、临期和质量预警规则。" />
     <PageContext />
     <button v-if="canScan" type="button" :disabled="scanSubmitting" @click="runAlertScan">
       {{ scanSubmitting ? '扫描中…' : '立即扫描预警' }}
     </button>
-    <p v-if="scanTask" role="status">
-      扫描任务：{{ scanTask.status }}，进度 {{ scanTask.progress }}%
-      <span v-if="scanTask.errorMessage">，{{ scanTask.errorMessage }}</span>
-    </p>
+    <TaskProgress v-if="scanTask" label="预警扫描任务" :status="scanTask.status" :progress="scanTask.progress" />
+    <p v-if="scanTask?.errorMessage" role="alert">{{ scanTask.errorMessage }}</p>
     <p v-if="scanError" role="alert">{{ scanError }}</p>
     <p v-if="formError" role="alert">{{ formError }}</p>
     <p v-if="successMessage" role="status">{{ successMessage }}</p>
@@ -191,8 +203,8 @@ async function runAlertScan(): Promise<void> {
             <td>{{ rule.thresholdQuantity ?? '—' }}</td>
             <td>{{ rule.thresholdDays ?? '—' }}</td>
             <td>{{ rule.turnoverDays ?? '—' }}</td>
-            <td>{{ rule.severity }}</td>
-            <td>{{ rule.isEnabled ? '启用' : '停用' }}</td>
+            <td><StatusBadge :label="rule.severity" :tone="severityTone(rule.severity)" /></td>
+            <td><StatusBadge :label="rule.isEnabled ? '启用' : '停用'" :tone="rule.isEnabled ? 'success' : 'neutral'" /></td>
             <td v-if="canEditRules">
               <button type="button" @click="beginEdit(rule)">编辑</button>
             </td>
@@ -226,8 +238,8 @@ async function runAlertScan(): Promise<void> {
             <tr v-for="alert in alertState.data" :key="alert.id">
               <td>{{ alert.title }}</td>
               <td>{{ alert.alertType }}</td>
-              <td>{{ alert.severity }}</td>
-              <td>{{ alert.status }}</td>
+              <td><StatusBadge :label="alert.severity" :tone="severityTone(alert.severity)" /></td>
+              <td><StatusBadge :label="alert.status" :tone="statusTone(alert.status)" /></td>
               <td>{{ alert.detectedAt }}</td>
               <td><button type="button" @click="loadAlertDetail(alert.id)">查看详情</button></td>
             </tr>
@@ -243,8 +255,8 @@ async function runAlertScan(): Promise<void> {
       <dl v-else-if="selectedAlert">
         <div><dt>标题</dt><dd>{{ selectedAlert.title }}</dd></div>
         <div><dt>类型</dt><dd>{{ selectedAlert.alertType }}</dd></div>
-        <div><dt>级别</dt><dd>{{ selectedAlert.severity }}</dd></div>
-        <div><dt>状态</dt><dd>{{ selectedAlert.status }}</dd></div>
+        <div><dt>级别</dt><dd><StatusBadge :label="selectedAlert.severity" :tone="severityTone(selectedAlert.severity)" /></dd></div>
+        <div><dt>状态</dt><dd><StatusBadge :label="selectedAlert.status" :tone="statusTone(selectedAlert.status)" /></dd></div>
         <div><dt>说明</dt><dd>{{ selectedAlert.message }}</dd></div>
         <div><dt>仓库</dt><dd>{{ selectedAlert.warehouseId || '—' }}</dd></div>
         <div><dt>产品</dt><dd>{{ selectedAlert.productId || '—' }}</dd></div>
