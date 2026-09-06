@@ -156,6 +156,7 @@ class Settings(DatabaseSettings):
 
     # 缓存与限流
     trace_cache_ttl_seconds: int = Field(default=600, ge=1)
+    public_trace_url: str = Field(default="http://localhost:5173/trace", min_length=1)
     dashboard_cache_ttl_seconds: int = Field(default=300, ge=1)
     permission_cache_ttl_seconds: int = Field(default=300, ge=1)
     login_rate_limit_per_minute: int = Field(default=10, ge=1)
