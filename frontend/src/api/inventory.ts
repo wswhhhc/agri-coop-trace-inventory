@@ -1,5 +1,9 @@
 import type { ApiResponse, ListResponse } from '@/types/api'
-import type { InventorySummary, InventoryTransactionSummary } from '@/types/resources'
+import type {
+  InventorySummary,
+  InventoryTransactionDetail,
+  InventoryTransactionSummary,
+} from '@/types/resources'
 
 import http from './http'
 
@@ -43,6 +47,14 @@ export interface StockTransferCreatePayload {
   remark: string | null
 }
 
+export interface InventoryTransactionListParams {
+  page?: number
+  pageSize?: number
+  warehouseId?: string
+  batchId?: string
+  transactionType?: string
+}
+
 export interface InventoryReceiptResult {
   transactionId: string
   transactionNo?: string
@@ -71,10 +83,28 @@ export async function listInventory(): Promise<InventorySummary[]> {
   return response.data.data
 }
 
-export async function listInventoryTransactions(): Promise<InventoryTransactionSummary[]> {
+export async function listInventoryTransactions(
+  options: InventoryTransactionListParams = {},
+): Promise<InventoryTransactionSummary[]> {
+  const params = {
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? 20,
+    ...(options.warehouseId ? { warehouseId: options.warehouseId } : {}),
+    ...(options.batchId ? { batchId: options.batchId } : {}),
+    ...(options.transactionType ? { transactionType: options.transactionType } : {}),
+  }
   const response = await http.get<ListResponse<InventoryTransactionSummary>>(
     '/inventory-transactions',
-    { params: { page: 1, pageSize: 20 } },
+    { params },
+  )
+  return response.data.data
+}
+
+export async function getInventoryTransaction(
+  transactionId: string,
+): Promise<InventoryTransactionDetail> {
+  const response = await http.get<ApiResponse<InventoryTransactionDetail>>(
+    `/inventory-transactions/${transactionId}`,
   )
   return response.data.data
 }

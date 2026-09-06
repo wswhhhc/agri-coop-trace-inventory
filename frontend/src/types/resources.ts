@@ -154,6 +154,13 @@ export interface InventoryTransactionSummary {
   occurredAt: string
 }
 
+export interface InventoryTransactionDetail extends InventoryTransactionSummary {
+  transactionId: string
+  operationId: string | null
+  quantityBefore: number
+  quantityAfter: number
+}
+
 export interface AlertSummary {
   id: string
   alertType: string

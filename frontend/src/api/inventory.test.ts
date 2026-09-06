@@ -7,10 +7,12 @@ import {
   createInventoryReceipt,
   createStocktake,
   createStockTransfer,
+  getInventoryTransaction,
+  listInventoryTransactions,
 } from './inventory'
 
 vi.mock('./http', () => ({
-  default: { post: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn() },
 }))
 
 describe('inventory api', () => {
@@ -130,5 +132,46 @@ describe('inventory api', () => {
     expect(http.post).toHaveBeenCalledWith('/stock-transfers', payload, {
       headers: { 'Idempotency-Key': 'idempotency-5' },
     })
+  })
+
+  it('lists transactions with warehouse and type filters', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: [] } })
+
+    await expect(listInventoryTransactions({
+      warehouseId: 'warehouse-1',
+      batchId: 'batch-1',
+      transactionType: 'OUTBOUND',
+    })).resolves.toEqual([])
+    expect(http.get).toHaveBeenCalledWith('/inventory-transactions', {
+      params: {
+        page: 1,
+        pageSize: 20,
+        warehouseId: 'warehouse-1',
+        batchId: 'batch-1',
+        transactionType: 'OUTBOUND',
+      },
+    })
+  })
+
+  it('gets a transaction detail', async () => {
+    const detail = {
+      id: 'transaction-1',
+      transactionId: 'transaction-1',
+      transactionNo: 'TRX-001',
+      operationNo: 'OP-001',
+      operationId: 'operation-1',
+      transactionType: 'INBOUND',
+      quantity: 125,
+      quantityDelta: 125,
+      quantityBefore: 0,
+      quantityAfter: 125,
+      warehouseId: 'warehouse-1',
+      batchId: 'batch-1',
+      occurredAt: '2026-09-06T10:00:00.000Z',
+    }
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: detail } })
+
+    await expect(getInventoryTransaction('transaction-1')).resolves.toEqual(detail)
+    expect(http.get).toHaveBeenCalledWith('/inventory-transactions/transaction-1')
   })
 })
