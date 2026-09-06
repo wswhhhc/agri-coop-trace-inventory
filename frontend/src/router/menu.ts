@@ -40,6 +40,11 @@ export const menuItems: MenuItem[] = [
     roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
   },
   {
+    title: '产品分类',
+    path: '/product-categories',
+    roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
+  },
+  {
     title: '批次管理',
     path: '/batches',
     roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],

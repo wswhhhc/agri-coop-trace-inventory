@@ -39,6 +39,14 @@ export interface ProductSummary {
   isActive: boolean
 }
 
+export interface ProductCategorySummary {
+  id: string
+  code: string
+  name: string
+  description: string | null
+  isActive: boolean
+}
+
 export interface BatchSummary {
   id: string
   batchNo: string

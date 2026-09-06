@@ -12,6 +12,7 @@ describe('menu configuration', () => {
 
     expect(paths).toContain('/dashboard')
     expect(paths).toContain('/products')
+    expect(paths).toContain('/product-categories')
     expect(paths).not.toContain('/cooperatives')
     expect(paths).not.toContain('/roles')
   })

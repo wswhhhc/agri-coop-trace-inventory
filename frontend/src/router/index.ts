@@ -80,6 +80,16 @@ const router = createRouter({
           },
         },
         {
+          path: 'product-categories',
+          name: 'product-categories',
+          component: () => import('@/views/products/ProductCategoryListView.vue'),
+          meta: {
+            requiresAuth: true,
+            title: '产品分类',
+            roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
+          },
+        },
+        {
           path: 'batches',
           name: 'batches',
           component: () => import('@/views/batches/BatchListView.vue'),
