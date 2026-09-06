@@ -1,7 +1,16 @@
 import type { ApiResponse, ListResponse } from '@/types/api'
-import type { ForecastSummary, ModelVersionSummary } from '@/types/resources'
+import type { ForecastSummary, ModelVersionSummary, TaskSummary } from '@/types/resources'
 
 import http from './http'
+
+export interface ModelTrainingTaskPayload {
+  modelType: 'XGBOOST'
+  scope: { warehouseId: string; productId: string }
+  trainingRange: { startDate: string; endDate: string }
+  testRatio: number
+  randomSeed: number
+  parameters: Record<string, unknown>
+}
 
 export async function listForecastResults(): Promise<ForecastSummary[]> {
   const response = await http.get<ListResponse<ForecastSummary>>('/forecast-results', {
@@ -28,5 +37,17 @@ export async function activateModel(modelVersionId: string): Promise<ModelVersio
   const response = await http.post<ApiResponse<ModelVersionSummary>>('/model-activations', {
     modelVersionId,
   })
+  return response.data.data
+}
+
+export async function submitModelTrainingTask(
+  payload: ModelTrainingTaskPayload,
+): Promise<TaskSummary> {
+  const response = await http.post<ApiResponse<TaskSummary>>('/model-training-tasks', payload)
+  return response.data.data
+}
+
+export async function getForecastingTask(taskId: string): Promise<TaskSummary> {
+  const response = await http.get<ApiResponse<TaskSummary>>(`/tasks/${taskId}`)
   return response.data.data
 }

@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { activateModel, getModelVersion, listModelVersions } from './forecasting'
+import {
+  activateModel,
+  getModelVersion,
+  listModelVersions,
+  submitModelTrainingTask,
+} from './forecasting'
 
 vi.mock('./http', () => ({
   default: { get: vi.fn(), post: vi.fn() },
@@ -47,5 +52,25 @@ describe('forecasting api', () => {
     expect(http.post).toHaveBeenCalledWith('/model-activations', {
       modelVersionId: 'model-1',
     })
+  })
+
+  it('submits a model training task', async () => {
+    const payload = {
+      modelType: 'XGBOOST' as const,
+      scope: { warehouseId: 'warehouse-1', productId: 'product-1' },
+      trainingRange: { startDate: '2026-01-01', endDate: '2026-08-31' },
+      testRatio: 0.2,
+      randomSeed: 42,
+      parameters: {},
+    }
+    vi.mocked(http.post).mockResolvedValueOnce({
+      data: { data: { id: 'task-1', taskType: 'MODEL_TRAINING', status: 'PENDING', progress: 0 } },
+    })
+
+    await expect(submitModelTrainingTask(payload)).resolves.toMatchObject({
+      id: 'task-1',
+      status: 'PENDING',
+    })
+    expect(http.post).toHaveBeenCalledWith('/model-training-tasks', payload)
   })
 })

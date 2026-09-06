@@ -1,13 +1,22 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 
-import { activateModel, getModelVersion, listModelVersions } from '@/api/forecasting'
+import {
+  activateModel,
+  getForecastingTask,
+  getModelVersion,
+  listModelVersions,
+  submitModelTrainingTask,
+} from '@/api/forecasting'
+import { listProducts } from '@/api/products'
+import { listWarehouses } from '@/api/warehouses'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import { useListPage } from '@/composables/usePageData'
+import { usePageData } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
-import type { ModelVersionSummary } from '@/types/resources'
+import type { ModelVersionSummary, TaskSummary } from '@/types/resources'
 import { getApiErrorMessage } from '@/utils/api-error'
 
 const { items, loading, error, loadData } = useListPage(listModelVersions)
@@ -15,12 +24,28 @@ const authStore = useAuthStore()
 const canActivate = computed(
   () => authStore.role === 'COOPERATIVE_ADMIN' && authStore.hasPermission('model:manage'),
 )
+const canTrain = computed(
+  () => authStore.role === 'COOPERATIVE_ADMIN' && authStore.hasPermission('model:manage'),
+)
+const warehouseState = usePageData(listWarehouses, [])
+const productState = usePageData(listProducts, [])
 const selectedModel = ref<ModelVersionSummary | null>(null)
 const detailLoading = ref(false)
 const detailError = ref('')
 const activatingId = ref<string | null>(null)
 const actionError = ref('')
 const successMessage = ref('')
+const trainingSubmitting = ref(false)
+const trainingError = ref('')
+const trainingTask = ref<TaskSummary | null>(null)
+const trainingForm = reactive({
+  warehouseId: '',
+  productId: '',
+  startDate: '',
+  endDate: '',
+  testRatio: 0.2,
+  randomSeed: 42,
+})
 
 async function loadDetail(modelVersionId: string): Promise<void> {
   detailLoading.value = true
@@ -51,12 +76,71 @@ async function handleActivate(modelVersionId: string): Promise<void> {
     activatingId.value = null
   }
 }
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds))
+}
+
+async function handleTrainingSubmit(): Promise<void> {
+  trainingSubmitting.value = true
+  trainingError.value = ''
+  trainingTask.value = null
+  try {
+    trainingTask.value = await submitModelTrainingTask({
+      modelType: 'XGBOOST',
+      scope: { warehouseId: trainingForm.warehouseId, productId: trainingForm.productId },
+      trainingRange: { startDate: trainingForm.startDate, endDate: trainingForm.endDate },
+      testRatio: trainingForm.testRatio,
+      randomSeed: trainingForm.randomSeed,
+      parameters: {},
+    })
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      if (trainingTask.value.status === 'SUCCESS' || trainingTask.value.status === 'FAILURE') break
+      await wait(1000)
+      trainingTask.value = await getForecastingTask(trainingTask.value.id)
+    }
+    await loadData()
+  } catch (reason) {
+    trainingError.value = getApiErrorMessage(reason, '模型训练任务失败')
+  } finally {
+    trainingSubmitting.value = false
+  }
+}
 </script>
 
 <template>
   <section class="forecasting-page">
     <PageHeader title="AI 预测" description="查看模型版本、训练范围和评估指标。" />
     <PageContext />
+    <form v-if="canTrain" class="model-training-form" @submit.prevent="handleTrainingSubmit">
+      <h2>提交模型训练</h2>
+      <label>
+        仓库
+        <select v-model="trainingForm.warehouseId" required>
+          <option value="" disabled>请选择仓库</option>
+          <option v-for="warehouse in warehouseState.data" :key="warehouse.id" :value="warehouse.id">
+            {{ warehouse.name }}
+          </option>
+        </select>
+      </label>
+      <label>
+        产品
+        <select v-model="trainingForm.productId" required>
+          <option value="" disabled>请选择产品</option>
+          <option v-for="product in productState.data" :key="product.id" :value="product.id">
+            {{ product.name }}
+          </option>
+        </select>
+      </label>
+      <label>开始日期 <input v-model="trainingForm.startDate" type="date" required /></label>
+      <label>结束日期 <input v-model="trainingForm.endDate" type="date" required /></label>
+      <label>测试比例 <input v-model.number="trainingForm.testRatio" type="number" min="0.01" max="0.99" step="0.01" required /></label>
+      <label>随机种子 <input v-model.number="trainingForm.randomSeed" type="number" min="0" step="1" required /></label>
+      <button type="submit" :disabled="trainingSubmitting">{{ trainingSubmitting ? '训练中…' : '提交训练任务' }}</button>
+      <p v-if="trainingTask" role="status">训练任务：{{ trainingTask.status }}，进度 {{ trainingTask.progress }}%</p>
+      <p v-if="trainingTask?.errorMessage" role="alert">{{ trainingTask.errorMessage }}</p>
+      <p v-if="trainingError" role="alert">{{ trainingError }}</p>
+    </form>
     <p v-if="actionError" role="alert">{{ actionError }}</p>
     <p v-if="successMessage" role="status">{{ successMessage }}</p>
     <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
