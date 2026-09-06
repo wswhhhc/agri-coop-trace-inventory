@@ -162,6 +162,7 @@ def future_features(
     for offset in range(horizon):
         current = start_date + timedelta(days=offset)
         recent = values[-7:] or [0.0]
+        rolling_7 = sum(recent) / len(recent)
         rows.append(
             {
                 "date": current,
@@ -171,10 +172,10 @@ def future_features(
                 "day_of_year": current.timetuple().tm_yday,
                 "lag_1": values[-1] if values else 0.0,
                 "lag_7": values[-7] if len(values) >= 7 else 0.0,
-                "rolling_7": sum(recent) / len(recent),
+                "rolling_7": rolling_7,
             }
         )
-        values.append(rows[-1]["rolling_7"])
+        values.append(rolling_7)
     return pd.DataFrame(rows)
 
 
