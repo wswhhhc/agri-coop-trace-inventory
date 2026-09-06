@@ -59,8 +59,8 @@ class ForecastResult(Base):
         ),
     )
 
-    created_at = None  # generated_at is the only timestamp in this table
-    updated_at = None
+    created_at = None  # type: ignore[assignment]  # generated_at is the only timestamp
+    updated_at = None  # type: ignore[assignment]
 
     cooperative_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),

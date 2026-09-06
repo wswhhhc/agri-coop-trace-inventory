@@ -37,8 +37,8 @@ class ForecastPoint(Base):
         ),
     )
 
-    created_at = None
-    updated_at = None
+    created_at = None  # type: ignore[assignment]
+    updated_at = None  # type: ignore[assignment]
 
     forecast_result_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),

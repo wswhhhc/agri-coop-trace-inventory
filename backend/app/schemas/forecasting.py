@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import AwareDatetime, Field, field_validator, model_validator
 
 from app.models.enums import DataType, ModelType
 from app.schemas.alerting import TaskData
@@ -30,6 +30,8 @@ class TrainingRange(BaseSchema):
     def validate_order(self) -> TrainingRange:
         if self.end_date < self.start_date:
             raise ValueError("训练结束日期不能早于开始日期")
+        if (self.end_date - self.start_date).days < 2:
+            raise ValueError("训练区间至少需要 3 天")
         return self
 
 
@@ -84,7 +86,7 @@ class ModelVersionData(BaseSchema):
     metrics: dict[str, Any]
     is_active: bool
     created_by: UUID
-    created_at: Any
+    created_at: AwareDatetime
 
 
 class ForecastPointData(BaseSchema):
@@ -113,7 +115,7 @@ class ForecastResultData(BaseSchema):
     metrics: dict[str, Any]
     important_factors: list[str]
     limitation_notice: str
-    generated_at: Any
+    generated_at: AwareDatetime
     points: list[ForecastPointData] = Field(default_factory=list)
 
 

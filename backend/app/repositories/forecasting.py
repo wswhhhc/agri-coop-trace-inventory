@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import asc, desc, false, func, select
@@ -8,7 +10,11 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.models import (
+    Batch,
     ForecastResult,
+    Inventory,
+    InventoryTransaction,
+    InventoryTransactionType,
     ModelVersion,
     Product,
     TaskRecord,
@@ -26,6 +32,54 @@ class ForecastingRepository:
         self.session.add(record)
         await self.session.flush()
         return record
+
+    async def add_model_version(self, version: ModelVersion) -> ModelVersion:
+        self.session.add(version)
+        await self.session.flush()
+        return version
+
+    async def add_forecast_result(self, result: ForecastResult) -> ForecastResult:
+        self.session.add(result)
+        await self.session.flush()
+        return result
+
+    async def list_outbound_transactions(
+        self,
+        cooperative_id: UUID,
+        warehouse_id: UUID,
+        product_id: UUID,
+        start_date: date,
+        end_date: date,
+    ) -> list[InventoryTransaction]:
+        result = await self.session.scalars(
+            select(InventoryTransaction)
+            .join(Batch, Batch.id == InventoryTransaction.batch_id)
+            .where(
+                InventoryTransaction.cooperative_id == cooperative_id,
+                InventoryTransaction.warehouse_id == warehouse_id,
+                Batch.product_id == product_id,
+                InventoryTransaction.transaction_type
+                == InventoryTransactionType.OUTBOUND,
+                InventoryTransaction.occurred_at >= start_date,
+                InventoryTransaction.occurred_at < end_date,
+            )
+            .order_by(InventoryTransaction.occurred_at)
+        )
+        return list(result)
+
+    async def current_stock(
+        self, cooperative_id: UUID, warehouse_id: UUID, product_id: UUID
+    ) -> Decimal:
+        value = await self.session.scalar(
+            select(func.coalesce(func.sum(Inventory.quantity), 0))
+            .join(Batch, Batch.id == Inventory.batch_id)
+            .where(
+                Inventory.cooperative_id == cooperative_id,
+                Inventory.warehouse_id == warehouse_id,
+                Batch.product_id == product_id,
+            )
+        )
+        return value or Decimal(0)
 
     async def get_warehouse(
         self, cooperative_id: UUID, warehouse_id: UUID

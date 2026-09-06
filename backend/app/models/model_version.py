@@ -60,7 +60,7 @@ class ModelVersion(Base):
         ),
     )
 
-    updated_at = None  # model_versions only records creation time by contract
+    updated_at = None  # type: ignore[assignment]  # model_versions only records creation time
 
     cooperative_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),
