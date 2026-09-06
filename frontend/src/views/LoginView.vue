@@ -25,6 +25,9 @@ async function handleSubmit(): Promise<void> {
     await authStore.login(form.username.trim(), form.password)
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
     await router.replace(redirect)
+  } catch {
+    // authStore 已将后端错误转换为页面可展示的 errorMessage。
+    // 这里消费异常，避免浏览器控制台出现 Unhandled Promise Rejection。
   } finally {
     isSubmitting.value = false
   }

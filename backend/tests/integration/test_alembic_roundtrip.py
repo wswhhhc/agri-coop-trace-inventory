@@ -3,11 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from alembic import command
 from alembic.config import Config
 from sqlalchemy import inspect, text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.pool import NullPool
+
+from alembic import command
 
 pytestmark = pytest.mark.postgres
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -57,7 +58,7 @@ async def test_alembic_upgrade_head_then_downgrade_base(
 
         async with engine.connect() as connection:
             version = await connection.scalar(text("SELECT version_num FROM alembic_version"))
-        assert version == "f6a7b8c9d0e1"
+        assert version == "g8b9c0d1e2f3"
 
         async with engine.begin() as connection:
             await connection.run_sync(

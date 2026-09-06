@@ -2,11 +2,12 @@ import re
 from pathlib import Path
 
 import pytest
-from alembic import command
 from alembic.config import Config
-from app.models import Base
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
+
+from alembic import command
+from app.models import Base
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ORM_TABLE_COLUMNS = {
@@ -354,7 +355,7 @@ async def test_alembic_check_has_no_differences_for_the_shared_metadata(
             )
         )
         await connection.execute(
-                text("INSERT INTO alembic_version (version_num) VALUES ('f6a7b8c9d0e1')")
+                text("INSERT INTO alembic_version (version_num) VALUES ('g8b9c0d1e2f3')")
         )
         await connection.run_sync(
             lambda sync_connection: command.check(
