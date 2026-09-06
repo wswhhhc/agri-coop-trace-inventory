@@ -100,6 +100,16 @@ const router = createRouter({
           },
         },
         {
+          path: 'batches/:batchId',
+          name: 'batch-detail',
+          component: () => import('@/views/batches/BatchDetailView.vue'),
+          meta: {
+            requiresAuth: true,
+            title: '批次详情',
+            roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
+          },
+        },
+        {
           path: 'inventory',
           name: 'inventory',
           component: () => import('@/views/inventory/InventoryListView.vue'),

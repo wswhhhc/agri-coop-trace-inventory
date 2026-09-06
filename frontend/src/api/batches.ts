@@ -19,6 +19,11 @@ export async function listBatches(): Promise<BatchSummary[]> {
   return response.data.data
 }
 
+export async function getBatch(batchId: string): Promise<BatchSummary> {
+  const response = await http.get<ApiResponse<BatchSummary>>(`/batches/${batchId}`)
+  return response.data.data
+}
+
 export async function createBatch(payload: BatchCreatePayload): Promise<BatchSummary> {
   const response = await http.post<ApiResponse<BatchSummary>>('/batches', payload)
   return response.data.data

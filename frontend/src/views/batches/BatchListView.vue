@@ -117,6 +117,7 @@ async function handleSubmit(): Promise<void> {
             <th scope="col">生产日期</th>
             <th scope="col">到期日期</th>
             <th scope="col">状态</th>
+            <th scope="col">详情</th>
           </tr>
         </thead>
         <tbody>
@@ -128,6 +129,7 @@ async function handleSubmit(): Promise<void> {
             <td>{{ batch.productionDate }}</td>
             <td>{{ batch.expiryDate }}</td>
             <td>{{ batch.status }}</td>
+            <td><RouterLink :to="{ name: 'batch-detail', params: { batchId: batch.id } }">查看</RouterLink></td>
           </tr>
         </tbody>
       </table>
