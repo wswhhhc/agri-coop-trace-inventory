@@ -10,7 +10,7 @@
 - [completed] F3：任务记录与模型版本 Repository/Service/API（查询、训练提交、激活）
 - [completed] F4：预测任务、结果落库、异步 Celery 状态流转和幂等处理
 - [completed] F5：预测结果分页/详情 API、范围权限和接口文档
-- [in_progress] F6：模块专项测试、全量回归、最终全面复查
+- [completed] F6：模块专项测试、全量回归、最终全面复查
 
 ## 每阶段验收
 
@@ -51,3 +51,10 @@
 - 预测结果按未来 7/30 天生成，补货建议按预测总量、当前库存和产品安全库存计算，所有结果标注 `SYNTHETIC` 与限制说明。
 - Repository 增加出库历史和当前库存聚合查询；API 文档已补充实现说明。
 - F4/F5 聚焦回归：forecasting 相关 13 项测试通过；Worker/Repository Ruff 和 mypy 通过；全量回归已通过 248 项。
+
+## F6 最终复查记录
+
+- 专项测试：forecasting 13 passed。
+- 全量测试：`uv run pytest -q` 248 passed、2 warnings。
+- 严格门禁：`uv run python backend/scripts/test_gate.py` 通过，覆盖率 81.39%，关键模块覆盖率 95%，mypy 129 files 通过，Ruff 全仓通过。
+- 代码复查结论：权限、范围过滤、输入校验、任务失败回写、模型/结果约束和合成数据限制均符合契约；未提交 `.env`、`.idea` 或覆盖既有用户修改。
