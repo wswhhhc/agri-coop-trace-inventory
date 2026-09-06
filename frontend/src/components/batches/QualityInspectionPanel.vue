@@ -9,6 +9,7 @@ import {
 } from '@/api/quality-inspections'
 import { uploadFile } from '@/api/files'
 import { useListPage } from '@/composables/usePageData'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import { getApiErrorMessage } from '@/utils/api-error'
 
 const props = defineProps<{
@@ -27,6 +28,12 @@ const form = reactive({
 })
 const inspectionItems = ref<QualityInspectionItemCreatePayload[]>([createItem()])
 const attachments = ref<File[]>([])
+
+function conclusionTone(value: string): 'success' | 'warning' | 'danger' {
+  if (value === 'PASSED') return 'success'
+  if (value === 'FAILED') return 'danger'
+  return 'warning'
+}
 
 function createItem(): QualityInspectionItemCreatePayload {
   return { name: '', value: '', unit: null, standard: '', isQualified: true }
@@ -93,7 +100,10 @@ async function handleSubmit(): Promise<void> {
     </section>
     <p v-else-if="items.length === 0">暂无质检记录。</p>
     <article v-for="inspection in items" :key="inspection.id">
-      <h3>{{ inspection.inspectionNo }}：{{ inspection.conclusion }}</h3>
+      <h3>
+        {{ inspection.inspectionNo }}：
+        <StatusBadge :label="inspection.conclusion" :tone="conclusionTone(inspection.conclusion)" />
+      </h3>
       <p>日期：{{ inspection.inspectionDate }}；检验人：{{ inspection.inspectorName }}</p>
       <p v-if="inspection.remarks">备注：{{ inspection.remarks }}</p>
       <table>
@@ -106,7 +116,7 @@ async function handleSubmit(): Promise<void> {
             <td>{{ item.name }}</td>
             <td>{{ item.value }}{{ item.unit ? ` ${item.unit}` : '' }}</td>
             <td>{{ item.standard }}</td>
-            <td>{{ item.isQualified ? '合格' : '不合格' }}</td>
+            <td><StatusBadge :label="item.isQualified ? '合格' : '不合格'" :tone="item.isQualified ? 'success' : 'danger'" /></td>
           </tr>
         </tbody>
       </table>
