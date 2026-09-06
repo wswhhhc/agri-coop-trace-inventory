@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { createProduct } from './products'
+import { createProduct, updateProduct } from './products'
 
 vi.mock('./http', () => ({
-  default: { post: vi.fn() },
+  default: { post: vi.fn(), patch: vi.fn() },
 }))
 
 describe('products api', () => {
@@ -48,5 +48,42 @@ describe('products api', () => {
       isActive: true,
     })
     expect(http.post).toHaveBeenCalledWith('/products', payload)
+  })
+
+  it('updates a product and returns the updated resource', async () => {
+    vi.mocked(http.patch).mockResolvedValueOnce({
+      data: {
+        data: {
+          id: 'product-1',
+          code: 'APPLE',
+          name: '精品苹果',
+          categoryId: 'category-1',
+          unit: 'BOX',
+          shelfLifeDays: 20,
+          safetyStock: 12,
+          isActive: false,
+        },
+      },
+    })
+
+    const payload = {
+      name: '精品苹果',
+      unit: 'BOX' as const,
+      shelfLifeDays: 20,
+      safetyStock: 12,
+      isActive: false,
+    }
+
+    await expect(updateProduct('product-1', payload)).resolves.toEqual({
+      id: 'product-1',
+      code: 'APPLE',
+      name: '精品苹果',
+      categoryId: 'category-1',
+      unit: 'BOX',
+      shelfLifeDays: 20,
+      safetyStock: 12,
+      isActive: false,
+    })
+    expect(http.patch).toHaveBeenCalledWith('/products/product-1', payload)
   })
 })

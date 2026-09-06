@@ -4,7 +4,13 @@ import { computed, reactive, ref } from 'vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
-import { createProduct, listProducts, type ProductCreatePayload } from '@/api/products'
+import {
+  createProduct,
+  listProducts,
+  updateProduct,
+  type ProductCreatePayload,
+  type ProductUpdatePayload,
+} from '@/api/products'
 import { listProductCategories } from '@/api/product-categories'
 import { useListPage, usePageData } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
@@ -16,8 +22,10 @@ const categoryState = usePageData(listProductCategories, [])
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('product:manage'))
 const submitting = ref(false)
+const updating = ref(false)
 const formError = ref('')
 const successMessage = ref('')
+const editingProductId = ref<string | null>(null)
 const units: Array<{ value: ProductUnit; label: string }> = [
   { value: 'KG', label: '千克' },
   { value: 'TON', label: '吨' },
@@ -31,6 +39,13 @@ const form = reactive<ProductCreatePayload>({
   unit: 'KG',
   shelfLifeDays: 1,
   safetyStock: 0,
+})
+const editForm = reactive<ProductUpdatePayload>({
+  name: '',
+  unit: 'KG',
+  shelfLifeDays: 1,
+  safetyStock: 0,
+  isActive: true,
 })
 
 function categoryName(categoryId: string): string {
@@ -66,6 +81,45 @@ async function handleSubmit(): Promise<void> {
     formError.value = getApiErrorMessage(reason)
   } finally {
     submitting.value = false
+  }
+}
+
+function beginEdit(product: (typeof items.value)[number]): void {
+  editingProductId.value = product.id
+  editForm.name = product.name
+  editForm.unit = product.unit
+  editForm.shelfLifeDays = product.shelfLifeDays
+  editForm.safetyStock = product.safetyStock
+  editForm.isActive = product.isActive
+  formError.value = ''
+  successMessage.value = ''
+}
+
+function cancelEdit(): void {
+  editingProductId.value = null
+  formError.value = ''
+}
+
+async function handleUpdate(): Promise<void> {
+  if (!editingProductId.value) return
+  updating.value = true
+  formError.value = ''
+  successMessage.value = ''
+  try {
+    await updateProduct(editingProductId.value, {
+      name: editForm.name.trim(),
+      unit: editForm.unit,
+      shelfLifeDays: editForm.shelfLifeDays,
+      safetyStock: editForm.safetyStock,
+      isActive: editForm.isActive,
+    })
+    cancelEdit()
+    successMessage.value = '产品更新成功。'
+    await loadData()
+  } catch (reason) {
+    formError.value = getApiErrorMessage(reason)
+  } finally {
+    updating.value = false
   }
 }
 </script>
@@ -114,6 +168,33 @@ async function handleSubmit(): Promise<void> {
       <p v-if="categoryState.error" role="alert">{{ categoryState.error }}</p>
       <p v-if="successMessage" role="status">{{ successMessage }}</p>
     </form>
+    <form v-if="canManage && editingProductId" class="product-edit-form" @submit.prevent="handleUpdate">
+      <h2>编辑产品</h2>
+      <label>
+        名称
+        <input v-model="editForm.name" name="edit-name" required maxlength="100" />
+      </label>
+      <label>
+        计量单位
+        <select v-model="editForm.unit" name="edit-unit" required>
+          <option v-for="unit in units" :key="unit.value" :value="unit.value">{{ unit.label }}</option>
+        </select>
+      </label>
+      <label>
+        保质期（天）
+        <input v-model.number="editForm.shelfLifeDays" type="number" name="edit-shelf-life" min="1" required />
+      </label>
+      <label>
+        安全库存
+        <input v-model.number="editForm.safetyStock" type="number" name="edit-safety-stock" min="0" step="0.001" required />
+      </label>
+      <label>
+        <input v-model="editForm.isActive" type="checkbox" name="edit-is-active" />
+        启用
+      </label>
+      <button type="submit" :disabled="updating">{{ updating ? '保存中…' : '保存' }}</button>
+      <button type="button" :disabled="updating" @click="cancelEdit">取消</button>
+    </form>
     <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
       <table>
         <caption>产品列表</caption>
@@ -126,6 +207,7 @@ async function handleSubmit(): Promise<void> {
             <th scope="col">保质期（天）</th>
             <th scope="col">安全库存</th>
             <th scope="col">状态</th>
+            <th v-if="canManage" scope="col">操作</th>
           </tr>
         </thead>
         <tbody>
@@ -137,6 +219,9 @@ async function handleSubmit(): Promise<void> {
             <td>{{ product.shelfLifeDays }}</td>
             <td>{{ product.safetyStock }}</td>
             <td>{{ product.isActive ? '启用' : '停用' }}</td>
+            <td v-if="canManage">
+              <button type="button" @click="beginEdit(product)">编辑</button>
+            </td>
           </tr>
         </tbody>
       </table>
