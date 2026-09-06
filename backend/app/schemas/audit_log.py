@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
@@ -40,7 +39,7 @@ class AuditLogData(BaseSchema):
     result: Literal["SUCCESS", "FAILURE"]
     request_id: str | None
     detail: dict[str, Any]
-    created_at: datetime
+    created_at: AwareDatetime
 
 
 __all__ = ["AuditLogData", "AuditLogListParams"]

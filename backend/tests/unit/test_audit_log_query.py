@@ -12,8 +12,19 @@ from app.core.config import Settings
 from app.infrastructure.database import get_db_session
 from app.main import create_app
 from app.models import AuditLog, Cooperative, Role, User
+from fastapi.routing import APIRoute
 
 pytestmark = pytest.mark.postgres
+
+
+def test_audit_log_routes_are_read_only() -> None:
+    from app.api.audit_logs import router
+
+    routes = [route for route in router.routes if isinstance(route, APIRoute)]
+    assert {(route.path, method) for route in routes for method in route.methods} == {
+        ("/audit-logs", "GET"),
+        ("/audit-logs/{auditLogId}", "GET"),
+    }
 
 
 def _settings() -> Settings:
