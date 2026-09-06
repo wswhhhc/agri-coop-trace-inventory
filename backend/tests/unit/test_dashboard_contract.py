@@ -43,8 +43,8 @@ def _context(*, role_code: str, permissions: set[str]) -> AuthContext:
 
 
 def test_dashboard_query_uses_camel_case_and_validates_date_range() -> None:
-    params = DashboardQueryParams(
-        warehouseId=uuid4(), startDate="2026-09-01", endDate="2026-09-30"
+    params = DashboardQueryParams.model_validate(
+        {"warehouseId": uuid4(), "startDate": "2026-09-01", "endDate": "2026-09-30"}
     )
 
     assert params.warehouse_id is not None
@@ -52,10 +52,14 @@ def test_dashboard_query_uses_camel_case_and_validates_date_range() -> None:
     assert params.end_date == date(2026, 9, 30)
 
     with pytest.raises(ValueError, match="开始日期不能晚于结束日期"):
-        DashboardQueryParams(startDate="2026-09-30", endDate="2026-09-01")
+        DashboardQueryParams.model_validate(
+            {"startDate": "2026-09-30", "endDate": "2026-09-01"}
+        )
 
     with pytest.raises(ValueError, match="查询时间范围不能超过 366 天"):
-        DashboardQueryParams(startDate="2025-01-01", endDate="2026-01-02")
+        DashboardQueryParams.model_validate(
+            {"startDate": "2025-01-01", "endDate": "2026-01-02"}
+        )
 
 
 def test_product_ranking_limit_is_bounded() -> None:

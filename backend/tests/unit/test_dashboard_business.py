@@ -233,16 +233,22 @@ async def test_dashboard_summary_and_inventory_trends_group_units_and_respect_da
         token_id="dashboard-token",
     )
     service = DashboardService(postgres_session)
-    params = DashboardQueryParams(startDate="2026-09-01", endDate="2026-09-02")
+    params = DashboardQueryParams(start_date=date(2026, 9, 1), end_date=date(2026, 9, 2))
 
     summary = await service.summary(context, params)
     trends = await service.inventory_trends(context, params)
     distribution = await service.alert_distribution(context, params)
     ranking = await service.product_ranking(
-        context, ProductRankingParams(startDate="2026-09-01", endDate="2026-09-02")
+        context,
+        ProductRankingParams(
+            start_date=date(2026, 9, 1), end_date=date(2026, 9, 2)
+        ),
     )
     comparisons = await service.forecast_comparison(
-        context, DashboardQueryParams(startDate="2026-09-01", endDate="2026-09-07")
+        context,
+        DashboardQueryParams(
+            start_date=date(2026, 9, 1), end_date=date(2026, 9, 7)
+        ),
     )
 
     assert summary.product_count == 2

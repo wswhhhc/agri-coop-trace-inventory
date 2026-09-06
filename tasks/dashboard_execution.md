@@ -30,8 +30,8 @@
 - [completed] D2 汇总与库存趋势查询
 - [completed] D3 预警分布与产品排行查询
 - [completed] D4 预测对比查询与缓存策略
-- [in_progress] D5 路由注册、文档同步与接口回归
-- [pending] D6 全面复查、质量门禁与最终提交
+- [completed] D5 路由注册、文档同步与接口回归
+- [in_progress] D6 全面复查、质量门禁与最终提交
 
 ## 每阶段执行规则
 
@@ -94,3 +94,10 @@
 - `DashboardService` 新增预测对比用例，并将 `DashboardCache` 接入五个查询用例；缓存 JSON 反序列化失败按未命中处理，Redis 异常回源数据库。
 - 扩展合同测试覆盖缓存 JSON 往返，业务测试覆盖预测值、实际值和绝对误差。
 - 验证：`uv run pytest backend/tests/unit/test_dashboard_business.py backend/tests/unit/test_dashboard_contract.py -q`，7 passed；相关 Ruff、mypy 通过。
+
+### D5 路由注册、文档同步与接口回归
+
+- 新增 `backend/app/api/dashboard.py`：注册五条大屏 GET 接口、Redis 缓存依赖和统一响应模型。
+- `backend/app/main.py` 注册 dashboard 路由；`docs/接口设计说明书.md` 补充趋势、分布、排行和预测对比响应字段及日期/数量限制。
+- 新增 `backend/tests/unit/test_dashboard_api.py`，验证五条路径在 OpenAPI 注册并返回 CamelCase API 数据。
+- 验证：dashboard 合同/业务/API 测试 `8 passed`；相关 Ruff、mypy 通过。
