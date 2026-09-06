@@ -13,6 +13,7 @@ import {
 } from '@/api/forecasting'
 import { listProducts } from '@/api/products'
 import { listWarehouses } from '@/api/warehouses'
+import ForecastRangeChart from '@/components/forecasting/ForecastRangeChart.vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
@@ -321,6 +322,7 @@ async function handleForecastSubmit(): Promise<void> {
           <p>数据类型：{{ selectedForecast.dataType }}</p>
           <p>重要因素：{{ selectedForecast.importantFactors.join('、') || '暂无' }}</p>
           <p>限制说明：{{ selectedForecast.limitationNotice }}</p>
+          <ForecastRangeChart :points="selectedForecast.points" />
           <table>
             <caption>逐日预测点</caption>
             <thead><tr><th scope="col">日期</th><th scope="col">预测量</th><th scope="col">区间</th></tr></thead>

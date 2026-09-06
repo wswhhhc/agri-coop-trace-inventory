@@ -1010,6 +1010,103 @@
   font-size: var(--font-size-sm);
 }
 
+.forecast-range-chart {
+  display: grid;
+  gap: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  background: var(--color-surface-muted);
+}
+
+.forecast-range-chart__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.forecast-range-chart__header h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.forecast-range-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.forecast-range-chart__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.forecast-range-chart__legend-line,
+.forecast-range-chart__legend-band {
+  display: inline-block;
+  width: 1rem;
+  height: 0.25rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+}
+
+.forecast-range-chart__legend-band {
+  height: 0.75rem;
+  background: var(--color-brand-soft);
+}
+
+.forecast-range-chart__svg {
+  display: block;
+  width: 100%;
+  min-height: 12rem;
+  overflow: visible;
+}
+
+.forecast-range-chart__grid,
+.forecast-range-chart__baseline {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.forecast-range-chart__baseline {
+  stroke-dasharray: 4 4;
+}
+
+.forecast-range-chart__band {
+  fill: var(--color-brand-soft);
+  opacity: 0.85;
+}
+
+.forecast-range-chart__line {
+  fill: none;
+  stroke: var(--color-brand);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.forecast-range-chart__point {
+  fill: var(--color-surface);
+  stroke: var(--color-brand);
+  stroke-width: 2;
+}
+
+.forecast-range-chart__label {
+  fill: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.forecast-range-chart__note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
 .forecast-result-detail table {
   min-width: 34rem;
 }
