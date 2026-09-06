@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.models import Cooperative, CooperativeStatus, SortDirection
+from app.repositories._query_helpers import contains_pattern
 
 
 class CooperativeRepository:
@@ -45,7 +46,7 @@ class CooperativeRepository:
     ) -> tuple[list[Cooperative], int]:
         conditions = self._scope_conditions(cooperative_id)
         if keyword:
-            pattern = f"%{keyword.strip()}%"
+            pattern = contains_pattern(keyword)
             conditions.append(
                 or_(Cooperative.code.ilike(pattern), Cooperative.name.ilike(pattern))
             )

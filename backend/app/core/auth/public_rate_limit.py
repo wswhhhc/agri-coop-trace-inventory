@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import hashlib
 from typing import Any, cast
 
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
+
+from app.utils.crypto import sha256_hex
 
 
 class PublicRateLimitExceeded(ValueError):
@@ -60,7 +61,7 @@ class PublicRateLimiter:
             raise PublicRateLimitExceeded(retry_after)
 
     def _key(self, client_ip: str) -> str:
-        digest = hashlib.sha256(client_ip.encode("utf-8")).hexdigest()
+        digest = sha256_hex(client_ip)
         return f"{self.key_prefix}public:{self.resource}:ip:{digest}"
 
 

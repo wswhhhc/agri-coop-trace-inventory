@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import hashlib
 from typing import Any, cast
 
 from redis.asyncio import Redis
+
+from app.utils.crypto import sha256_hex
 
 
 class RateLimitExceeded(ValueError):
@@ -91,7 +92,7 @@ class LoginRateLimiter:
         return self._key("ip", client_ip)
 
     def _key(self, kind: str, value: str) -> str:
-        digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
+        digest = sha256_hex(value)
         return f"{self.key_prefix}auth:fail:{kind}:{digest}"
 
 

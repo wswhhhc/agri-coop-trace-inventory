@@ -17,6 +17,7 @@ from app.models import (
     Warehouse,
     WarehouseStatus,
 )
+from app.repositories._query_helpers import contains_pattern
 from app.repositories.warehouse import WarehouseRepository
 
 
@@ -76,7 +77,7 @@ class UserRepository:
         if cooperative_id is not None:
             conditions.append(User.cooperative_id == cooperative_id)
         if keyword:
-            pattern = f"%{keyword.strip()}%"
+            pattern = contains_pattern(keyword)
             conditions.append(
                 or_(User.username.ilike(pattern), User.real_name.ilike(pattern))
             )

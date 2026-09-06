@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.models import ProductCategory, SortDirection
+from app.repositories._query_helpers import contains_pattern
 
 
 class ProductCategoryRepository:
@@ -40,7 +41,7 @@ class ProductCategoryRepository:
     ) -> tuple[list[ProductCategory], int]:
         conditions = self._scope_conditions(cooperative_id, warehouse_ids)
         if keyword:
-            pattern = f"%{keyword.strip()}%"
+            pattern = contains_pattern(keyword)
             conditions.append(
                 or_(
                     ProductCategory.code.ilike(pattern),

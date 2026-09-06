@@ -18,6 +18,7 @@ from app.models import (
     Product,
     Warehouse,
 )
+from app.repositories._query_helpers import contains_pattern
 
 
 class InventoryRepository:
@@ -49,7 +50,7 @@ class InventoryRepository:
         if batch_id is not None:
             conditions.append(Inventory.batch_id == batch_id)
         if keyword:
-            pattern = f"%{keyword.strip()}%"
+            pattern = contains_pattern(keyword)
             conditions.append(or_(Product.name.ilike(pattern), Batch.batch_no.ilike(pattern)))
         if stock_risk is not None:
             conditions.append(self._risk_condition(stock_risk))

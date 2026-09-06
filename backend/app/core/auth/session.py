@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -10,6 +9,8 @@ from typing import Any, cast
 from uuid import UUID, uuid4
 
 from redis.asyncio import Redis
+
+from app.utils.crypto import sha256_hex
 
 
 class InvalidRefreshToken(ValueError):
@@ -95,7 +96,7 @@ class RedisSessionStore:
         session_family = str(uuid4())
         refresh_token = self._new_refresh_token(session_id)
         current_time = _as_utc(now)
-        token_hash = _hash_refresh_token(refresh_token)
+        token_hash = sha256_hex(refresh_token)
         session = AuthSession(
             session_id=session_id,
             user_id=user_id,
@@ -140,8 +141,8 @@ class RedisSessionStore:
             _ROTATE_REFRESH_TOKEN_SCRIPT,
             1,
             self._session_key(session_id),
-            _hash_refresh_token(refresh_token),
-            _hash_refresh_token(new_refresh_token),
+            sha256_hex(refresh_token),
+            sha256_hex(new_refresh_token),
             current_time.isoformat(),
             str(self.ttl_seconds),
         )
@@ -154,7 +155,7 @@ class RedisSessionStore:
             user_id=UUID(str(result[1])),
             session_family=str(result[2]),
             status="ACTIVE",
-            refresh_token_hash=_hash_refresh_token(new_refresh_token),
+            refresh_token_hash=sha256_hex(new_refresh_token),
             created_at=datetime.fromisoformat(str(result[3])),
             last_rotated_at=current_time,
         )
@@ -171,7 +172,7 @@ class RedisSessionStore:
             _REVOKE_REFRESH_TOKEN_SCRIPT,
             1,
             self._session_key(session_id),
-            _hash_refresh_token(refresh_token),
+            sha256_hex(refresh_token),
         )
         if not result or int(result[0]) != 1:
             return None
@@ -227,10 +228,6 @@ def _as_utc(value: datetime | None) -> datetime:
     if current_time.tzinfo is None:
         current_time = current_time.replace(tzinfo=UTC)
     return current_time.astimezone(UTC)
-
-
-def _hash_refresh_token(refresh_token: str) -> str:
-    return hashlib.sha256(refresh_token.encode("utf-8")).hexdigest()
 
 
 __all__ = [

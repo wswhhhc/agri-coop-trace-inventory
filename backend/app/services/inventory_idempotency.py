@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from datetime import timedelta
 from typing import cast
@@ -14,6 +13,7 @@ from app.models import IdempotencyStatus
 from app.models._common import utc_now
 from app.repositories.idempotency_record import IdempotencyRecordRepository
 from app.schemas.common import BaseSchema
+from app.utils.crypto import sha256_hex
 
 
 class InventoryIdempotency:
@@ -83,7 +83,7 @@ def request_hash_for(payload: BaseSchema) -> str:
     encoded = json.dumps(
         payload.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
     ).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
+    return sha256_hex(encoded)
 
 
 __all__ = ["InventoryIdempotency", "request_hash_for"]

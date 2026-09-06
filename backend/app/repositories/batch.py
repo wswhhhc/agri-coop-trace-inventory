@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.models import Batch, BatchStatus, SortDirection
+from app.repositories._query_helpers import contains_pattern
 
 
 class BatchRepository:
@@ -44,7 +45,7 @@ class BatchRepository:
     ) -> tuple[list[Batch], int]:
         conditions = self._scope_conditions(cooperative_id, warehouse_ids)
         if keyword:
-            pattern = f"%{keyword.strip()}%"
+            pattern = contains_pattern(keyword)
             conditions.append(
                 or_(Batch.batch_no.ilike(pattern), Batch.trace_code.ilike(pattern))
             )
