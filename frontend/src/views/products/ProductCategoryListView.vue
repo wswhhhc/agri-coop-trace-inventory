@@ -4,6 +4,7 @@ import { computed, reactive, ref } from 'vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import {
   createProductCategory,
   listProductCategories,
@@ -96,7 +97,7 @@ async function handleUpdate(): Promise<void> {
 
 <template>
   <section class="product-category-list-page">
-    <PageHeader title="产品分类" description="查看当前合作社的产品分类。" />
+    <PageHeader eyebrow="基础资料" title="产品分类" description="查看当前合作社的产品分类。" />
     <PageContext />
     <form v-if="canManage" class="product-category-create-form" @submit.prevent="handleSubmit">
       <h2>新增产品分类</h2>
@@ -150,7 +151,7 @@ async function handleUpdate(): Promise<void> {
             <td>{{ category.code }}</td>
             <td>{{ category.name }}</td>
             <td>{{ category.description || '—' }}</td>
-            <td>{{ category.isActive ? '启用' : '停用' }}</td>
+            <td><StatusBadge :label="category.isActive ? '启用' : '停用'" :tone="category.isActive ? 'success' : 'neutral'" /></td>
             <td v-if="canManage">
               <button type="button" @click="beginEdit(category)">编辑</button>
             </td>

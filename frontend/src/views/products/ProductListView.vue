@@ -4,6 +4,7 @@ import { computed, reactive, ref } from 'vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import {
   createProduct,
   listProducts,
@@ -126,7 +127,7 @@ async function handleUpdate(): Promise<void> {
 
 <template>
   <section class="product-list-page">
-    <PageHeader title="产品管理" description="维护合作社产品和库存基础信息。" />
+    <PageHeader eyebrow="基础资料" title="产品管理" description="维护合作社产品和库存基础信息。" />
     <PageContext />
     <form v-if="canManage" class="product-create-form" @submit.prevent="handleSubmit">
       <h2>新增产品</h2>
@@ -218,7 +219,7 @@ async function handleUpdate(): Promise<void> {
             <td>{{ product.unit }}</td>
             <td>{{ product.shelfLifeDays }}</td>
             <td>{{ product.safetyStock }}</td>
-            <td>{{ product.isActive ? '启用' : '停用' }}</td>
+            <td><StatusBadge :label="product.isActive ? '启用' : '停用'" :tone="product.isActive ? 'success' : 'neutral'" /></td>
             <td v-if="canManage">
               <button type="button" @click="beginEdit(product)">编辑</button>
             </td>
