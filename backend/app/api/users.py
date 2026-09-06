@@ -1,13 +1,20 @@
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api._pagination import build_pagination_meta
-from app.core.auth.dependencies import CurrentAuthContext
+from app.core.audit.service import (
+    AuditEvent,
+    AuditLogService,
+    audit_error_code,
+    record_audit_safely,
+)
+from app.core.auth.dependencies import CurrentAuthContext, get_audit_log_service
 from app.infrastructure.database import get_db_session
 from app.models import User
 from app.schemas.common import ApiResponse, ListResponse
@@ -23,6 +30,7 @@ from app.schemas.user import (
 from app.services.user import UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
+logger = logging.getLogger(__name__)
 
 
 def get_user_service(
@@ -65,9 +73,33 @@ async def list_users(
 async def create_user(
     payload: UserCreate,
     context: CurrentAuthContext,
+    request: Request,
     service: Annotated[UserService, Depends(get_user_service)],
+    audit_log_service: Annotated[AuditLogService, Depends(get_audit_log_service)],
 ) -> ApiResponse[UserCreateData]:
-    user, initial_password = await service.create(context, payload)
+    try:
+        user, initial_password = await service.create(context, payload)
+    except Exception as error:
+        await _record_user_audit(
+            audit_log_service,
+            request,
+            context,
+            action="CREATE_USER",
+            result="FAILURE",
+            cooperative_id=context.cooperative_id,
+            detail={"errorCode": audit_error_code(error)},
+        )
+        raise
+    await _record_user_audit(
+        audit_log_service,
+        request,
+        context,
+        action="CREATE_USER",
+        result="SUCCESS",
+        cooperative_id=user.cooperative_id,
+        object_id=user.id,
+        detail={"username": user.username, "role": user.role.code},
+    )
     data = UserCreateData(
         **_user_data(user).model_dump(),
         initial_password=initial_password,
@@ -89,9 +121,37 @@ async def update_user(
     user_id: Annotated[UUID, Path(alias="userId")],
     payload: UserUpdate,
     context: CurrentAuthContext,
+    request: Request,
     service: Annotated[UserService, Depends(get_user_service)],
+    audit_log_service: Annotated[AuditLogService, Depends(get_audit_log_service)],
 ) -> ApiResponse[UserData]:
-    return ApiResponse(data=_user_data(await service.update(context, user_id, payload)))
+    try:
+        user = await service.update(context, user_id, payload)
+    except Exception as error:
+        await _record_user_audit(
+            audit_log_service,
+            request,
+            context,
+            action="UPDATE_USER",
+            result="FAILURE",
+            cooperative_id=context.cooperative_id,
+            object_id=user_id,
+            detail={"errorCode": audit_error_code(error)},
+        )
+        raise
+    await _record_user_audit(
+        audit_log_service,
+        request,
+        context,
+        action="UPDATE_USER",
+        result="SUCCESS",
+        cooperative_id=user.cooperative_id,
+        object_id=user.id,
+        detail={
+            "updatedFields": sorted(payload.model_dump(exclude_unset=True).keys())
+        },
+    )
+    return ApiResponse(data=_user_data(user))
 
 
 @router.put("/{userId}/warehouses", response_model=ApiResponse[UserData])
@@ -99,13 +159,35 @@ async def replace_user_warehouses(
     user_id: Annotated[UUID, Path(alias="userId")],
     payload: WarehouseAssignment,
     context: CurrentAuthContext,
+    request: Request,
     service: Annotated[UserService, Depends(get_user_service)],
+    audit_log_service: Annotated[AuditLogService, Depends(get_audit_log_service)],
 ) -> ApiResponse[UserData]:
-    return ApiResponse(
-        data=_user_data(
-            await service.replace_warehouses(context, user_id, payload)
+    try:
+        user = await service.replace_warehouses(context, user_id, payload)
+    except Exception as error:
+        await _record_user_audit(
+            audit_log_service,
+            request,
+            context,
+            action="REPLACE_USER_WAREHOUSES",
+            result="FAILURE",
+            cooperative_id=context.cooperative_id,
+            object_id=user_id,
+            detail={"errorCode": audit_error_code(error)},
         )
+        raise
+    await _record_user_audit(
+        audit_log_service,
+        request,
+        context,
+        action="REPLACE_USER_WAREHOUSES",
+        result="SUCCESS",
+        cooperative_id=user.cooperative_id,
+        object_id=user.id,
+        detail={"warehouseCount": len(payload.warehouse_ids)},
     )
+    return ApiResponse(data=_user_data(user))
 
 
 @router.post(
@@ -115,10 +197,63 @@ async def replace_user_warehouses(
 async def reset_user_password(
     user_id: Annotated[UUID, Path(alias="userId")],
     context: CurrentAuthContext,
+    request: Request,
     service: Annotated[UserService, Depends(get_user_service)],
+    audit_log_service: Annotated[AuditLogService, Depends(get_audit_log_service)],
 ) -> ApiResponse[PasswordResetData]:
-    _, temporary_password = await service.reset_password(context, user_id)
+    try:
+        user, temporary_password = await service.reset_password(context, user_id)
+    except Exception as error:
+        await _record_user_audit(
+            audit_log_service,
+            request,
+            context,
+            action="RESET_USER_PASSWORD",
+            result="FAILURE",
+            cooperative_id=context.cooperative_id,
+            object_id=user_id,
+            detail={"errorCode": audit_error_code(error)},
+        )
+        raise
+    await _record_user_audit(
+        audit_log_service,
+        request,
+        context,
+        action="RESET_USER_PASSWORD",
+        result="SUCCESS",
+        cooperative_id=user.cooperative_id,
+        object_id=user.id,
+        detail={"passwordReset": True},
+    )
     return ApiResponse(data=PasswordResetData(temporary_password=temporary_password))
+
+
+async def _record_user_audit(
+    audit_log_service: AuditLogService,
+    request: Request,
+    context,
+    *,
+    action: str,
+    result: str,
+    cooperative_id: UUID | None,
+    object_id: UUID | None = None,
+    detail: dict[str, object] | None = None,
+) -> None:
+    await record_audit_safely(
+        audit_log_service,
+        AuditEvent(
+            action=action,
+            module="USER",
+            object_type="USER",
+            result=result,
+            cooperative_id=cooperative_id,
+            user_id=context.user_id,
+            object_id=object_id,
+            request_id=getattr(request.state, "request_id", None),
+            detail=detail or {},
+        ),
+        logger,
+    )
 
 
 __all__ = ["get_user_service", "router"]

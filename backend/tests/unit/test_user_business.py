@@ -5,13 +5,22 @@ from uuid import uuid4
 import httpx
 import pytest
 import pytest_asyncio
+from app.core.audit.service import AuditLogService
 from app.core.auth.context import AuthContext
-from app.core.auth.dependencies import get_auth_context
+from app.core.auth.dependencies import get_audit_log_service, get_auth_context
 from app.core.config import Settings
 from app.core.security import verify_password
 from app.infrastructure.database import get_db_session
 from app.main import create_app
-from app.models import Cooperative, Permission, Role, User, UserWarehouse, Warehouse
+from app.models import (
+    AuditLog,
+    Cooperative,
+    Permission,
+    Role,
+    User,
+    UserWarehouse,
+    Warehouse,
+)
 from sqlalchemy import select
 
 pytestmark = pytest.mark.postgres
@@ -29,12 +38,13 @@ def _settings() -> Settings:
 
 def _context(
     *,
+    user_id=None,
     role_code: str = "SYSTEM_ADMIN",
     permissions: frozenset[str] = frozenset({"user:manage"}),
     cooperative_id=None,
 ) -> AuthContext:
     return AuthContext(
-        user_id=uuid4(),
+        user_id=user_id or uuid4(),
         username="operator",
         real_name="操作员",
         role_code=role_code,
@@ -61,6 +71,12 @@ async def user_api(postgres_session_factory):
             permissions=[permission],
         )
         staff_role = Role(code="WAREHOUSE_STAFF", name="仓库工作人员")
+        operator = User(
+            role=system_role,
+            username="system_operator",
+            password_hash="not-used",
+            real_name="系统操作员",
+        )
         first_cooperative = Cooperative(code="COOP-ONE", name="第一合作社")
         second_cooperative = Cooperative(code="COOP-TWO", name="第二合作社")
         first_warehouse = Warehouse(
@@ -89,6 +105,7 @@ async def user_api(postgres_session_factory):
                 first_warehouse,
                 second_warehouse,
                 other_warehouse,
+                operator,
             ]
         )
         await session.commit()
@@ -101,6 +118,17 @@ async def user_api(postgres_session_factory):
         )
 
     current_context = _context()
+    current_context = AuthContext(
+        user_id=operator.id,
+        username=current_context.username,
+        real_name=current_context.real_name,
+        role_code=current_context.role_code,
+        permission_codes=current_context.permission_codes,
+        cooperative_id=current_context.cooperative_id,
+        warehouse_ids=current_context.warehouse_ids,
+        session_id=current_context.session_id,
+        token_id=current_context.token_id,
+    )
 
     async def override_db_session():
         async with postgres_session_factory() as session:
@@ -116,6 +144,9 @@ async def user_api(postgres_session_factory):
     application = create_app(_settings())
     application.dependency_overrides[get_db_session] = override_db_session
     application.dependency_overrides[get_auth_context] = override_auth_context
+    application.dependency_overrides[get_audit_log_service] = lambda: AuditLogService(
+        postgres_session_factory
+    )
     transport = httpx.ASGITransport(app=application)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         yield client, *ids, set_context, postgres_session_factory
@@ -145,9 +176,21 @@ async def test_system_admin_can_create_user_and_return_one_time_initial_password
     assert data["warehouseIds"] == [str(warehouse_id)]
     assert len(data["initialPassword"]) >= 10
 
+    duplicate = await client.post(
+        "/api/v1/users",
+        json={
+            "username": "warehouse_01",
+            "displayName": "重复用户",
+            "role": "WAREHOUSE_STAFF",
+            "cooperativeId": str(cooperative_id),
+            "warehouseIds": [str(warehouse_id)],
+        },
+    )
+    assert duplicate.status_code == 409
+
     listed = await client.get("/api/v1/users?pageSize=10")
     assert listed.status_code == 200
-    assert listed.json()["pagination"]["totalItems"] == 1
+    assert listed.json()["pagination"]["totalItems"] == 2
 
     updated = await client.patch(
         f"/api/v1/users/{data['id']}",
@@ -170,13 +213,42 @@ async def test_system_admin_can_create_user_and_return_one_time_initial_password
         assert await session.scalar(
             select(UserWarehouse).where(UserWarehouse.user_id == user.id)
         ) is not None
+        audit_logs = list(
+            (
+                await session.scalars(
+                    select(AuditLog).order_by(AuditLog.created_at, AuditLog.id)
+                )
+            ).all()
+        )
+
+    assert [log.action for log in audit_logs] == [
+        "CREATE_USER",
+        "CREATE_USER",
+        "UPDATE_USER",
+        "RESET_USER_PASSWORD",
+    ]
+    assert [log.result for log in audit_logs] == [
+        "SUCCESS",
+        "FAILURE",
+        "SUCCESS",
+        "SUCCESS",
+    ]
+    assert audit_logs[1].detail == {"errorCode": "UNIQUE_CONFLICT"}
+    assert "initialPassword" not in audit_logs[0].detail
+    assert "temporaryPassword" not in audit_logs[-1].detail
 
 
 @pytest.mark.asyncio
 async def test_cooperative_admin_is_limited_to_own_users_and_warehouses(user_api):
     client, cooperative_id, other_cooperative_id, first_warehouse_id, second_warehouse_id, other_warehouse_id, set_context, _ = user_api
+    async with user_api[-1]() as session:
+        operator = await session.scalar(
+            select(User).where(User.username == "system_operator")
+        )
+    assert operator is not None
     set_context(
         _context(
+            user_id=operator.id,
             role_code="COOPERATIVE_ADMIN",
             cooperative_id=cooperative_id,
         )
@@ -213,6 +285,23 @@ async def test_cooperative_admin_is_limited_to_own_users_and_warehouses(user_api
     assert authorized_warehouses.json()["data"]["warehouseIds"] == [
         str(second_warehouse_id)
     ]
+
+    async with user_api[-1]() as session:
+        audit_logs = list(
+            (
+                await session.scalars(
+                    select(AuditLog).order_by(AuditLog.created_at, AuditLog.id)
+                )
+            ).all()
+        )
+    assert [log.action for log in audit_logs] == [
+        "CREATE_USER",
+        "REPLACE_USER_WAREHOUSES",
+        "REPLACE_USER_WAREHOUSES",
+    ]
+    assert [log.result for log in audit_logs] == ["SUCCESS", "FAILURE", "SUCCESS"]
+    assert audit_logs[1].detail == {"errorCode": "RESOURCE_NOT_FOUND"}
+    assert audit_logs[-1].detail == {"warehouseCount": 1}
 
     other_user = await client.post(
         "/api/v1/users",
