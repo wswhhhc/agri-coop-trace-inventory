@@ -28,8 +28,8 @@
 - [completed] D0 现状盘点与契约冻结
 - [completed] D1 查询契约、聚合模型与权限边界
 - [completed] D2 汇总与库存趋势查询
-- [in_progress] D3 预警分布与产品排行查询
-- [pending] D4 预测对比查询与缓存策略
+- [completed] D3 预警分布与产品排行查询
+- [in_progress] D4 预测对比查询与缓存策略
 - [pending] D5 路由注册、文档同步与接口回归
 - [pending] D6 全面复查、质量门禁与最终提交
 
@@ -79,4 +79,11 @@
 - 新增 `backend/app/repositories/dashboard.py`：通过聚合 SQL 查询产品/批次、按单位库存、待处理预警、到期批次、低库存产品和按日库存流水趋势。
 - 新增 `backend/app/services/dashboard.py`：建立只读事务边界，复用认证范围，补齐默认最近 30 日日期。
 - 新增 `backend/tests/unit/test_dashboard_business.py`：真实 PostgreSQL 验证单位分组、库存结余、日期范围、预警/到期/低库存统计。
+- 验证：`uv run pytest backend/tests/unit/test_dashboard_business.py backend/tests/unit/test_dashboard_contract.py -q`，6 passed；相关 Ruff、mypy 通过。
+
+### D3 预警分布与产品排行查询
+
+- `DashboardRepository` 新增按类型/等级聚合预警和按产品聚合出库排行查询，所有查询复用合作社/仓库范围条件。
+- `DashboardService` 新增预警分布和产品排行用例，排行数量受 Schema 上限约束，出库量按出库流水的绝对变动量统计。
+- 扩展 `backend/tests/unit/test_dashboard_business.py`，验证预警分布、出库排行结果。
 - 验证：`uv run pytest backend/tests/unit/test_dashboard_business.py backend/tests/unit/test_dashboard_contract.py -q`，6 passed；相关 Ruff、mypy 通过。

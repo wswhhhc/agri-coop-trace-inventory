@@ -9,10 +9,14 @@ from app.core.auth.context import AuthContext
 from app.infrastructure.transaction import transaction_scope
 from app.repositories.dashboard import DashboardRepository
 from app.schemas.dashboard import (
+    AlertDistributionData,
+    AlertDistributionResult,
     DashboardQueryParams,
     DashboardSummaryData,
     InventoryTrendData,
     InventoryUnitSummary,
+    ProductRankingData,
+    ProductRankingParams,
 )
 from app.services.dashboard_policy import (
     ensure_dashboard_warehouse_scope,
@@ -72,6 +76,52 @@ class DashboardService:
                 inbound_quantity=float(row[2]),
                 outbound_quantity=float(row[3]),
                 ending_quantity=float(row[4]),
+            )
+            for row in rows
+        ]
+
+    async def alert_distribution(
+        self, context: AuthContext, params: DashboardQueryParams
+    ) -> AlertDistributionResult:
+        require_dashboard_read(context)
+        ensure_dashboard_warehouse_scope(context, params.warehouse_id)
+        start_date, end_date = resolve_dashboard_dates(params)
+        async with transaction_scope(self.session):
+            rows = await self.repository.alert_distribution(
+                context.cooperative_id,
+                self._warehouse_scope(context, params.warehouse_id),
+                start_date=start_date,
+                end_date=end_date,
+            )
+        items = [
+            AlertDistributionData(alert_type=row[0], severity=row[1], count=row[2])
+            for row in rows
+        ]
+        return AlertDistributionResult(
+            total_count=sum(item.count for item in items), items=items
+        )
+
+    async def product_ranking(
+        self, context: AuthContext, params: ProductRankingParams
+    ) -> list[ProductRankingData]:
+        require_dashboard_read(context)
+        ensure_dashboard_warehouse_scope(context, params.warehouse_id)
+        start_date, end_date = resolve_dashboard_dates(params)
+        async with transaction_scope(self.session):
+            rows = await self.repository.product_ranking(
+                context.cooperative_id,
+                self._warehouse_scope(context, params.warehouse_id),
+                start_date=start_date,
+                end_date=end_date,
+                limit=params.limit,
+            )
+        return [
+            ProductRankingData(
+                product_id=row[0],
+                product_name=row[1],
+                unit=row[2],
+                outbound_quantity=float(row[3]),
+                outbound_count=row[4],
             )
             for row in rows
         ]

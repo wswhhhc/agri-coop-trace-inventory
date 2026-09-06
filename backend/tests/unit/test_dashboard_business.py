@@ -25,7 +25,7 @@ from app.models import (
     User,
     Warehouse,
 )
-from app.schemas.dashboard import DashboardQueryParams
+from app.schemas.dashboard import DashboardQueryParams, ProductRankingParams
 from app.services.dashboard import DashboardService
 
 pytestmark = pytest.mark.postgres
@@ -197,6 +197,10 @@ async def test_dashboard_summary_and_inventory_trends_group_units_and_respect_da
 
     summary = await service.summary(context, params)
     trends = await service.inventory_trends(context, params)
+    distribution = await service.alert_distribution(context, params)
+    ranking = await service.product_ranking(
+        context, ProductRankingParams(startDate="2026-09-01", endDate="2026-09-02")
+    )
 
     assert summary.product_count == 2
     assert summary.batch_count == 2
@@ -211,3 +215,10 @@ async def test_dashboard_summary_and_inventory_trends_group_units_and_respect_da
         (date(2026, 9, 1), "KG", 100.0, 0.0, 100.0),
         (date(2026, 9, 2), "KG", 0.0, 20.0, 80.0),
     ]
+    assert distribution.total_count == 1
+    assert [(item.alert_type, item.severity, item.count) for item in distribution.items] == [
+        ("LOW_STOCK", "HIGH", 1)
+    ]
+    assert ranking[0].product_name == "番茄"
+    assert ranking[0].outbound_quantity == 20.0
+    assert ranking[0].outbound_count == 1

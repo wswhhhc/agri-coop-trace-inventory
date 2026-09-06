@@ -229,6 +229,72 @@ class DashboardRepository:
             for row in (await self.session.execute(statement)).all()
         ]
 
+    async def alert_distribution(
+        self,
+        cooperative_id: UUID | None,
+        warehouse_ids: frozenset[UUID] | None,
+        *,
+        start_date: date,
+        end_date: date,
+    ) -> list[tuple[str, str, int]]:
+        if warehouse_ids == frozenset():
+            return []
+        start_at = datetime.combine(start_date, time.min, tzinfo=UTC)
+        end_at = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=UTC)
+        rows = await self.session.execute(
+            select(Alert.alert_type, Alert.severity, func.count(Alert.id))
+            .where(
+                *self._alert_scope(cooperative_id, warehouse_ids),
+                Alert.detected_at >= start_at,
+                Alert.detected_at < end_at,
+            )
+            .group_by(Alert.alert_type, Alert.severity)
+            .order_by(Alert.alert_type, Alert.severity)
+        )
+        return [(str(row[0]), str(row[1]), int(row[2])) for row in rows.all()]
+
+    async def product_ranking(
+        self,
+        cooperative_id: UUID | None,
+        warehouse_ids: frozenset[UUID] | None,
+        *,
+        start_date: date,
+        end_date: date,
+        limit: int,
+    ) -> list[tuple[UUID, str, str, Decimal, int]]:
+        if warehouse_ids == frozenset():
+            return []
+        start_at = datetime.combine(start_date, time.min, tzinfo=UTC)
+        end_at = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=UTC)
+        rows = await self.session.execute(
+            select(
+                Product.id,
+                Product.name,
+                Product.unit,
+                func.sum(-InventoryTransaction.quantity_delta),
+                func.count(InventoryTransaction.id),
+            )
+            .select_from(InventoryTransaction)
+            .join(Batch, Batch.id == InventoryTransaction.batch_id)
+            .join(Product, Product.id == Batch.product_id)
+            .where(
+                *self._transaction_scope(cooperative_id, warehouse_ids),
+                InventoryTransaction.transaction_type == InventoryTransactionType.OUTBOUND,
+                InventoryTransaction.occurred_at >= start_at,
+                InventoryTransaction.occurred_at < end_at,
+            )
+            .group_by(Product.id, Product.name, Product.unit)
+            .order_by(
+                func.sum(-InventoryTransaction.quantity_delta).desc(),
+                Product.id,
+            )
+            .limit(limit)
+        )
+        return [
+            (row[0], row[1], row[2], row[3], int(row[4]))
+            for row in rows.all()
+        ]
+
     @staticmethod
     def _cooperative_scope(model, cooperative_id: UUID | None):
         return [model.cooperative_id == cooperative_id] if cooperative_id is not None else []
