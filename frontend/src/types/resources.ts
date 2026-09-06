@@ -31,11 +31,16 @@ export interface WarehouseSummary {
   status: string
 }
 
+export type ProductUnit = 'KG' | 'TON' | 'BOX' | 'PIECE'
+
 export interface ProductSummary {
   id: string
   code: string
   name: string
-  unit: string
+  categoryId: string
+  unit: ProductUnit
+  shelfLifeDays: number
+  safetyStock: number
   isActive: boolean
 }
 
