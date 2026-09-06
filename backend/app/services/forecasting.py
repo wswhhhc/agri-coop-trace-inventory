@@ -22,6 +22,7 @@ from app.services.forecasting_policy import (
     require_model_read,
     warehouse_ids_for_query,
 )
+from app.services.task import TaskService
 
 
 class ForecastingService:
@@ -222,15 +223,7 @@ class ForecastingService:
             return result
 
     async def get_task(self, context: AuthContext, task_id: UUID) -> TaskRecord:
-        require_model_read(context)
-        can_manage = context.role_code in {"SYSTEM_ADMIN", "COOPERATIVE_ADMIN"}
-        async with transaction_scope(self.session):
-            task = await self.repository.get_task(
-                task_id, context.cooperative_id, context.user_id, can_manage
-            )
-            if task is None:
-                raise resource_not_found()
-            return task
+        return await TaskService(self.session).get(context, task_id)
 
 
 __all__ = ["ForecastingService"]

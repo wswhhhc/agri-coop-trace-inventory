@@ -4,6 +4,8 @@ from uuid import uuid4
 
 import pytest
 from app.core.auth.context import AuthContext
+from app.core.config import Settings
+from app.core.exceptions import AppException
 from app.models import (
     Alert,
     AlertSeverity,
@@ -20,11 +22,14 @@ from app.models import (
     Product,
     ProductCategory,
     Role,
+    TaskRecord,
+    TaskStatus,
     User,
     Warehouse,
 )
 from app.schemas.export import ExportTaskCreate
 from app.services.export import ExportService
+from app.services.task import TaskService
 
 pytestmark = pytest.mark.postgres
 
@@ -184,3 +189,65 @@ async def test_export_service_creates_task_with_scoped_payload_and_enqueues(post
     assert task.request_payload["filters"]["warehouseId"] == str(warehouse.id)
     assert enqueued["args"] == [str(task.id)]
     assert enqueued["task_id"] == task.celery_task_id
+
+    readable_task = await TaskService(postgres_session).get(
+        _context(user.id, cooperative.id, {"inventory:read"}), task.id
+    )
+    assert readable_task.id == task.id
+
+
+@pytest.mark.asyncio
+async def test_export_download_checks_expiration_and_returns_only_safe_file(
+    postgres_session, tmp_path
+) -> None:
+    cooperative = Cooperative(code=f"export-{uuid4().hex[:8]}", name="导出合作社")
+    role = Role(code="COOPERATIVE_ADMIN", name="合作社管理员")
+    user = User(
+        cooperative=cooperative,
+        role=role,
+        username=f"export-{uuid4().hex[:8]}",
+        password_hash="unused",
+        real_name="导出管理员",
+    )
+    postgres_session.add_all([cooperative, role, user])
+    await postgres_session.flush()
+    task = TaskRecord(
+        cooperative_id=cooperative.id,
+        task_type="EXPORT_REPORT",
+        celery_task_id=str(uuid4()),
+        status=TaskStatus.SUCCESS,
+        requested_by=user.id,
+        request_payload={"reportType": "INVENTORY_DETAIL", "filters": {}},
+        result_payload={
+            "downloadUrl": f"/api/v1/export-files/{uuid4()}",
+            "expiresAt": "2099-01-01T00:00:00+00:00",
+            "filename": "inventory_detail_safe.xlsx",
+        },
+    )
+    postgres_session.add(task)
+    await postgres_session.commit()
+    (tmp_path / "inventory_detail_safe.xlsx").write_bytes(b"xlsx")
+    settings = Settings(
+        _env_file=None,
+        jwt_secret_key="unit-test-secret-with-at-least-32-bytes",
+        jwt_issuer="agri-api",
+        jwt_audience="agri-web",
+        postgres_password="unit-test-password",
+        export_storage_dir=str(tmp_path),
+    )
+    context = _context(user.id, cooperative.id, {"inventory:read"})
+    path, filename = await ExportService(postgres_session).download(
+        context, task.id, settings
+    )
+
+    assert path == (tmp_path / "inventory_detail_safe.xlsx").resolve()
+    assert filename == "inventory_detail_safe.xlsx"
+
+    task.result_payload = {
+        **task.result_payload,
+        "expiresAt": "2020-01-01T00:00:00+00:00",
+    }
+    await postgres_session.commit()
+    with pytest.raises(AppException) as error:
+        await ExportService(postgres_session).download(context, task.id, settings)
+    assert error.value.code == "EXPORT_EXPIRED"

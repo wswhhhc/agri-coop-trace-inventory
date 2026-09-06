@@ -2,17 +2,22 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
-from uuid import uuid4
+from pathlib import Path
+from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.authorization import resource_not_found
 from app.core.auth.context import AuthContext
+from app.core.config import Settings
+from app.core.exceptions import AppException
 from app.infrastructure.transaction import transaction_scope
 from app.models import TaskRecord, TaskStatus
 from app.repositories.export import ExportRepository
 from app.schemas.export import ExportFilters, ExportTaskCreate
 from app.services.export_policy import require_export
+from app.services.export_storage import safe_export_path
+from app.services.task import TaskService
 
 
 class ExportService:
@@ -69,6 +74,35 @@ class ExportService:
                 ):
                     raise resource_not_found()
         return resolve_export_dates(filters)
+
+    async def download(
+        self, context: AuthContext, task_id: UUID, settings: Settings
+    ) -> tuple[Path, str]:
+        task = await TaskService(self.session).get(context, task_id)
+        if task.task_type != "EXPORT_REPORT" or task.result_payload is None:
+            raise AppException(
+                code="EXPORT_NOT_READY", message="导出文件尚未生成", status_code=409
+            )
+        expires_at_raw = task.result_payload.get("expiresAt")
+        filename = task.result_payload.get("filename")
+        if not isinstance(expires_at_raw, str) or not isinstance(filename, str):
+            raise AppException(
+                code="EXPORT_RESULT_INVALID", message="导出结果无效", status_code=500
+            )
+        try:
+            expires_at = datetime.fromisoformat(expires_at_raw)
+        except ValueError as error:
+            raise AppException(
+                code="EXPORT_RESULT_INVALID", message="导出结果无效", status_code=500
+            ) from error
+        if expires_at <= datetime.now(UTC):
+            raise AppException(
+                code="EXPORT_EXPIRED", message="导出文件已过期", status_code=410
+            )
+        target = safe_export_path(settings.export_storage_path, filename)
+        if not target.is_file():
+            raise resource_not_found()
+        return target, filename
 
 
 def resolve_export_dates(

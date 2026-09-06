@@ -233,20 +233,6 @@ class ForecastingRepository:
             )
         )
 
-    async def get_task(
-        self,
-        task_id: UUID,
-        cooperative_id: UUID | None,
-        requester_id: UUID,
-        can_manage: bool,
-    ) -> TaskRecord | None:
-        conditions: list[ColumnElement[bool]] = [TaskRecord.id == task_id]
-        if cooperative_id is not None:
-            conditions.append(TaskRecord.cooperative_id == cooperative_id)
-        if not can_manage:
-            conditions.append(TaskRecord.requested_by == requester_id)
-        return await self.session.scalar(select(TaskRecord).where(*conditions))
-
     @staticmethod
     def _scope(
         model, cooperative_id: UUID | None, warehouse_ids: frozenset[UUID] | None

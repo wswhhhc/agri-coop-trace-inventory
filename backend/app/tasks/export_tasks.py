@@ -16,6 +16,7 @@ from app.models import TaskRecord, TaskStatus
 from app.repositories.export import ExportRepository
 from app.schemas.export import ExportTaskCreate, ReportType
 from app.services.export import resolve_export_dates
+from app.services.export_storage import safe_export_path
 from app.services.export_workbook import build_alert_workbook, build_inventory_workbook
 from app.tasks.celery_app import celery_app
 
@@ -67,7 +68,7 @@ async def _run_export(task_id: UUID, celery_task_id: str) -> dict[str, str]:
 
             settings.export_storage_path.mkdir(parents=True, exist_ok=True)
             filename = f"{payload.report_type.value.lower()}_{task_id}.xlsx"
-            target = _safe_export_path(settings.export_storage_path, filename)
+            target = safe_export_path(settings.export_storage_path, filename)
             with target.open("wb") as output:
                 if payload.report_type is ReportType.INVENTORY_DETAIL:
                     build_inventory_workbook(rows, output)
@@ -102,14 +103,4 @@ async def _run_export(task_id: UUID, celery_task_id: str) -> dict[str, str]:
         raise
     finally:
         await engine.dispose()
-
-
-def _safe_export_path(storage_dir: Path, filename: str) -> Path:
-    root = storage_dir.resolve()
-    target = (root / filename).resolve()
-    if target.parent != root:
-        raise ValueError("导出文件路径无效")
-    return target
-
-
 __all__ = ["generate_export_task"]
