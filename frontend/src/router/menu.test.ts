@@ -28,4 +28,13 @@ describe('menu configuration', () => {
     expect(paths).not.toContain('/users')
     expect(paths).not.toContain('/roles')
   })
+
+  it('does not expose the dashboard to public users even if a permission is present', () => {
+    const publicMenu = filterMenuItems(menuItems, {
+      role: 'PUBLIC',
+      permissions: ['inventory:read'],
+    })
+
+    expect(publicMenu.map((item) => item.path)).not.toContain('/dashboard')
+  })
 })

@@ -10,7 +10,12 @@ export interface MenuItem {
 }
 
 export const menuItems: MenuItem[] = [
-  { title: '首页', path: '/dashboard' },
+  {
+    title: '首页',
+    path: '/dashboard',
+    roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
+    permissions: ['inventory:read'],
+  },
   {
     title: '合作社管理',
     path: '/cooperatives',

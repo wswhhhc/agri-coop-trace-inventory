@@ -32,4 +32,34 @@ describe('route access guard', () => {
       ),
     ).toEqual({ name: 'forbidden' })
   })
+
+  it('requires both an allowed dashboard role and inventory read permission', () => {
+    expect(
+      resolveRouteAccess(
+        {
+          fullPath: '/dashboard',
+          meta: {
+            requiresAuth: true,
+            roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
+            permissions: ['inventory:read'],
+          },
+        },
+        { isAuthenticated: true, role: 'PUBLIC', permissions: ['inventory:read'] },
+      ),
+    ).toEqual({ name: 'forbidden' })
+
+    expect(
+      resolveRouteAccess(
+        {
+          fullPath: '/dashboard',
+          meta: {
+            requiresAuth: true,
+            roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
+            permissions: ['inventory:read'],
+          },
+        },
+        { isAuthenticated: true, role: 'WAREHOUSE_STAFF', permissions: [] },
+      ),
+    ).toEqual({ name: 'forbidden' })
+  })
 })

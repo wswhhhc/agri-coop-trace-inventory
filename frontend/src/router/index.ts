@@ -24,7 +24,12 @@ const router = createRouter({
           path: 'dashboard',
           name: 'dashboard',
           component: () => import('@/views/dashboard/DashboardView.vue'),
-          meta: { requiresAuth: true, title: '首页', permissions: ['inventory:read'] },
+          meta: {
+            requiresAuth: true,
+            title: '首页',
+            roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
+            permissions: ['inventory:read'],
+          },
         },
         {
           path: 'cooperatives',
