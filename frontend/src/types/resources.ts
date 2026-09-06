@@ -26,8 +26,11 @@ export interface UserSummary {
 
 export interface WarehouseSummary {
   id: string
+  cooperativeId: string
   name: string
   code: string
+  address: string | null
+  managerName: string | null
   status: string
 }
 
