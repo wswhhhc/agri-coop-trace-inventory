@@ -1,18 +1,26 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
-import { getModelVersion, listModelVersions } from '@/api/forecasting'
+import { activateModel, getModelVersion, listModelVersions } from '@/api/forecasting'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import { useListPage } from '@/composables/usePageData'
+import { useAuthStore } from '@/stores/auth'
 import type { ModelVersionSummary } from '@/types/resources'
 import { getApiErrorMessage } from '@/utils/api-error'
 
 const { items, loading, error, loadData } = useListPage(listModelVersions)
+const authStore = useAuthStore()
+const canActivate = computed(
+  () => authStore.role === 'COOPERATIVE_ADMIN' && authStore.hasPermission('model:manage'),
+)
 const selectedModel = ref<ModelVersionSummary | null>(null)
 const detailLoading = ref(false)
 const detailError = ref('')
+const activatingId = ref<string | null>(null)
+const actionError = ref('')
+const successMessage = ref('')
 
 async function loadDetail(modelVersionId: string): Promise<void> {
   detailLoading.value = true
@@ -25,12 +33,32 @@ async function loadDetail(modelVersionId: string): Promise<void> {
     detailLoading.value = false
   }
 }
+
+async function handleActivate(modelVersionId: string): Promise<void> {
+  activatingId.value = modelVersionId
+  actionError.value = ''
+  successMessage.value = ''
+  try {
+    await activateModel(modelVersionId)
+    successMessage.value = '模型激活成功。'
+    await loadData()
+    if (selectedModel.value?.id === modelVersionId) {
+      selectedModel.value = await getModelVersion(modelVersionId)
+    }
+  } catch (reason) {
+    actionError.value = getApiErrorMessage(reason, '模型激活失败')
+  } finally {
+    activatingId.value = null
+  }
+}
 </script>
 
 <template>
   <section class="forecasting-page">
     <PageHeader title="AI 预测" description="查看模型版本、训练范围和评估指标。" />
     <PageContext />
+    <p v-if="actionError" role="alert">{{ actionError }}</p>
+    <p v-if="successMessage" role="status">{{ successMessage }}</p>
     <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
       <table>
         <caption>模型版本列表</caption>
@@ -51,7 +79,17 @@ async function loadDetail(modelVersionId: string): Promise<void> {
             <td>{{ model.trainingStartDate }} ～ {{ model.trainingEndDate }}</td>
             <td>{{ model.dataType }}</td>
             <td>{{ model.isActive ? '已激活' : '未激活' }}</td>
-            <td><button type="button" @click="loadDetail(model.id)">查看详情</button></td>
+            <td>
+              <button type="button" @click="loadDetail(model.id)">查看详情</button>
+              <button
+                v-if="canActivate && !model.isActive"
+                type="button"
+                :disabled="activatingId === model.id"
+                @click="handleActivate(model.id)"
+              >
+                {{ activatingId === model.id ? '激活中…' : '激活' }}
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>

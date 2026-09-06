@@ -23,3 +23,10 @@ export async function getModelVersion(modelVersionId: string): Promise<ModelVers
   )
   return response.data.data
 }
+
+export async function activateModel(modelVersionId: string): Promise<ModelVersionSummary> {
+  const response = await http.post<ApiResponse<ModelVersionSummary>>('/model-activations', {
+    modelVersionId,
+  })
+  return response.data.data
+}

@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { getModelVersion, listModelVersions } from './forecasting'
+import { activateModel, getModelVersion, listModelVersions } from './forecasting'
 
 vi.mock('./http', () => ({
-  default: { get: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn() },
 }))
 
 describe('forecasting api', () => {
@@ -33,5 +33,19 @@ describe('forecasting api', () => {
 
     await expect(getModelVersion('model-1')).resolves.toEqual(model)
     expect(http.get).toHaveBeenCalledWith('/model-versions/model-1')
+  })
+
+  it('activates a model version', async () => {
+    vi.mocked(http.post).mockResolvedValueOnce({
+      data: { data: { id: 'model-1', isActive: true } },
+    })
+
+    await expect(activateModel('model-1')).resolves.toMatchObject({
+      id: 'model-1',
+      isActive: true,
+    })
+    expect(http.post).toHaveBeenCalledWith('/model-activations', {
+      modelVersionId: 'model-1',
+    })
   })
 })
