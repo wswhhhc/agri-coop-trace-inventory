@@ -161,3 +161,92 @@ async function handleUpdate(): Promise<void> {
     </PageState>
   </section>
 </template>
+
+<style scoped>
+.product-category-list-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.product-category-list-page > .page-state {
+  overflow-x: auto;
+}
+
+.product-category-list-page > .page-state table {
+  min-width: 46rem;
+}
+
+.product-category-create-form,
+.product-category-edit-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.product-category-create-form h2,
+.product-category-edit-form h2 {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+  font-size: var(--font-size-lg);
+}
+
+.product-category-create-form > label,
+.product-category-edit-form > label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.product-category-create-form > label:nth-of-type(3),
+.product-category-edit-form > label:nth-of-type(2),
+.product-category-create-form > p,
+.product-category-edit-form > p {
+  grid-column: 1 / -1;
+}
+
+.product-category-create-form > button,
+.product-category-edit-form > button {
+  justify-self: start;
+}
+
+.product-category-create-form > p,
+.product-category-edit-form > p {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.product-category-create-form > p[role='status'],
+.product-category-edit-form > p[role='status'] {
+  color: var(--color-success);
+}
+
+@media (max-width: 48rem) {
+  .product-category-create-form,
+  .product-category-edit-form {
+    grid-template-columns: 1fr;
+    padding: var(--space-4);
+  }
+
+  .product-category-create-form h2,
+  .product-category-edit-form h2,
+  .product-category-create-form > label:nth-of-type(3),
+  .product-category-edit-form > label:nth-of-type(2),
+  .product-category-create-form > p,
+  .product-category-edit-form > p {
+    grid-column: auto;
+  }
+
+  .product-category-create-form > button,
+  .product-category-edit-form > button {
+    justify-self: stretch;
+  }
+}
+</style>

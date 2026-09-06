@@ -229,3 +229,84 @@ async function handleUpdate(): Promise<void> {
     </PageState>
   </section>
 </template>
+
+<style scoped>
+.product-list-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.product-list-page > .page-state {
+  overflow-x: auto;
+}
+
+.product-list-page > .page-state table {
+  min-width: 62rem;
+}
+
+.product-create-form,
+.product-edit-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.product-create-form h2,
+.product-edit-form h2 {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+  font-size: var(--font-size-lg);
+}
+
+.product-create-form > label,
+.product-edit-form > label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.product-create-form > p,
+.product-edit-form > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.product-create-form > p[role='status'],
+.product-edit-form > p[role='status'] {
+  color: var(--color-success);
+}
+
+.product-create-form > button,
+.product-edit-form > button {
+  justify-self: start;
+}
+
+@media (max-width: 48rem) {
+  .product-create-form,
+  .product-edit-form {
+    grid-template-columns: 1fr;
+    padding: var(--space-4);
+  }
+
+  .product-create-form h2,
+  .product-edit-form h2,
+  .product-create-form > p,
+  .product-edit-form > p {
+    grid-column: auto;
+  }
+
+  .product-create-form > button,
+  .product-edit-form > button {
+    justify-self: stretch;
+  }
+}
+</style>
