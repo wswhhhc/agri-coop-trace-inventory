@@ -12,11 +12,20 @@ import PageState from '@/components/common/PageState.vue'
 import { useDashboard } from '@/composables/useDashboard'
 import type { DashboardQueryParams } from '@/types/dashboard'
 
-const dashboard = useDashboard()
-const loading = computed(() => Object.values(dashboard.loading).some(Boolean))
+const {
+  summary,
+  inventoryTrends,
+  alertDistribution,
+  productRanking,
+  loading: moduleLoading,
+  errors: moduleErrors,
+  loadDashboard,
+  retry,
+} = useDashboard()
+const loading = computed(() => Object.values(moduleLoading).some(Boolean))
 
 function handleSearch(params: DashboardQueryParams): void {
-  void dashboard.loadDashboard(params)
+  void loadDashboard(params)
 }
 </script>
 
@@ -30,35 +39,35 @@ function handleSearch(params: DashboardQueryParams): void {
     <section class="dashboard-page__modules">
       <section class="dashboard-module dashboard-module--summary">
         <PageState
-          :loading="dashboard.loading.summary"
-          :error="dashboard.errors.summary"
-          :empty="!dashboard.summary"
+          :loading="moduleLoading.summary"
+          :error="moduleErrors.summary"
+          :empty="!summary"
           empty-message="暂无汇总数据"
-          @retry="dashboard.retry('summary')"
+          @retry="retry('summary')"
         >
-          <DashboardSummary v-if="dashboard.summary" :summary="dashboard.summary" />
+          <DashboardSummary v-if="summary" :summary="summary" />
         </PageState>
       </section>
 
       <InventoryTrendPanel
-        :items="dashboard.inventoryTrends"
-        :loading="dashboard.loading.inventoryTrends"
-        :error="dashboard.errors.inventoryTrends"
-        @retry="dashboard.retry('inventoryTrends')"
+        :items="inventoryTrends"
+        :loading="moduleLoading.inventoryTrends"
+        :error="moduleErrors.inventoryTrends"
+        @retry="retry('inventoryTrends')"
       />
 
       <AlertDistributionPanel
-        :distribution="dashboard.alertDistribution"
-        :loading="dashboard.loading.alertDistribution"
-        :error="dashboard.errors.alertDistribution"
-        @retry="dashboard.retry('alertDistribution')"
+        :distribution="alertDistribution"
+        :loading="moduleLoading.alertDistribution"
+        :error="moduleErrors.alertDistribution"
+        @retry="retry('alertDistribution')"
       />
 
       <ProductRankingPanel
-        :items="dashboard.productRanking"
-        :loading="dashboard.loading.productRanking"
-        :error="dashboard.errors.productRanking"
-        @retry="dashboard.retry('productRanking')"
+        :items="productRanking"
+        :loading="moduleLoading.productRanking"
+        :error="moduleErrors.productRanking"
+        @retry="retry('productRanking')"
       />
     </section>
   </section>
