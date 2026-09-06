@@ -5,6 +5,7 @@ import { getAuditLog, listAuditLogs } from '@/api/audit-logs'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useListPage } from '@/composables/usePageData'
 import type { AuditLogSummary } from '@/types/resources'
 import { getApiErrorMessage } from '@/utils/api-error'
@@ -35,6 +36,12 @@ function toApiDateTime(value: string): string {
   return value.length === 16 ? `${value}:00+08:00` : value
 }
 
+function resultTone(value: string): 'success' | 'danger' | 'info' {
+  if (value === 'SUCCESS') return 'success'
+  if (value === 'FAILURE') return 'danger'
+  return 'info'
+}
+
 function resetFilters(): void {
   filters.action = ''
   filters.resourceType = ''
@@ -60,7 +67,7 @@ async function loadDetail(auditLogId: string): Promise<void> {
 
 <template>
   <section class="audit-log-list-page">
-    <PageHeader title="操作日志" description="按操作、资源、结果和时间范围查询审计记录。" />
+    <PageHeader eyebrow="审计追踪" title="操作日志" description="按操作、资源、结果和时间范围查询审计记录。" />
     <PageContext />
     <form class="audit-log-filters" @submit.prevent="loadData">
       <label>操作 <input v-model="filters.action" placeholder="如 CREATE_BATCH" /></label>
@@ -89,7 +96,7 @@ async function loadDetail(auditLogId: string): Promise<void> {
             <td>{{ item.action }}</td>
             <td>{{ item.module }}</td>
             <td>{{ item.resourceType }} / {{ item.resourceId || '—' }}</td>
-            <td>{{ item.result }}</td>
+            <td><StatusBadge :label="item.result" :tone="resultTone(item.result)" /></td>
             <td><button type="button" @click="loadDetail(item.id)">查看详情</button></td>
           </tr>
         </tbody>
