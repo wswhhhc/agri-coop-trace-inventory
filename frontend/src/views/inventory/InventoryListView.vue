@@ -4,7 +4,13 @@ import { computed, reactive, ref } from 'vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
-import { createInventoryReceipt, listInventory, type InventoryReceiptCreatePayload } from '@/api/inventory'
+import {
+  createInventoryIssue,
+  createInventoryReceipt,
+  listInventory,
+  type InventoryIssueCreatePayload,
+  type InventoryReceiptCreatePayload,
+} from '@/api/inventory'
 import { listBatches } from '@/api/batches'
 import { listWarehouses } from '@/api/warehouses'
 import { useListPage, usePageData } from '@/composables/usePageData'
@@ -32,6 +38,16 @@ const form = reactive<InventoryReceiptCreatePayload & { occurredAtInput: string 
   occurredAt: '',
   occurredAtInput: getLocalDateTimeValue(),
   referenceNo: null,
+  remark: null,
+})
+const issueForm = reactive<InventoryIssueCreatePayload & { occurredAtInput: string }>({
+  warehouseId: '',
+  batchId: '',
+  quantity: 0,
+  occurredAt: '',
+  occurredAtInput: getLocalDateTimeValue(),
+  referenceNo: null,
+  destination: null,
   remark: null,
 })
 
@@ -64,6 +80,45 @@ async function handleReceipt(): Promise<void> {
     )
     resetForm()
     successMessage.value = `入库成功，库存结余为 ${result.quantityAfter}。`
+    await loadData()
+  } catch (reason) {
+    formError.value = getApiErrorMessage(reason)
+  } finally {
+    submitting.value = false
+  }
+}
+
+function resetIssueForm(): void {
+  issueForm.warehouseId = ''
+  issueForm.batchId = ''
+  issueForm.quantity = 0
+  issueForm.occurredAt = ''
+  issueForm.occurredAtInput = getLocalDateTimeValue()
+  issueForm.referenceNo = null
+  issueForm.destination = null
+  issueForm.remark = null
+}
+
+async function handleIssue(): Promise<void> {
+  submitting.value = true
+  formError.value = ''
+  successMessage.value = ''
+  try {
+    issueForm.occurredAt = new Date(issueForm.occurredAtInput).toISOString()
+    const result = await createInventoryIssue(
+      {
+        warehouseId: issueForm.warehouseId,
+        batchId: issueForm.batchId,
+        quantity: issueForm.quantity,
+        occurredAt: issueForm.occurredAt,
+        referenceNo: issueForm.referenceNo?.trim() || null,
+        destination: issueForm.destination?.trim() || null,
+        remark: issueForm.remark?.trim() || null,
+      },
+      crypto.randomUUID(),
+    )
+    resetIssueForm()
+    successMessage.value = `出库成功，库存结余为 ${result.quantityAfter}。`
     await loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
@@ -120,6 +175,52 @@ async function handleReceipt(): Promise<void> {
       <p v-if="warehouseState.error || batchState.error" role="alert">
         {{ warehouseState.error || batchState.error }}
       </p>
+      <p v-if="successMessage" role="status">{{ successMessage }}</p>
+    </form>
+    <form v-if="canWrite" class="inventory-issue-form" @submit.prevent="handleIssue">
+      <h2>出库</h2>
+      <label>
+        仓库
+        <select v-model="issueForm.warehouseId" required name="issueWarehouseId">
+          <option value="" disabled>请选择仓库</option>
+          <option v-for="warehouse in warehouseState.data" :key="warehouse.id" :value="warehouse.id">
+            {{ warehouse.name }}（{{ warehouse.code }}）
+          </option>
+        </select>
+      </label>
+      <label>
+        批次
+        <select v-model="issueForm.batchId" required name="issueBatchId">
+          <option value="" disabled>请选择批次</option>
+          <option v-for="batch in batchState.data" :key="batch.id" :value="batch.id">
+            {{ batch.batchNo }}
+          </option>
+        </select>
+      </label>
+      <label>
+        数量
+        <input v-model.number="issueForm.quantity" type="number" min="0.001" step="0.001" required name="issueQuantity" />
+      </label>
+      <label>
+        出库时间
+        <input v-model="issueForm.occurredAtInput" type="datetime-local" required name="issueOccurredAt" />
+      </label>
+      <label>
+        目的地
+        <input v-model="issueForm.destination" maxlength="255" name="destination" />
+      </label>
+      <label>
+        参考单号
+        <input v-model="issueForm.referenceNo" maxlength="100" name="issueReferenceNo" />
+      </label>
+      <label>
+        备注
+        <textarea v-model="issueForm.remark" maxlength="500" name="issueRemark" />
+      </label>
+      <button type="submit" :disabled="submitting || warehouseState.loading || batchState.loading">
+        {{ submitting ? '提交中…' : '确认出库' }}
+      </button>
+      <p v-if="formError" role="alert">{{ formError }}</p>
       <p v-if="successMessage" role="status">{{ successMessage }}</p>
     </form>
     <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">

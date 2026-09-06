@@ -12,6 +12,10 @@ export interface InventoryReceiptCreatePayload {
   remark: string | null
 }
 
+export interface InventoryIssueCreatePayload extends InventoryReceiptCreatePayload {
+  destination: string | null
+}
+
 export interface InventoryReceiptResult {
   transactionId: string
   transactionNo?: string
@@ -40,6 +44,18 @@ export async function createInventoryReceipt(
 ): Promise<InventoryReceiptResult> {
   const response = await http.post<ApiResponse<InventoryReceiptResult>>(
     '/inventory-receipts',
+    payload,
+    { headers: { 'Idempotency-Key': idempotencyKey } },
+  )
+  return response.data.data
+}
+
+export async function createInventoryIssue(
+  payload: InventoryIssueCreatePayload,
+  idempotencyKey: string = crypto.randomUUID(),
+): Promise<InventoryReceiptResult> {
+  const response = await http.post<ApiResponse<InventoryReceiptResult>>(
+    '/inventory-issues',
     payload,
     { headers: { 'Idempotency-Key': idempotencyKey } },
   )
