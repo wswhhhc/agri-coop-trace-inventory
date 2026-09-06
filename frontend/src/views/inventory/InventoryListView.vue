@@ -7,9 +7,11 @@ import PageState from '@/components/common/PageState.vue'
 import {
   createInventoryIssue,
   createInventoryReceipt,
+  createStocktake,
   listInventory,
   type InventoryIssueCreatePayload,
   type InventoryReceiptCreatePayload,
+  type StocktakeCreatePayload,
 } from '@/api/inventory'
 import { listBatches } from '@/api/batches'
 import { listWarehouses } from '@/api/warehouses'
@@ -48,6 +50,15 @@ const issueForm = reactive<InventoryIssueCreatePayload & { occurredAtInput: stri
   occurredAtInput: getLocalDateTimeValue(),
   referenceNo: null,
   destination: null,
+  remark: null,
+})
+const stocktakeForm = reactive<StocktakeCreatePayload & { occurredAtInput: string }>({
+  warehouseId: '',
+  batchId: '',
+  countedQuantity: 0,
+  occurredAt: '',
+  occurredAtInput: getLocalDateTimeValue(),
+  reason: '',
   remark: null,
 })
 
@@ -119,6 +130,43 @@ async function handleIssue(): Promise<void> {
     )
     resetIssueForm()
     successMessage.value = `出库成功，库存结余为 ${result.quantityAfter}。`
+    await loadData()
+  } catch (reason) {
+    formError.value = getApiErrorMessage(reason)
+  } finally {
+    submitting.value = false
+  }
+}
+
+function resetStocktakeForm(): void {
+  stocktakeForm.warehouseId = ''
+  stocktakeForm.batchId = ''
+  stocktakeForm.countedQuantity = 0
+  stocktakeForm.occurredAt = ''
+  stocktakeForm.occurredAtInput = getLocalDateTimeValue()
+  stocktakeForm.reason = ''
+  stocktakeForm.remark = null
+}
+
+async function handleStocktake(): Promise<void> {
+  submitting.value = true
+  formError.value = ''
+  successMessage.value = ''
+  try {
+    stocktakeForm.occurredAt = new Date(stocktakeForm.occurredAtInput).toISOString()
+    const result = await createStocktake(
+      {
+        warehouseId: stocktakeForm.warehouseId,
+        batchId: stocktakeForm.batchId,
+        countedQuantity: stocktakeForm.countedQuantity,
+        occurredAt: stocktakeForm.occurredAt,
+        reason: stocktakeForm.reason.trim(),
+        remark: stocktakeForm.remark?.trim() || null,
+      },
+      crypto.randomUUID(),
+    )
+    resetStocktakeForm()
+    successMessage.value = `盘点完成，差异数量为 ${result.differenceQuantity}。`
     await loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
@@ -219,6 +267,48 @@ async function handleIssue(): Promise<void> {
       </label>
       <button type="submit" :disabled="submitting || warehouseState.loading || batchState.loading">
         {{ submitting ? '提交中…' : '确认出库' }}
+      </button>
+      <p v-if="formError" role="alert">{{ formError }}</p>
+      <p v-if="successMessage" role="status">{{ successMessage }}</p>
+    </form>
+    <form v-if="canWrite" class="inventory-stocktake-form" @submit.prevent="handleStocktake">
+      <h2>盘点</h2>
+      <label>
+        仓库
+        <select v-model="stocktakeForm.warehouseId" required name="stocktakeWarehouseId">
+          <option value="" disabled>请选择仓库</option>
+          <option v-for="warehouse in warehouseState.data" :key="warehouse.id" :value="warehouse.id">
+            {{ warehouse.name }}（{{ warehouse.code }}）
+          </option>
+        </select>
+      </label>
+      <label>
+        批次
+        <select v-model="stocktakeForm.batchId" required name="stocktakeBatchId">
+          <option value="" disabled>请选择批次</option>
+          <option v-for="batch in batchState.data" :key="batch.id" :value="batch.id">
+            {{ batch.batchNo }}
+          </option>
+        </select>
+      </label>
+      <label>
+        实盘数量
+        <input v-model.number="stocktakeForm.countedQuantity" type="number" min="0" step="0.001" required name="countedQuantity" />
+      </label>
+      <label>
+        盘点时间
+        <input v-model="stocktakeForm.occurredAtInput" type="datetime-local" required name="stocktakeOccurredAt" />
+      </label>
+      <label>
+        原因
+        <input v-model="stocktakeForm.reason" maxlength="500" required name="reason" />
+      </label>
+      <label>
+        备注
+        <textarea v-model="stocktakeForm.remark" maxlength="500" name="stocktakeRemark" />
+      </label>
+      <button type="submit" :disabled="submitting || warehouseState.loading || batchState.loading">
+        {{ submitting ? '提交中…' : '确认盘点' }}
       </button>
       <p v-if="formError" role="alert">{{ formError }}</p>
       <p v-if="successMessage" role="status">{{ successMessage }}</p>

@@ -16,11 +16,28 @@ export interface InventoryIssueCreatePayload extends InventoryReceiptCreatePaylo
   destination: string | null
 }
 
+export interface StocktakeCreatePayload {
+  warehouseId: string
+  batchId: string
+  countedQuantity: number
+  occurredAt: string
+  reason: string
+  remark: string | null
+}
+
 export interface InventoryReceiptResult {
   transactionId: string
   transactionNo?: string
   quantityBefore?: number
   quantityAfter: number
+}
+
+export interface StocktakeResult {
+  operationId?: string
+  transactionId: string
+  bookQuantity: number
+  countedQuantity: number
+  differenceQuantity: number
 }
 
 export async function listInventory(): Promise<InventorySummary[]> {
@@ -56,6 +73,18 @@ export async function createInventoryIssue(
 ): Promise<InventoryReceiptResult> {
   const response = await http.post<ApiResponse<InventoryReceiptResult>>(
     '/inventory-issues',
+    payload,
+    { headers: { 'Idempotency-Key': idempotencyKey } },
+  )
+  return response.data.data
+}
+
+export async function createStocktake(
+  payload: StocktakeCreatePayload,
+  idempotencyKey: string = crypto.randomUUID(),
+): Promise<StocktakeResult> {
+  const response = await http.post<ApiResponse<StocktakeResult>>(
+    '/stocktakes',
     payload,
     { headers: { 'Idempotency-Key': idempotencyKey } },
   )

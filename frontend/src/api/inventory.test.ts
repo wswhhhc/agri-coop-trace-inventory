@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { createInventoryIssue, createInventoryReceipt } from './inventory'
+import { createInventoryIssue, createInventoryReceipt, createStocktake } from './inventory'
 
 vi.mock('./http', () => ({
   default: { post: vi.fn() },
@@ -54,6 +54,30 @@ describe('inventory api', () => {
     })
     expect(http.post).toHaveBeenCalledWith('/inventory-issues', payload, {
       headers: { 'Idempotency-Key': 'idempotency-2' },
+    })
+  })
+
+  it('creates a stocktake with a counted quantity and reason', async () => {
+    const payload = {
+      warehouseId: 'warehouse-1',
+      batchId: 'batch-1',
+      countedQuantity: 110,
+      occurredAt: '2026-09-06T12:00:00.000Z',
+      reason: '月度盘点',
+      remark: null,
+    }
+    vi.mocked(http.post).mockResolvedValueOnce({
+      data: { data: { transactionId: 'transaction-3', bookQuantity: 115, countedQuantity: 110, differenceQuantity: -5 } },
+    })
+
+    await expect(createStocktake(payload, 'idempotency-3')).resolves.toEqual({
+      transactionId: 'transaction-3',
+      bookQuantity: 115,
+      countedQuantity: 110,
+      differenceQuantity: -5,
+    })
+    expect(http.post).toHaveBeenCalledWith('/stocktakes', payload, {
+      headers: { 'Idempotency-Key': 'idempotency-3' },
     })
   })
 })
