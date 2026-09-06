@@ -206,3 +206,88 @@ async function handleUpdate(): Promise<void> {
     </PageState>
   </section>
 </template>
+
+<style scoped>
+.warehouse-list-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.warehouse-list-page > .page-state {
+  overflow-x: auto;
+}
+
+.warehouse-list-page > .page-state table {
+  min-width: 50rem;
+}
+
+.warehouse-create-form,
+.warehouse-edit-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.warehouse-create-form h2,
+.warehouse-edit-form h2 {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+  font-size: var(--font-size-lg);
+}
+
+.warehouse-create-form > label,
+.warehouse-edit-form > label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.warehouse-create-form > p,
+.warehouse-edit-form > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.warehouse-create-form > p[role='alert'],
+.warehouse-edit-form > p[role='alert'] {
+  color: var(--color-danger);
+}
+
+.warehouse-create-form > p[role='status'],
+.warehouse-edit-form > p[role='status'] {
+  color: var(--color-success);
+}
+
+.warehouse-create-form > button,
+.warehouse-edit-form > button {
+  justify-self: start;
+}
+
+@media (max-width: 48rem) {
+  .warehouse-create-form,
+  .warehouse-edit-form {
+    grid-template-columns: 1fr;
+    padding: var(--space-4);
+  }
+
+  .warehouse-create-form h2,
+  .warehouse-edit-form h2,
+  .warehouse-create-form > p,
+  .warehouse-edit-form > p {
+    grid-column: auto;
+  }
+
+  .warehouse-create-form > button,
+  .warehouse-edit-form > button {
+    justify-self: stretch;
+  }
+}
+</style>

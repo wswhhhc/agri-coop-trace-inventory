@@ -217,3 +217,88 @@ async function handleUpdate(): Promise<void> {
     </PageState>
   </section>
 </template>
+
+<style scoped>
+.cooperative-list-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.cooperative-list-page > .page-state {
+  overflow-x: auto;
+}
+
+.cooperative-list-page > .page-state table {
+  min-width: 48rem;
+}
+
+.cooperative-create-form,
+.cooperative-edit-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.cooperative-create-form h2,
+.cooperative-edit-form h2 {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+  font-size: var(--font-size-lg);
+}
+
+.cooperative-create-form > label,
+.cooperative-edit-form > label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.cooperative-create-form > p,
+.cooperative-edit-form > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.cooperative-create-form > p[role='alert'],
+.cooperative-edit-form > p[role='alert'] {
+  color: var(--color-danger);
+}
+
+.cooperative-create-form > p[role='status'],
+.cooperative-edit-form > p[role='status'] {
+  color: var(--color-success);
+}
+
+.cooperative-create-form > button,
+.cooperative-edit-form > button {
+  justify-self: start;
+}
+
+@media (max-width: 48rem) {
+  .cooperative-create-form,
+  .cooperative-edit-form {
+    grid-template-columns: 1fr;
+    padding: var(--space-4);
+  }
+
+  .cooperative-create-form h2,
+  .cooperative-edit-form h2,
+  .cooperative-create-form > p,
+  .cooperative-edit-form > p {
+    grid-column: auto;
+  }
+
+  .cooperative-create-form > button,
+  .cooperative-edit-form > button {
+    justify-self: stretch;
+  }
+}
+</style>

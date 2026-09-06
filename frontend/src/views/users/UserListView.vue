@@ -315,3 +315,88 @@ async function handleResetPassword(): Promise<void> {
     </PageState>
   </section>
 </template>
+
+<style scoped>
+.user-list-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.user-list-page > .page-state {
+  overflow-x: auto;
+}
+
+.user-list-page > .page-state table {
+  min-width: 64rem;
+}
+
+.user-create-form,
+.user-edit-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.user-create-form h2,
+.user-edit-form h2 {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+  font-size: var(--font-size-lg);
+}
+
+.user-create-form > label,
+.user-edit-form > label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.user-create-form > p,
+.user-edit-form > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.user-create-form > p[role='alert'],
+.user-edit-form > p[role='alert'] {
+  color: var(--color-danger);
+}
+
+.user-create-form > p[role='status'],
+.user-edit-form > p[role='status'] {
+  color: var(--color-success);
+}
+
+.user-create-form > button,
+.user-edit-form > button {
+  justify-self: start;
+}
+
+@media (max-width: 48rem) {
+  .user-create-form,
+  .user-edit-form {
+    grid-template-columns: 1fr;
+    padding: var(--space-4);
+  }
+
+  .user-create-form h2,
+  .user-edit-form h2,
+  .user-create-form > p,
+  .user-edit-form > p {
+    grid-column: auto;
+  }
+
+  .user-create-form > button,
+  .user-edit-form > button {
+    justify-self: stretch;
+  }
+}
+</style>
