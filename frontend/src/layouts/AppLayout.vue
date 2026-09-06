@@ -1,19 +1,38 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+
 import AppBreadcrumb from '@/components/common/AppBreadcrumb.vue'
 import PageContainer from '@/components/common/PageContainer.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
+
+const sidebarOpen = ref(false)
+
+function toggleSidebar(): void {
+  sidebarOpen.value = !sidebarOpen.value
+}
+
+function closeSidebar(): void {
+  sidebarOpen.value = false
+}
 </script>
 
 <template>
   <div class="app-layout">
-    <AppSidebar />
+    <AppSidebar :open="sidebarOpen" @close="closeSidebar" />
     <div class="app-layout__main">
-      <AppHeader />
+      <AppHeader @toggle-sidebar="toggleSidebar" />
       <AppBreadcrumb />
       <PageContainer>
         <RouterView />
       </PageContainer>
     </div>
+    <button
+      v-if="sidebarOpen"
+      class="app-layout__scrim"
+      type="button"
+      aria-label="关闭导航"
+      @click="closeSidebar"
+    />
   </div>
 </template>

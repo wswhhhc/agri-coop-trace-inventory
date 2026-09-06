@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
 import ThemeSwitcher from '@/components/common/ThemeSwitcher.vue'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
+
+const emit = defineEmits<{
+  toggleSidebar: []
+}>()
 
 async function handleLogout(): Promise<void> {
   try {
@@ -20,6 +25,22 @@ async function handleLogout(): Promise<void> {
 
 <template>
   <header class="app-header">
+    <button
+      class="app-header__menu-button"
+      type="button"
+      aria-label="打开导航"
+      @click="emit('toggleSidebar')"
+    >
+      <span class="app-header__menu-icon" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </span>
+    </button>
+    <div class="app-header__context">
+      <span>农业数字化运营平台</span>
+      <strong>{{ route.meta.title }}</strong>
+    </div>
     <div class="app-header__user" aria-label="当前用户信息">
       <span class="app-header__display-name">{{ authStore.user?.displayName }}</span>
       <span class="app-header__role">{{ authStore.role }}</span>
