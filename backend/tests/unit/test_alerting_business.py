@@ -80,3 +80,4 @@ def test_alerting_router_is_registered() -> None:
     assert "/api/v1/alert-rules/{ruleId}" in paths
     assert "/api/v1/alerts" in paths
     assert "/api/v1/alerts/{alertId}" in paths
+    assert "/api/v1/alert-scan-tasks" in paths

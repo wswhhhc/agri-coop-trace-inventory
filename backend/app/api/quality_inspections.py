@@ -21,6 +21,7 @@ from app.schemas.quality_inspection import (
     QualityInspectionItemData,
     QualityInspectionListParams,
 )
+from app.services.alerting import AlertingQualityIntegration
 from app.services.quality_inspection import QualityInspectionService
 from app.services.traceability import TraceabilityCache
 
@@ -35,7 +36,9 @@ def get_quality_inspection_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     cache: Annotated[TraceabilityCache, Depends(get_traceability_cache)],
 ) -> QualityInspectionService:
-    return QualityInspectionService(session, cache=cache)
+    return QualityInspectionService(
+        session, integration=AlertingQualityIntegration(session), cache=cache
+    )
 
 
 def _quality_inspection_data(

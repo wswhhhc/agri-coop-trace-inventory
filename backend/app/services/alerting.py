@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +18,8 @@ from app.models import (
     AlertStatus,
     AlertType,
     QualityInspection,
+    TaskRecord,
+    TaskStatus,
 )
 from app.repositories.alerting import AlertingRepository
 from app.schemas.alerting import AlertListParams, AlertRuleUpdate, AlertStatusUpdate
@@ -25,6 +28,7 @@ from app.services.alerting_policy import (
     require_alert_handle,
     require_alert_read,
     require_rule_manage,
+    require_scan_submit,
     warehouse_ids_for_query,
 )
 
@@ -175,6 +179,66 @@ class AlertingService:
                     created_count += 1
         return created_count
 
+    async def submit_scan(self, context: AuthContext, enqueue: Callable[..., object]) -> TaskRecord:
+        require_scan_submit(context)
+        celery_task_id = str(uuid4())
+        async with transaction_scope(self.session):
+            record = TaskRecord(
+                cooperative_id=context.cooperative_id,
+                task_type="ALERT_SCAN",
+                celery_task_id=celery_task_id,
+                status=TaskStatus.PENDING,
+                requested_by=context.user_id,
+                request_payload={"cooperativeId": str(context.cooperative_id) if context.cooperative_id else None},
+            )
+            self.session.add(record)
+            await self.session.flush()
+        try:
+            enqueue(
+                args=[str(context.cooperative_id)] if context.cooperative_id else [],
+                kwargs={"task_record_id": str(record.id)},
+                task_id=celery_task_id,
+            )
+        except Exception as error:
+            async with transaction_scope(self.session):
+                failed = await self.session.get(TaskRecord, record.id, with_for_update=True)
+                if failed is not None:
+                    failed.status = TaskStatus.FAILURE
+                    failed.error_code = "TASK_SUBMIT_FAILED"
+                    failed.error_message = str(error)[:500]
+            raise
+        return record
+
+    async def create_quality_alerts(self, inspection: QualityInspection) -> int:
+        """在质检所属事务内追加不合格预警，不自行提交事务。"""
+        created_count = 0
+        rules = await self.repository.list_enabled_rules(inspection.cooperative_id)
+        for rule in rules:
+            if rule.alert_type is not AlertType.QUALITY_FAILED:
+                continue
+            evaluation = evaluate_quality_rule(rule, inspection)
+            if evaluation is None or await self.repository.get_active_by_dedupe(
+                inspection.cooperative_id, evaluation.dedupe_key
+            ):
+                continue
+            await self.repository.add_alert(
+                Alert(
+                    cooperative_id=inspection.cooperative_id,
+                    rule_id=rule.id,
+                    alert_type=evaluation.alert_type,
+                    severity=evaluation.severity,
+                    status=AlertStatus.PENDING,
+                    batch_id=evaluation.batch_id,
+                    dedupe_key=evaluation.dedupe_key,
+                    title=evaluation.title,
+                    message=evaluation.message,
+                    evidence=evaluation.evidence,
+                    detected_at=inspection.inspected_at,
+                )
+            )
+            created_count += 1
+        return created_count
+
 
 def _rule_matches_inventory(rule: AlertRule, inventory) -> bool:
     if rule.cooperative_id != inventory.cooperative_id:
@@ -184,4 +248,21 @@ def _rule_matches_inventory(rule: AlertRule, inventory) -> bool:
     return rule.product_id is None or rule.product_id == inventory.batch.product_id
 
 
-__all__ = ["AlertingService", "allowed_status_transitions"]
+class AlertingQualityIntegration:
+    """质检事务内的预警适配器。"""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self.service = AlertingService(session)
+
+    async def inspection_created(self, inspection: QualityInspection) -> None:
+        return None
+
+    async def quality_failed(self, inspection: QualityInspection) -> None:
+        await self.service.create_quality_alerts(inspection)
+
+
+__all__ = [
+    "AlertingQualityIntegration",
+    "AlertingService",
+    "allowed_status_transitions",
+]

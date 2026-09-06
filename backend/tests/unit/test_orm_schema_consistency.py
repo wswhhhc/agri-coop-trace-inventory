@@ -218,6 +218,11 @@ ORM_TABLE_COLUMNS = {
     "alert_handling_logs": {
         "id", "alert_id", "operator_id", "from_status", "to_status", "comment", "created_at",
     },
+    "task_records": {
+        "id", "cooperative_id", "task_type", "celery_task_id", "status", "progress",
+        "request_payload", "result_payload", "error_code", "error_message", "requested_by",
+        "started_at", "finished_at", "created_at", "updated_at",
+    },
 }
 
 
@@ -320,6 +325,16 @@ def test_target_tables_have_foreign_keys_and_expected_indexes() -> None:
     assert {
         index.name for index in Base.metadata.tables["alert_handling_logs"].indexes
     } == {"ix_alert_handling_logs_alert_time"}
+    assert {
+        foreign_key.target_fullname
+        for foreign_key in Base.metadata.tables["task_records"].foreign_keys
+    } == {"cooperatives.id", "users.id"}
+    assert {
+        index.name for index in Base.metadata.tables["task_records"].indexes
+    } == {"ix_task_records_cooperative_created"}
+    assert {
+        constraint.name for constraint in Base.metadata.tables["task_records"].constraints
+    } >= {"uq_task_records_celery_id"}
 
 
 @pytest.mark.asyncio

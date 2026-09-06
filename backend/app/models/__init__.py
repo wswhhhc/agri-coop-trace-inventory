@@ -18,6 +18,7 @@ from app.models.enums import (
     InventoryRisk,
     InventoryTransactionType,
     SortDirection,
+    TaskStatus,
     TraceEventType,
     UserStatus,
     WarehouseStatus,
@@ -35,6 +36,7 @@ from app.models.quality_inspection import QualityInspection
 from app.models.quality_inspection_item import QualityInspectionItem
 from app.models.role import Role
 from app.models.role_permission import role_permissions
+from app.models.task_record import TaskRecord
 from app.models.trace_event import TraceEvent
 from app.models.user import SYSTEM_ADMIN_ROLE_CODE, User
 from app.models.user_warehouse import UserWarehouse
@@ -73,6 +75,8 @@ __all__ = [
     "QualityInspectionItem",
     "Role",
     "SortDirection",
+    "TaskRecord",
+    "TaskStatus",
     "TraceEvent",
     "TraceEventType",
     "User",

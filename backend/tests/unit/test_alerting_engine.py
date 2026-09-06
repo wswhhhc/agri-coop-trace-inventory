@@ -104,3 +104,22 @@ def test_scan_creates_each_active_dedupe_key_only_once(monkeypatch) -> None:
 
     assert asyncio.run(service.scan(cooperative_id)) == 1
     assert asyncio.run(service.scan(cooperative_id)) == 0
+
+
+def test_quality_integration_uses_current_transaction(monkeypatch) -> None:
+    from app.services.alerting import AlertingQualityIntegration
+
+    calls = []
+
+    async def fake_create(self, inspection):
+        calls.append(inspection)
+        return 1
+
+    monkeypatch.setattr("app.services.alerting.AlertingService.create_quality_alerts", fake_create)
+    inspection = SimpleNamespace(id=uuid4())
+    integration = AlertingQualityIntegration(object())
+
+    import asyncio
+
+    asyncio.run(integration.quality_failed(inspection))
+    assert calls == [inspection]

@@ -92,10 +92,28 @@ class AlertData(BaseSchema):
     handling_logs: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class TaskData(BaseSchema):
+    id: UUID
+    cooperative_id: UUID | None
+    task_type: str
+    celery_task_id: str
+    status: str
+    progress: int
+    result_payload: dict[str, Any] | None
+    error_code: str | None
+    error_message: str | None
+    requested_by: UUID | None
+    started_at: AwareDatetime | None
+    finished_at: AwareDatetime | None
+    created_at: AwareDatetime
+    updated_at: AwareDatetime
+
+
 __all__ = [
     "AlertData",
     "AlertListParams",
     "AlertRuleData",
     "AlertRuleUpdate",
     "AlertStatusUpdate",
+    "TaskData",
 ]

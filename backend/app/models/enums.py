@@ -100,6 +100,14 @@ class AlertStatus(StrEnum):
     IGNORED = "IGNORED"
 
 
+class TaskStatus(StrEnum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    SUCCESS = "SUCCESS"
+    FAILURE = "FAILURE"
+    RETRY = "RETRY"
+
+
 class IdempotencyStatus(StrEnum):
     PROCESSING = "PROCESSING"
     COMPLETED = "COMPLETED"
@@ -119,6 +127,7 @@ __all__ = [
     "InventoryRisk",
     "InventoryTransactionType",
     "SortDirection",
+    "TaskStatus",
     "TraceEventType",
     "UserStatus",
     "WarehouseStatus",

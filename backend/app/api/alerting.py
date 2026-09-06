@@ -16,9 +16,11 @@ from app.schemas.alerting import (
     AlertRuleData,
     AlertRuleUpdate,
     AlertStatusUpdate,
+    TaskData,
 )
 from app.schemas.common import ApiResponse, ListResponse
 from app.services.alerting import AlertingService
+from app.tasks.alerting_tasks import scan_alerts_task
 
 router = APIRouter(tags=["alerting"])
 
@@ -112,6 +114,34 @@ async def update_alert(
     service: Annotated[AlertingService, Depends(get_alerting_service)],
 ) -> ApiResponse[AlertData]:
     return ApiResponse(data=_alert_data(await service.update_alert(context, alert_id, payload)))
+
+
+def _task_data(record) -> TaskData:
+    return TaskData(
+        id=record.id,
+        cooperative_id=record.cooperative_id,
+        task_type=record.task_type,
+        celery_task_id=record.celery_task_id,
+        status=record.status,
+        progress=record.progress,
+        result_payload=record.result_payload,
+        error_code=record.error_code,
+        error_message=record.error_message,
+        requested_by=record.requested_by,
+        started_at=record.started_at,
+        finished_at=record.finished_at,
+        created_at=record.created_at,
+        updated_at=record.updated_at,
+    )
+
+
+@router.post("/alert-scan-tasks", response_model=ApiResponse[TaskData], status_code=202)
+async def submit_alert_scan_task(
+    context: CurrentAuthContext,
+    service: Annotated[AlertingService, Depends(get_alerting_service)],
+) -> ApiResponse[TaskData]:
+    record = await service.submit_scan(context, scan_alerts_task.apply_async)
+    return ApiResponse(data=_task_data(record))
 
 
 __all__ = ["get_alerting_service", "router"]

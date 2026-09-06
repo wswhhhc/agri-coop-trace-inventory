@@ -12,6 +12,8 @@ from app.models import (
     AlertStatus,
     AlertType,
     Base,
+    TaskRecord,
+    TaskStatus,
 )
 from app.schemas.alerting import AlertRuleUpdate, AlertStatusUpdate
 from pydantic import ValidationError
@@ -74,3 +76,12 @@ def test_alert_model_has_expected_defaults() -> None:
     )
     assert Alert.__table__.c.status.default.arg is AlertStatus.PENDING
     assert callable(Alert.__table__.c.evidence.default.arg)
+
+
+def test_task_record_model_matches_task_table_contract() -> None:
+    assert {
+        "id", "cooperative_id", "task_type", "celery_task_id", "status", "progress",
+        "request_payload", "result_payload", "error_code", "error_message", "requested_by",
+        "started_at", "finished_at", "created_at", "updated_at",
+    } == {column.name for column in inspect(TaskRecord).columns}
+    assert inspect(TaskRecord).columns.status.type.enum_class is TaskStatus  # type: ignore[attr-defined]
