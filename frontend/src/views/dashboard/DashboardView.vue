@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import { listForecastResults } from '@/api/forecasting'
 import DashboardFilters from '@/components/dashboard/DashboardFilters.vue'
 import AlertDistributionPanel from '@/components/dashboard/AlertDistributionPanel.vue'
 import DashboardSummary from '@/components/dashboard/DashboardSummary.vue'
@@ -10,6 +11,7 @@ import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import { useDashboard } from '@/composables/useDashboard'
+import { usePageData } from '@/composables/usePageData'
 import type { DashboardQueryParams } from '@/types/dashboard'
 
 const {
@@ -22,6 +24,7 @@ const {
   loadDashboard,
   retry,
 } = useDashboard()
+const forecastState = usePageData(listForecastResults, [])
 const loading = computed(() => Object.values(moduleLoading).some(Boolean))
 
 function handleSearch(params: DashboardQueryParams): void {
@@ -69,6 +72,37 @@ function handleSearch(params: DashboardQueryParams): void {
         :error="moduleErrors.productRanking"
         @retry="retry('productRanking')"
       />
+
+      <section class="dashboard-module dashboard-module--forecast">
+        <h2>需求预测对比</h2>
+        <PageState
+          :loading="forecastState.loading"
+          :error="forecastState.error"
+          :empty="forecastState.data.length === 0"
+          empty-message="暂无预测结果"
+          @retry="forecastState.loadData"
+        >
+          <table>
+            <caption>预测需求、当前库存与建议补货</caption>
+            <thead>
+              <tr>
+                <th scope="col">预测区间</th>
+                <th scope="col">预测需求</th>
+                <th scope="col">当前库存</th>
+                <th scope="col">建议补货</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in forecastState.data" :key="item.id">
+                <td>{{ item.forecastStartDate }} ～ {{ item.forecastEndDate }}</td>
+                <td>{{ item.predictedDemand }}</td>
+                <td>{{ item.currentStock }}</td>
+                <td>{{ item.recommendedReplenishment }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </PageState>
+      </section>
     </section>
   </section>
 </template>
