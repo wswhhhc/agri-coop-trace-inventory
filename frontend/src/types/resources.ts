@@ -192,6 +192,24 @@ export interface AlertRuleSummary {
   isEnabled: boolean
 }
 
+export interface AlertDetailSummary extends AlertSummary {
+  ruleId: string | null
+  warehouseId: string | null
+  productId: string | null
+  batchId: string | null
+  evidence: Record<string, unknown>
+  resolvedAt: string | null
+  assigneeId: string | null
+  handlingLogs: Array<{
+    id: string
+    operatorId: string
+    fromStatus: string
+    toStatus: string
+    comment: string | null
+    createdAt: string
+  }>
+}
+
 export interface ForecastSummary {
   id: string
   warehouseId: string

@@ -1,5 +1,5 @@
 import type { ApiResponse, ListResponse } from '@/types/api'
-import type { AlertRuleSummary, AlertSummary } from '@/types/resources'
+import type { AlertDetailSummary, AlertRuleSummary, AlertSummary } from '@/types/resources'
 
 import http from './http'
 
@@ -22,6 +22,11 @@ export async function listAlertRules(): Promise<AlertRuleSummary[]> {
   const response = await http.get<ListResponse<AlertRuleSummary>>('/alert-rules', {
     params: { page: 1, pageSize: 100 },
   })
+  return response.data.data
+}
+
+export async function getAlert(alertId: string): Promise<AlertDetailSummary> {
+  const response = await http.get<ApiResponse<AlertDetailSummary>>(`/alerts/${alertId}`)
   return response.data.data
 }
 

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { listAlertRules, updateAlertRule } from './alerts'
+import { getAlert, listAlertRules, updateAlertRule } from './alerts'
 
 vi.mock('./http', () => ({
   default: { get: vi.fn(), patch: vi.fn() },
@@ -32,5 +32,29 @@ describe('alerts api', () => {
       severity: 'HIGH',
     })
     expect(http.patch).toHaveBeenCalledWith('/alert-rules/rule-1', payload)
+  })
+
+  it('gets alert detail', async () => {
+    const detail = {
+      id: 'alert-1',
+      alertType: 'LOW_STOCK',
+      severity: 'HIGH',
+      status: 'PENDING',
+      title: '库存不足',
+      message: '库存低于安全库存',
+      detectedAt: '2026-09-06T10:00:00.000Z',
+      ruleId: 'rule-1',
+      warehouseId: 'warehouse-1',
+      productId: 'product-1',
+      batchId: null,
+      evidence: { availableQuantity: 3 },
+      resolvedAt: null,
+      assigneeId: null,
+      handlingLogs: [],
+    }
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: detail } })
+
+    await expect(getAlert('alert-1')).resolves.toEqual(detail)
+    expect(http.get).toHaveBeenCalledWith('/alerts/alert-1')
   })
 })

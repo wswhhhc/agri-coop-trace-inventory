@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
-import { listAlertRules, updateAlertRule } from '@/api/alerts'
+import { getAlert, listAlertRules, listAlerts, updateAlertRule } from '@/api/alerts'
 import type { AlertRuleUpdatePayload } from '@/api/alerts'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import { useListPage } from '@/composables/usePageData'
+import { usePageData } from '@/composables/usePageData'
+import type { AlertDetailSummary } from '@/types/resources'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 
 const { items, loading, error, loadData } = useListPage(listAlertRules)
+const alertState = usePageData(listAlerts, [])
 const authStore = useAuthStore()
 const canEditRules = computed(
   () => authStore.role === 'COOPERATIVE_ADMIN' && authStore.hasPermission('alert:read'),
@@ -19,6 +22,9 @@ const editingRuleId = ref<string | null>(null)
 const submitting = ref(false)
 const formError = ref('')
 const successMessage = ref('')
+const selectedAlert = ref<AlertDetailSummary | null>(null)
+const alertDetailLoading = ref(false)
+const alertDetailError = ref('')
 const editForm = reactive({
   thresholdQuantity: '',
   thresholdDays: '',
@@ -27,6 +33,18 @@ const editForm = reactive({
   isEnabled: true,
 })
 const severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+
+async function loadAlertDetail(alertId: string): Promise<void> {
+  alertDetailLoading.value = true
+  alertDetailError.value = ''
+  try {
+    selectedAlert.value = await getAlert(alertId)
+  } catch (reason) {
+    alertDetailError.value = getApiErrorMessage(reason, '预警详情加载失败')
+  } finally {
+    alertDetailLoading.value = false
+  }
+}
 
 function beginEdit(rule: (typeof items.value)[number]): void {
   editingRuleId.value = rule.id
@@ -112,6 +130,59 @@ async function handleUpdate(): Promise<void> {
         </tbody>
       </table>
     </PageState>
+
+    <section class="alert-instance-list">
+      <h2>预警实例</h2>
+      <PageState
+        :loading="alertState.loading"
+        :error="alertState.error"
+        :empty="alertState.data.length === 0"
+        empty-message="暂无预警实例"
+        @retry="alertState.loadData"
+      >
+        <table>
+          <caption>预警实例列表</caption>
+          <thead>
+            <tr>
+              <th scope="col">标题</th>
+              <th scope="col">类型</th>
+              <th scope="col">级别</th>
+              <th scope="col">状态</th>
+              <th scope="col">检测时间</th>
+              <th scope="col">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="alert in alertState.data" :key="alert.id">
+              <td>{{ alert.title }}</td>
+              <td>{{ alert.alertType }}</td>
+              <td>{{ alert.severity }}</td>
+              <td>{{ alert.status }}</td>
+              <td>{{ alert.detectedAt }}</td>
+              <td><button type="button" @click="loadAlertDetail(alert.id)">查看详情</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </PageState>
+    </section>
+
+    <aside v-if="alertDetailLoading || alertDetailError || selectedAlert" class="alert-detail">
+      <h2>预警详情</h2>
+      <p v-if="alertDetailLoading">详情加载中…</p>
+      <p v-else-if="alertDetailError" role="alert">{{ alertDetailError }}</p>
+      <dl v-else-if="selectedAlert">
+        <div><dt>标题</dt><dd>{{ selectedAlert.title }}</dd></div>
+        <div><dt>类型</dt><dd>{{ selectedAlert.alertType }}</dd></div>
+        <div><dt>级别</dt><dd>{{ selectedAlert.severity }}</dd></div>
+        <div><dt>状态</dt><dd>{{ selectedAlert.status }}</dd></div>
+        <div><dt>说明</dt><dd>{{ selectedAlert.message }}</dd></div>
+        <div><dt>仓库</dt><dd>{{ selectedAlert.warehouseId || '—' }}</dd></div>
+        <div><dt>产品</dt><dd>{{ selectedAlert.productId || '—' }}</dd></div>
+        <div><dt>批次</dt><dd>{{ selectedAlert.batchId || '—' }}</dd></div>
+        <div><dt>证据</dt><dd><pre>{{ JSON.stringify(selectedAlert.evidence, null, 2) }}</pre></dd></div>
+        <div><dt>检测时间</dt><dd>{{ selectedAlert.detectedAt }}</dd></div>
+      </dl>
+    </aside>
 
     <form v-if="canEditRules && editingRuleId" class="alert-rule-edit-form" @submit.prevent="handleUpdate">
       <h2>编辑预警规则</h2>
