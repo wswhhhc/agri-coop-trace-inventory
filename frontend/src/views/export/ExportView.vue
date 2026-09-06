@@ -84,7 +84,7 @@ async function handleDownload(): Promise<void> {
 
 <template>
   <section class="export-page">
-    <PageHeader title="报表导出" description="按条件生成库存或预警明细报表。" />
+    <PageHeader eyebrow="数据服务" title="报表导出" description="按条件生成库存或预警明细报表。" />
     <PageContext />
     <p v-if="!canExport" role="alert">仅合作社管理员可以生成报表。</p>
     <form v-else @submit.prevent="handleSubmit">
