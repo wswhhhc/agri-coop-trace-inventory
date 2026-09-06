@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { getExportTask, submitExportTask } from './export'
+import { downloadExportFile, getExportTask, submitExportTask } from './export'
 
 vi.mock('./http', () => ({
   default: { get: vi.fn(), post: vi.fn() },
@@ -30,5 +30,13 @@ describe('export api', () => {
 
     await expect(getExportTask('task-1')).resolves.toMatchObject({ status: 'SUCCESS' })
     expect(http.get).toHaveBeenCalledWith('/tasks/task-1')
+  })
+
+  it('downloads an export file as a blob', async () => {
+    const blob = new Blob(['file'])
+    vi.mocked(http.get).mockResolvedValueOnce({ data: blob })
+
+    await expect(downloadExportFile('task-1')).resolves.toBe(blob)
+    expect(http.get).toHaveBeenCalledWith('/export-files/task-1', { responseType: 'blob' })
   })
 })

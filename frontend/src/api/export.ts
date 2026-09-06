@@ -21,3 +21,8 @@ export async function getExportTask(taskId: string): Promise<TaskSummary> {
   const response = await http.get<ApiResponse<TaskSummary>>(`/tasks/${taskId}`)
   return response.data.data
 }
+
+export async function downloadExportFile(taskId: string): Promise<Blob> {
+  const response = await http.get<Blob>(`/export-files/${taskId}`, { responseType: 'blob' })
+  return response.data
+}

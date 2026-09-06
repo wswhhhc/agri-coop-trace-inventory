@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
-import { getExportTask, submitExportTask } from '@/api/export'
+import { downloadExportFile, getExportTask, submitExportTask } from '@/api/export'
 import { listWarehouses } from '@/api/warehouses'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -20,6 +20,8 @@ const canExport = computed(
 const submitting = ref(false)
 const error = ref('')
 const task = ref<TaskSummary | null>(null)
+const downloading = ref(false)
+const downloadError = ref('')
 const form = reactive({
   reportType: 'INVENTORY_DETAIL' as 'INVENTORY_DETAIL' | 'ALERT_DETAIL',
   warehouseId: '',
@@ -55,6 +57,28 @@ async function handleSubmit(): Promise<void> {
     submitting.value = false
   }
 }
+
+async function handleDownload(): Promise<void> {
+  if (!task.value) return
+  downloading.value = true
+  downloadError.value = ''
+  try {
+    const blob = await downloadExportFile(task.value.id)
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download =
+      typeof task.value.resultPayload?.filename === 'string'
+        ? task.value.resultPayload.filename
+        : 'export.xlsx'
+    link.click()
+    window.URL.revokeObjectURL(url)
+  } catch (reason) {
+    downloadError.value = getApiErrorMessage(reason, '导出文件下载失败')
+  } finally {
+    downloading.value = false
+  }
+}
 </script>
 
 <template>
@@ -84,7 +108,16 @@ async function handleSubmit(): Promise<void> {
       <button type="submit" :disabled="submitting">{{ submitting ? '生成中…' : '生成报表' }}</button>
     </form>
     <p v-if="task" role="status">任务状态：{{ task.status }}，进度 {{ task.progress }}%</p>
+    <button
+      v-if="task?.status === 'SUCCESS'"
+      type="button"
+      :disabled="downloading"
+      @click="handleDownload"
+    >
+      {{ downloading ? '下载中…' : '下载文件' }}
+    </button>
     <p v-if="task?.errorMessage" role="alert">{{ task.errorMessage }}</p>
     <p v-if="error" role="alert">{{ error }}</p>
+    <p v-if="downloadError" role="alert">{{ downloadError }}</p>
   </section>
 </template>
