@@ -79,6 +79,11 @@ export const menuItems: MenuItem[] = [
     roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
     permissions: ['audit:read'],
   },
+  {
+    title: '报表导出',
+    path: '/export',
+    roles: ['COOPERATIVE_ADMIN'],
+  },
 ]
 
 export function filterMenuItems(items: MenuItem[], subject: AccessSubject): MenuItem[] {

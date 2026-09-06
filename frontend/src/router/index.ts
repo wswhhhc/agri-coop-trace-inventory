@@ -171,6 +171,16 @@ const router = createRouter({
           },
         },
         {
+          path: 'export',
+          name: 'export',
+          component: () => import('@/views/export/ExportView.vue'),
+          meta: {
+            requiresAuth: true,
+            title: '报表导出',
+            roles: ['COOPERATIVE_ADMIN'],
+          },
+        },
+        {
           path: '403',
           name: 'forbidden',
           component: () => import('@/views/error/ForbiddenView.vue'),
