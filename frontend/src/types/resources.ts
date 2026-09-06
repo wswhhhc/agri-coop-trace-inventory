@@ -221,6 +221,28 @@ export interface ForecastSummary {
   generatedAt: string
 }
 
+export interface ForecastPointSummary {
+  id: string
+  forecastResultId: string
+  forecastDate: string
+  predictedQuantity: number
+  lowerBound: number
+  upperBound: number
+}
+
+export interface ForecastResultDetailSummary extends ForecastSummary {
+  cooperativeId: string
+  modelVersionId: string
+  taskId: string | null
+  forecastStartDate: string
+  forecastEndDate: string
+  dataType: string
+  metrics: Record<string, unknown>
+  importantFactors: string[]
+  limitationNotice: string
+  points: ForecastPointSummary[]
+}
+
 export interface ModelVersionSummary {
   id: string
   cooperativeId: string

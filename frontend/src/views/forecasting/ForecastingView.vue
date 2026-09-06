@@ -3,8 +3,10 @@ import { computed, reactive, ref } from 'vue'
 
 import {
   activateModel,
+  getForecastResult,
   getForecastingTask,
   getModelVersion,
+  listForecastResults,
   listModelVersions,
   submitForecastTask,
   submitModelTrainingTask,
@@ -17,10 +19,15 @@ import PageState from '@/components/common/PageState.vue'
 import { useListPage } from '@/composables/usePageData'
 import { usePageData } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
-import type { ModelVersionSummary, TaskSummary } from '@/types/resources'
+import type {
+  ForecastResultDetailSummary,
+  ModelVersionSummary,
+  TaskSummary,
+} from '@/types/resources'
 import { getApiErrorMessage } from '@/utils/api-error'
 
 const { items, loading, error, loadData } = useListPage(listModelVersions)
+const forecastResults = useListPage(listForecastResults)
 const authStore = useAuthStore()
 const canActivate = computed(
   () => authStore.role === 'COOPERATIVE_ADMIN' && authStore.hasPermission('model:manage'),
@@ -31,6 +38,9 @@ const canTrain = computed(
 const warehouseState = usePageData(listWarehouses, [])
 const productState = usePageData(listProducts, [])
 const selectedModel = ref<ModelVersionSummary | null>(null)
+const selectedForecast = ref<ForecastResultDetailSummary | null>(null)
+const forecastDetailLoading = ref(false)
+const forecastDetailError = ref('')
 const detailLoading = ref(false)
 const detailError = ref('')
 const activatingId = ref<string | null>(null)
@@ -65,6 +75,18 @@ async function loadDetail(modelVersionId: string): Promise<void> {
     detailError.value = getApiErrorMessage(reason, '模型详情加载失败')
   } finally {
     detailLoading.value = false
+  }
+}
+
+async function loadForecastDetail(forecastResultId: string): Promise<void> {
+  forecastDetailLoading.value = true
+  forecastDetailError.value = ''
+  try {
+    selectedForecast.value = await getForecastResult(forecastResultId)
+  } catch (reason) {
+    forecastDetailError.value = getApiErrorMessage(reason, '预测结果加载失败')
+  } finally {
+    forecastDetailLoading.value = false
   }
 }
 
@@ -253,5 +275,59 @@ async function handleForecastSubmit(): Promise<void> {
         <div><dt>指标</dt><dd><pre>{{ JSON.stringify(selectedModel.metrics, null, 2) }}</pre></dd></div>
       </dl>
     </aside>
+    <section class="forecast-results">
+      <PageState
+        :loading="forecastResults.loading"
+        :error="forecastResults.error"
+        :empty="forecastResults.items.length === 0"
+        empty-message="暂无预测结果"
+        @retry="forecastResults.loadData"
+      >
+        <table>
+          <caption>需求预测结果</caption>
+          <thead>
+            <tr>
+              <th scope="col">预测区间</th>
+              <th scope="col">预测需求</th>
+              <th scope="col">当前库存</th>
+              <th scope="col">建议补货</th>
+              <th scope="col">生成时间</th>
+              <th scope="col">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="result in forecastResults.items" :key="result.id">
+              <td>{{ result.forecastStartDate }} ～ {{ result.forecastEndDate }}</td>
+              <td>{{ result.predictedDemand }}</td>
+              <td>{{ result.currentStock }}</td>
+              <td>{{ result.recommendedReplenishment }}</td>
+              <td>{{ result.generatedAt }}</td>
+              <td><button type="button" @click="loadForecastDetail(result.id)">查看详情</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </PageState>
+      <aside v-if="forecastDetailLoading || forecastDetailError || selectedForecast" class="forecast-result-detail">
+        <h2>预测结果详情</h2>
+        <p v-if="forecastDetailLoading">详情加载中…</p>
+        <p v-else-if="forecastDetailError" role="alert">{{ forecastDetailError }}</p>
+        <div v-else-if="selectedForecast">
+          <p>数据类型：{{ selectedForecast.dataType }}</p>
+          <p>重要因素：{{ selectedForecast.importantFactors.join('、') || '暂无' }}</p>
+          <p>限制说明：{{ selectedForecast.limitationNotice }}</p>
+          <table>
+            <caption>逐日预测点</caption>
+            <thead><tr><th scope="col">日期</th><th scope="col">预测量</th><th scope="col">区间</th></tr></thead>
+            <tbody>
+              <tr v-for="point in selectedForecast.points" :key="point.id">
+                <td>{{ point.forecastDate }}</td>
+                <td>{{ point.predictedQuantity }}</td>
+                <td>{{ point.lowerBound }} ～ {{ point.upperBound }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+    </section>
   </section>
 </template>

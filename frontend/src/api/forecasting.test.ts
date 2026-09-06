@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import http from './http'
 import {
   activateModel,
+  getForecastResult,
   getModelVersion,
   listModelVersions,
   submitForecastTask,
@@ -39,6 +40,20 @@ describe('forecasting api', () => {
 
     await expect(getModelVersion('model-1')).resolves.toEqual(model)
     expect(http.get).toHaveBeenCalledWith('/model-versions/model-1')
+  })
+
+  it('gets a forecast result detail', async () => {
+    const result = {
+      id: 'forecast-1',
+      warehouseId: 'warehouse-1',
+      productId: 'product-1',
+      predictedDemand: 100,
+      points: [],
+    }
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: result } })
+
+    await expect(getForecastResult('forecast-1')).resolves.toEqual(result)
+    expect(http.get).toHaveBeenCalledWith('/forecast-results/forecast-1')
   })
 
   it('activates a model version', async () => {

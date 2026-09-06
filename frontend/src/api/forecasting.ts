@@ -1,5 +1,9 @@
 import type { ApiResponse, ListResponse } from '@/types/api'
-import type { ForecastSummary, ModelVersionSummary, TaskSummary } from '@/types/resources'
+import type {
+  ForecastResultDetailSummary,
+  ModelVersionSummary,
+  TaskSummary,
+} from '@/types/resources'
 
 import http from './http'
 
@@ -19,10 +23,19 @@ export interface ForecastTaskPayload {
   modelVersionId?: string
 }
 
-export async function listForecastResults(): Promise<ForecastSummary[]> {
-  const response = await http.get<ListResponse<ForecastSummary>>('/forecast-results', {
+export async function listForecastResults(): Promise<ForecastResultDetailSummary[]> {
+  const response = await http.get<ListResponse<ForecastResultDetailSummary>>('/forecast-results', {
     params: { page: 1, pageSize: 20 },
   })
+  return response.data.data
+}
+
+export async function getForecastResult(
+  forecastResultId: string,
+): Promise<ForecastResultDetailSummary> {
+  const response = await http.get<ApiResponse<ForecastResultDetailSummary>>(
+    `/forecast-results/${forecastResultId}`,
+  )
   return response.data.data
 }
 
