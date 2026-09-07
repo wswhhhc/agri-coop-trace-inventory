@@ -1,49 +1,44 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { listForecastResultsPage } from '@/api/forecasting'
 import { listInventoryTrendsPage } from '@/api/dashboard'
 import DashboardFilters from '@/components/dashboard/DashboardFilters.vue'
 import AlertDistributionPanel from '@/components/dashboard/AlertDistributionPanel.vue'
 import DashboardSummary from '@/components/dashboard/DashboardSummary.vue'
+import ForecastComparisonPanel from '@/components/dashboard/ForecastComparisonPanel.vue'
 import InventoryTrendPanel from '@/components/dashboard/InventoryTrendPanel.vue'
 import ProductRankingPanel from '@/components/dashboard/ProductRankingPanel.vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
-import PaginationBar from '@/components/common/PaginationBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import { useDashboard } from '@/composables/useDashboard'
-import { getPagePlaceholderCount, usePaginatedList } from '@/composables/usePageData'
+import { usePaginatedList } from '@/composables/usePageData'
+import { useAuthStore } from '@/stores/auth'
 import type { DashboardQueryParams } from '@/types/dashboard'
 
+const authStore = useAuthStore()
+const canReadForecastComparison = authStore.hasPermission('model:read')
 const {
   query,
   summary,
   alertDistribution,
   productRanking,
+  forecastComparison,
   loading: moduleLoading,
   errors: moduleErrors,
   loadDashboard,
   retry,
-} = useDashboard()
+} = useDashboard({ canReadForecastComparison })
 const inventoryTrendList = usePaginatedList((pagination) =>
   listInventoryTrendsPage({ ...pagination, ...query.value }),
-)
-const forecastState = usePaginatedList(listForecastResultsPage)
-const forecastPlaceholderCount = computed(() =>
-  getPagePlaceholderCount(forecastState.pagination.pageSize, forecastState.items.length),
+  100,
 )
 const loading = computed(
-  () =>
-    Object.values(moduleLoading).some(Boolean) ||
-    inventoryTrendList.loading ||
-    forecastState.loading,
+  () => Object.values(moduleLoading).some(Boolean) || inventoryTrendList.loading,
 )
 
 function handleSearch(params: DashboardQueryParams): void {
-  void loadDashboard(params).then(() =>
-    Promise.all([inventoryTrendList.loadData(1), forecastState.loadData(1)]),
-  )
+  void loadDashboard(params).then(() => inventoryTrendList.loadData(1))
 }
 </script>
 
@@ -91,54 +86,13 @@ function handleSearch(params: DashboardQueryParams): void {
         @retry="retry('productRanking')"
       />
 
-      <section class="dashboard-module dashboard-module--forecast">
-        <h2>需求预测对比</h2>
-        <PageState
-          :loading="forecastState.loading"
-          :error="forecastState.error"
-          :empty="forecastState.items.length === 0"
-          :preserve-content-on-loading="forecastState.items.length > 0"
-          empty-message="暂无预测结果"
-          @retry="forecastState.loadData"
-        >
-          <table>
-            <caption>预测需求、当前库存与建议补货</caption>
-            <thead>
-              <tr>
-                <th scope="col">预测区间</th>
-                <th scope="col">预测需求</th>
-                <th scope="col">当前库存</th>
-                <th scope="col">建议补货</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in forecastState.items" :key="item.id">
-                <td>{{ item.forecastStartDate }} ～ {{ item.forecastEndDate }}</td>
-                <td>{{ item.predictedDemand }}</td>
-                <td>{{ item.currentStock }}</td>
-                <td>{{ item.recommendedReplenishment }}</td>
-              </tr>
-              <tr
-                v-for="placeholderIndex in forecastPlaceholderCount"
-                :key="`placeholder-${placeholderIndex}`"
-                class="pagination-placeholder-row"
-                aria-hidden="true"
-              >
-                <td colspan="4" />
-              </tr>
-            </tbody>
-          </table>
-        </PageState>
-        <PaginationBar
-          :page="forecastState.pagination.page"
-          :total-pages="forecastState.pagination.totalPages"
-          :total-items="forecastState.pagination.totalItems"
-          :page-size="forecastState.pagination.pageSize"
-          :page-size-options="[10]"
-          @change="forecastState.goToPage"
-          @page-size-change="forecastState.setPageSize"
-        />
-      </section>
+      <ForecastComparisonPanel
+        :items="forecastComparison"
+        :loading="moduleLoading.forecastComparison"
+        :error="moduleErrors.forecastComparison"
+        :available="canReadForecastComparison"
+        @retry="retry('forecastComparison')"
+      />
     </section>
   </section>
 </template>
@@ -155,7 +109,7 @@ function handleSearch(params: DashboardQueryParams): void {
 }
 
 .dashboard-module--summary,
-.dashboard-module--forecast {
+.forecast-comparison-panel {
   grid-column: 1 / -1;
 }
 
@@ -171,24 +125,6 @@ function handleSearch(params: DashboardQueryParams): void {
   grid-column: 1 / -1;
 }
 
-.dashboard-module--forecast {
-  overflow-x: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
-}
-
-.dashboard-module--forecast table {
-  min-width: 38rem;
-}
-
-.dashboard-module--forecast h2 {
-  margin-bottom: var(--space-4);
-  font-size: var(--font-size-lg);
-}
-
 @media (max-width: 48rem) {
   .dashboard-page__modules {
     grid-template-columns: 1fr;
@@ -201,9 +137,4 @@ function handleSearch(params: DashboardQueryParams): void {
   }
 }
 
-@media (forced-colors: active) {
-  .dashboard-module--forecast {
-    border: 1px solid CanvasText;
-  }
-}
 </style>

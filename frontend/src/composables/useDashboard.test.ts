@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   getAlertDistribution,
   getDashboardSummary,
+  getForecastComparison,
   getProductRanking,
 } from '@/api/dashboard'
 
@@ -12,6 +13,7 @@ import { useDashboard } from './useDashboard'
 vi.mock('@/api/dashboard', () => ({
   getAlertDistribution: vi.fn(),
   getDashboardSummary: vi.fn(),
+  getForecastComparison: vi.fn(),
   getProductRanking: vi.fn(),
 }))
 
@@ -28,6 +30,7 @@ describe('useDashboard', () => {
       updatedAt: '2026-09-06T00:00:00Z',
     })
     vi.mocked(getAlertDistribution).mockResolvedValue({ totalCount: 0, items: [] })
+    vi.mocked(getForecastComparison).mockResolvedValue([])
     vi.mocked(getProductRanking).mockResolvedValue([])
   })
 
@@ -59,6 +62,27 @@ describe('useDashboard', () => {
     expect(dashboard?.alertDistribution.value?.items).toHaveLength(1)
     expect(getDashboardSummary).toHaveBeenCalledOnce()
     expect(getAlertDistribution).toHaveBeenCalledTimes(2)
+    expect(getForecastComparison).toHaveBeenCalledOnce()
+
+    app.unmount()
+  })
+
+  it('does not request forecast comparison without model read permission', async () => {
+    let dashboard: ReturnType<typeof useDashboard> | undefined
+    const app = createApp(
+      defineComponent({
+        setup() {
+          dashboard = useDashboard({ canReadForecastComparison: false })
+          return () => h('div')
+        },
+      }),
+    )
+    app.mount(document.createElement('div'))
+
+    await vi.waitFor(() => expect(getDashboardSummary).toHaveBeenCalledOnce())
+
+    expect(getForecastComparison).not.toHaveBeenCalled()
+    expect(dashboard?.forecastComparison.value).toEqual([])
 
     app.unmount()
   })
