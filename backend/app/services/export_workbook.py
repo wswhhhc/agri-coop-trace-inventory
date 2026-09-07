@@ -90,7 +90,7 @@ def _write_workbook(
     for cell in sheet[1]:
         cell.font = Font(bold=True)
     for row in rows:
-        sheet.append([row.get(field) for field in fields])
+        sheet.append([_to_excel_value(row.get(field)) for field in fields])
     sheet.freeze_panes = "A2"
     sheet.auto_filter.ref = sheet.dimensions
     for column_index, values in enumerate(sheet.iter_cols(), start=1):
@@ -101,6 +101,13 @@ def _write_workbook(
             if isinstance(cell.value, (date, datetime)):
                 cell.number_format = "yyyy-mm-dd" if isinstance(cell.value, date) and not isinstance(cell.value, datetime) else "yyyy-mm-dd hh:mm:ss"
     workbook.save(output)
+
+
+def _to_excel_value(value: Any) -> Any:
+    """移除 Excel 不支持的 datetime 时区信息，保留原始时间值。"""
+    if isinstance(value, datetime) and value.tzinfo is not None:
+        return value.replace(tzinfo=None)
+    return value
 
 
 __all__ = ["build_alert_workbook", "build_inventory_workbook"]

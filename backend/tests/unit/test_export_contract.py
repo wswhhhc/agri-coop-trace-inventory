@@ -1,14 +1,15 @@
-from datetime import date
+from datetime import UTC, date, datetime
 from io import BytesIO
 from uuid import uuid4
 
 import pytest
+from openpyxl import load_workbook
+
 from app.core.auth.context import AuthContext
 from app.core.exceptions import AppException
 from app.schemas.export import ExportFilters, ExportTaskCreate, ReportType
 from app.services.export_policy import require_export
 from app.services.export_workbook import build_alert_workbook, build_inventory_workbook
-from openpyxl import load_workbook
 
 
 def _context(*, role_code: str, permissions: set[str]) -> AuthContext:
@@ -139,3 +140,29 @@ def test_alert_workbook_contains_status_and_evidence_columns() -> None:
         "处理时间",
     ]
     assert sheet.cell(2, 3).value == "HIGH"
+
+
+def test_workbook_strips_timezone_from_datetime_cells() -> None:
+    output = BytesIO()
+    build_alert_workbook(
+        [
+            {
+                "detected_at": datetime(2026, 9, 1, 8, 30, tzinfo=UTC),
+                "alert_type": "LOW_STOCK",
+                "severity": "HIGH",
+                "status": "PENDING",
+                "warehouse": "中心仓",
+                "product": "优质粳米",
+                "batch_no": "B-001",
+                "title": "库存不足",
+                "message": "库存低于安全库存",
+                "resolved_at": None,
+            }
+        ],
+        output,
+    )
+
+    sheet = load_workbook(output).active
+    exported_at = sheet.cell(2, 1).value
+    assert exported_at == datetime(2026, 9, 1, 8, 30, tzinfo=UTC).replace(tzinfo=None)
+    assert exported_at.tzinfo is None
