@@ -3,6 +3,12 @@ coverage.json
 coverage.xml
 htmlcov/
 
+# 项目构建过程中的计划、发现和进度记录
+/tasks/
+/findings.md
+/progress.md
+/task_plan.md
+
 # Frontend dependencies and build output
 frontend/node_modules/
 frontend/dist/
