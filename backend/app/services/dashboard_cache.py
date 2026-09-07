@@ -1,23 +1,23 @@
 from __future__ import annotations
 
-import hashlib
-import json
 from collections.abc import Mapping
 from typing import Any
 from uuid import UUID
 
-from redis.exceptions import RedisError
+from app.infrastructure.cache import JsonCache
 
 
 class DashboardCache:
     """大屏短时缓存；缓存不可用时由调用方继续查询数据库。"""
 
     def __init__(self, redis: Any, *, key_prefix: str, ttl_seconds: int) -> None:
-        if ttl_seconds <= 0:
-            raise ValueError("大屏缓存 TTL 必须大于 0")
-        self.redis = redis
+        self._cache = JsonCache(
+            redis,
+            key_prefix=key_prefix,
+            ttl_seconds=ttl_seconds,
+            name="dashboard",
+        )
         self.key_prefix = key_prefix
-        self.ttl_seconds = ttl_seconds
 
     def key(
         self,
@@ -33,39 +33,26 @@ class DashboardCache:
             else "all",
             "filters": dict(sorted(filters.items())),
         }
-        digest = hashlib.sha256(
-            json.dumps(scope, sort_keys=True, default=str, separators=(",", ":")).encode()
-        ).hexdigest()
+        digest = self._cache_key_digest(scope)
         return f"{self.key_prefix}dashboard:{endpoint}:{digest}"
 
     async def get(self, key: str) -> Any | None:
-        try:
-            raw = await self.redis.get(key)
-        except (RedisError, OSError, RuntimeError):
-            return None
-        if raw is None:
-            return None
-        try:
-            return json.loads(raw)
-        except (TypeError, ValueError):
-            await self.delete(key)
-            return None
+        return await self._cache.get(key)
 
     async def set(self, key: str, payload: Mapping[str, Any] | list[Any]) -> None:
-        try:
-            await self.redis.set(
-                key,
-                json.dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str),
-                ex=self.ttl_seconds,
-            )
-        except (RedisError, OSError, RuntimeError):
-            return
+        await self._cache.set(key, payload)
 
     async def delete(self, key: str) -> None:
-        try:
-            await self.redis.delete(key)
-        except (RedisError, OSError, RuntimeError):
-            return
+        await self._cache.delete(key)
+
+    @staticmethod
+    def _cache_key_digest(scope: Mapping[str, Any]) -> str:
+        import hashlib
+        import json
+
+        return hashlib.sha256(
+            json.dumps(scope, sort_keys=True, default=str, separators=(",", ":")).encode()
+        ).hexdigest()
 
 
 __all__ = ["DashboardCache"]

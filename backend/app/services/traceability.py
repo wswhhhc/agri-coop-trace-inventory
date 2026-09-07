@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
 from pydantic import ValidationError
-from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.authorization import permission_denied, resource_not_found
 from app.core.auth.context import AuthContext
+from app.infrastructure.cache import JsonCache
 from app.infrastructure.transaction import transaction_scope
 from app.models import (
     SYSTEM_ADMIN_ROLE_CODE,
@@ -41,44 +40,26 @@ class TraceabilityCache:
     """公开追溯缓存；Redis 故障时允许回源数据库。"""
 
     def __init__(self, redis: Any, *, key_prefix: str, ttl_seconds: int) -> None:
-        if ttl_seconds <= 0:
-            raise ValueError("追溯缓存 TTL 必须大于 0")
-        self.redis = redis
+        self._cache = JsonCache(
+            redis,
+            key_prefix=key_prefix,
+            ttl_seconds=ttl_seconds,
+            name="traceability",
+        )
         self.key_prefix = key_prefix
-        self.ttl_seconds = ttl_seconds
 
     def key(self, trace_code: str) -> str:
         return f"{self.key_prefix}trace:{trace_code}"
 
     async def get(self, trace_code: str) -> dict[str, Any] | None:
-        try:
-            raw = await self.redis.get(self.key(trace_code))
-        except (RedisError, OSError, RuntimeError):
-            return None
-        if raw is None:
-            return None
-        try:
-            payload = json.loads(raw)
-        except (TypeError, ValueError):
-            await self.invalidate(trace_code)
-            return None
+        payload = await self._cache.get(self.key(trace_code))
         return payload if isinstance(payload, dict) else None
 
     async def set(self, trace_code: str, payload: Mapping[str, Any]) -> None:
-        try:
-            await self.redis.set(
-                self.key(trace_code),
-                json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
-                ex=self.ttl_seconds,
-            )
-        except (RedisError, OSError, RuntimeError):
-            return
+        await self._cache.set(self.key(trace_code), payload)
 
     async def invalidate(self, trace_code: str) -> None:
-        try:
-            await self.redis.delete(self.key(trace_code))
-        except (RedisError, OSError, RuntimeError):
-            return
+        await self._cache.delete(self.key(trace_code))
 
 
 class TraceEventWriter:
