@@ -84,7 +84,7 @@ const groupedTrends = computed(() => {
         :total-pages="pagination.totalPages"
         :total-items="pagination.totalItems"
         :page-size="pagination.pageSize"
-        :page-size-options="[30, 100]"
+        :page-size-options="[10]"
         @change="emit('change', $event)"
         @page-size-change="emit('page-size-change', $event)"
       />

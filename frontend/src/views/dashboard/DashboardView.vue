@@ -31,7 +31,7 @@ const {
 } = useDashboard({ canReadForecastComparison })
 const inventoryTrendList = usePaginatedList((pagination) =>
   listInventoryTrendsPage({ ...pagination, ...query.value }),
-  100,
+  10,
 )
 const loading = computed(
   () => Object.values(moduleLoading).some(Boolean) || inventoryTrendList.loading,
