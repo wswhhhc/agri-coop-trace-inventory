@@ -3,13 +3,12 @@ from io import BytesIO
 from uuid import uuid4
 
 import pytest
-from openpyxl import load_workbook
-
 from app.core.auth.context import AuthContext
 from app.core.exceptions import AppException
 from app.schemas.export import ExportFilters, ExportTaskCreate, ReportType
 from app.services.export_policy import require_export
 from app.services.export_workbook import build_alert_workbook, build_inventory_workbook
+from openpyxl import load_workbook
 
 
 def _context(*, role_code: str, permissions: set[str]) -> AuthContext:
