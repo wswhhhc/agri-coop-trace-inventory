@@ -2,6 +2,7 @@
 import PageState from '@/components/common/PageState.vue'
 import type { ProductRankingItem } from '@/types/dashboard'
 import { formatDashboardNumber } from '@/utils/dashboard-format'
+import ProductRankingChart from './ProductRankingChart.vue'
 
 defineProps<{
   items: ProductRankingItem[]
@@ -30,6 +31,7 @@ const emit = defineEmits<{
       empty-message="当前范围暂无产品出库数据"
       @retry="emit('retry')"
     >
+      <ProductRankingChart :items="items" />
       <table>
         <caption>产品出库排行</caption>
         <thead>

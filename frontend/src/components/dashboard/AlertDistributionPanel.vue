@@ -6,6 +6,7 @@ import {
   formatAlertType,
   formatDashboardNumber,
 } from '@/utils/dashboard-format'
+import AlertDistributionChart from './AlertDistributionChart.vue'
 
 defineProps<{
   distribution: AlertDistribution | null
@@ -34,6 +35,7 @@ const emit = defineEmits<{
       empty-message="当前范围暂无预警数据"
       @retry="emit('retry')"
     >
+      <AlertDistributionChart :distribution="distribution" />
       <table>
         <caption>预警类型及等级分布</caption>
         <thead>

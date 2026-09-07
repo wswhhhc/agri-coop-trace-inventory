@@ -3,10 +3,10 @@ import { computed } from 'vue'
 
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
-import { getPagePlaceholderCount } from '@/composables/usePageData'
 import type { InventoryTrend } from '@/types/dashboard'
 import type { PaginationMeta } from '@/types/api'
 import { formatDashboardNumber } from '@/utils/dashboard-format'
+import InventoryTrendChart from './InventoryTrendChart.vue'
 
 const props = defineProps<{
   items: InventoryTrend[]
@@ -30,9 +30,6 @@ const groupedTrends = computed(() => {
   }
   return Array.from(groups, ([unit, items]) => ({ unit, items }))
 })
-const placeholderCount = computed(() =>
-  getPagePlaceholderCount(props.pagination.pageSize, props.items.length),
-)
 </script>
 
 <template>
@@ -52,8 +49,9 @@ const placeholderCount = computed(() =>
       empty-message="当前范围暂无库存趋势数据"
       @retry="emit('retry')"
     >
+      <InventoryTrendChart :items="items" />
       <div class="inventory-trend-tables">
-        <section v-for="(group, groupIndex) in groupedTrends" :key="group.unit" class="inventory-trend-group">
+        <section v-for="group in groupedTrends" :key="group.unit" class="inventory-trend-group">
           <h3>{{ group.unit }}</h3>
           <table>
             <caption>{{ group.unit }}库存趋势</caption>
@@ -74,27 +72,19 @@ const placeholderCount = computed(() =>
                 <td>{{ formatDashboardNumber(item.outboundQuantity) }}</td>
                 <td>{{ formatDashboardNumber(item.endingQuantity) }}</td>
               </tr>
-              <tr
-                v-for="placeholderIndex in groupIndex === groupedTrends.length - 1 ? placeholderCount : 0"
-                :key="`placeholder-${placeholderIndex}`"
-                class="pagination-placeholder-row"
-                aria-hidden="true"
-              >
-                <td colspan="5" />
-              </tr>
             </tbody>
           </table>
         </section>
       </div>
       <div class="inventory-trend-table-note" aria-label="库存趋势数据说明">
-        当前以明细表展示趋势数据，已包含入库、出库和期末库存。
+        图表用于快速判断趋势，明细表保留入库、出库和期末库存的精确值。
       </div>
       <PaginationBar
         :page="pagination.page"
         :total-pages="pagination.totalPages"
         :total-items="pagination.totalItems"
         :page-size="pagination.pageSize"
-        :page-size-options="[10]"
+        :page-size-options="[30, 100]"
         @change="emit('change', $event)"
         @page-size-change="emit('page-size-change', $event)"
       />
