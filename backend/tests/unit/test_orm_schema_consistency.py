@@ -2,12 +2,11 @@ import re
 from pathlib import Path
 
 import pytest
+from alembic import command
 from alembic.config import Config
+from app.models import Base
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
-
-from alembic import command
-from app.models import Base
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ORM_TABLE_COLUMNS = {

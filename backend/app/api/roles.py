@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.dependencies import CurrentAuthContext
 from app.infrastructure.database import get_db_session
-from app.schemas.common import ApiResponse, ListResponse
+from app.schemas.common import ApiResponse, ListResponse, PaginationMeta
 from app.schemas.role import PermissionData, RoleData, RolePermissionsUpdate
 from app.services.role import RoleService
 
@@ -40,7 +40,12 @@ async def list_roles(
     items = await service.list_roles(context)
     return ListResponse(
         data=[_role_data(item) for item in items],
-        pagination={"page": 1, "pageSize": len(items) or 1, "totalItems": len(items), "totalPages": 1},
+        pagination=PaginationMeta(
+            page=1,
+            page_size=len(items) or 1,
+            total_items=len(items),
+            total_pages=1,
+        ),
     )
 
 
@@ -52,7 +57,12 @@ async def list_permissions(
     items = await service.list_permissions(context)
     return ListResponse(
         data=[PermissionData.model_validate(item) for item in items],
-        pagination={"page": 1, "pageSize": len(items) or 1, "totalItems": len(items), "totalPages": 1},
+        pagination=PaginationMeta(
+            page=1,
+            page_size=len(items) or 1,
+            total_items=len(items),
+            total_pages=1,
+        ),
     )
 
 

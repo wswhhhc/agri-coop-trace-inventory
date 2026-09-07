@@ -3,12 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from alembic import command
 from alembic.config import Config
 from sqlalchemy import inspect, text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.pool import NullPool
-
-from alembic import command
 
 pytestmark = pytest.mark.postgres
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
