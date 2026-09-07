@@ -25,6 +25,10 @@ export interface PaginatedListState<T> {
   setPageSize: (pageSize: number) => Promise<void>
 }
 
+export function getPagePlaceholderCount(pageSize: number, itemCount: number): number {
+  return Math.max(0, pageSize - itemCount)
+}
+
 export function usePageData<T>(loader: () => Promise<T>, initialValue: T): PageDataState<T> {
   const data = ref<T>(initialValue)
   const loading = ref(false)

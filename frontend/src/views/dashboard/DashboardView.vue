@@ -13,7 +13,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import { useDashboard } from '@/composables/useDashboard'
-import { usePaginatedList } from '@/composables/usePageData'
+import { getPagePlaceholderCount, usePaginatedList } from '@/composables/usePageData'
 import type { DashboardQueryParams } from '@/types/dashboard'
 
 const {
@@ -30,6 +30,9 @@ const inventoryTrendList = usePaginatedList((pagination) =>
   listInventoryTrendsPage({ ...pagination, ...query.value }),
 )
 const forecastState = usePaginatedList(listForecastResultsPage)
+const forecastPlaceholderCount = computed(() =>
+  getPagePlaceholderCount(forecastState.pagination.pageSize, forecastState.items.length),
+)
 const loading = computed(
   () =>
     Object.values(moduleLoading).some(Boolean) ||
@@ -114,6 +117,14 @@ function handleSearch(params: DashboardQueryParams): void {
                 <td>{{ item.predictedDemand }}</td>
                 <td>{{ item.currentStock }}</td>
                 <td>{{ item.recommendedReplenishment }}</td>
+              </tr>
+              <tr
+                v-for="placeholderIndex in forecastPlaceholderCount"
+                :key="`placeholder-${placeholderIndex}`"
+                class="pagination-placeholder-row"
+                aria-hidden="true"
+              >
+                <td colspan="4" />
               </tr>
             </tbody>
           </table>

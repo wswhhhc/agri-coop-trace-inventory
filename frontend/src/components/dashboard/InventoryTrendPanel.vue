@@ -3,6 +3,7 @@ import { computed } from 'vue'
 
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
+import { getPagePlaceholderCount } from '@/composables/usePageData'
 import type { InventoryTrend } from '@/types/dashboard'
 import type { PaginationMeta } from '@/types/api'
 import { formatDashboardNumber } from '@/utils/dashboard-format'
@@ -29,6 +30,9 @@ const groupedTrends = computed(() => {
   }
   return Array.from(groups, ([unit, items]) => ({ unit, items }))
 })
+const placeholderCount = computed(() =>
+  getPagePlaceholderCount(props.pagination.pageSize, props.items.length),
+)
 </script>
 
 <template>
@@ -49,7 +53,7 @@ const groupedTrends = computed(() => {
       @retry="emit('retry')"
     >
       <div class="inventory-trend-tables">
-        <section v-for="group in groupedTrends" :key="group.unit" class="inventory-trend-group">
+        <section v-for="(group, groupIndex) in groupedTrends" :key="group.unit" class="inventory-trend-group">
           <h3>{{ group.unit }}</h3>
           <table>
             <caption>{{ group.unit }}库存趋势</caption>
@@ -69,6 +73,14 @@ const groupedTrends = computed(() => {
                 <td>{{ formatDashboardNumber(item.inboundQuantity) }}</td>
                 <td>{{ formatDashboardNumber(item.outboundQuantity) }}</td>
                 <td>{{ formatDashboardNumber(item.endingQuantity) }}</td>
+              </tr>
+              <tr
+                v-for="placeholderIndex in groupIndex === groupedTrends.length - 1 ? placeholderCount : 0"
+                :key="`placeholder-${placeholderIndex}`"
+                class="pagination-placeholder-row"
+                aria-hidden="true"
+              >
+                <td colspan="5" />
               </tr>
             </tbody>
           </table>
@@ -122,10 +134,12 @@ const groupedTrends = computed(() => {
 
 .inventory-trend-tables {
   display: grid;
+  width: 100%;
   gap: var(--space-5);
 }
 
 .inventory-trend-group {
+  width: 100%;
   overflow-x: auto;
 }
 
@@ -136,6 +150,7 @@ const groupedTrends = computed(() => {
 }
 
 .inventory-trend-group table {
+  width: 100%;
   min-width: 38rem;
 }
 

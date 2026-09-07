@@ -48,6 +48,12 @@
   text-align: right;
 }
 
+.pagination-placeholder-row td {
+  height: 2.875rem;
+  color: transparent;
+  user-select: none;
+}
+
 .detail-panel {
   padding: var(--space-5);
 }

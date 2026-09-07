@@ -14,12 +14,15 @@ import {
   type ProductUpdatePayload,
 } from '@/api/products'
 import { listProductCategories } from '@/api/product-categories'
-import { usePageData, usePaginatedList } from '@/composables/usePageData'
+import { getPagePlaceholderCount, usePageData, usePaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import type { ProductUnit } from '@/types/resources'
 import { getApiErrorMessage } from '@/utils/api-error'
 
 const productList = usePaginatedList(listProducts)
+const placeholderCount = computed(() =>
+  getPagePlaceholderCount(productList.pagination.pageSize, productList.items.length),
+)
 const categoryState = usePageData(
   () => listProductCategories({ isActive: true, pageSize: 100 }),
   [],
@@ -247,6 +250,14 @@ async function handleUpdate(): Promise<void> {
             <td v-if="canManage">
               <button type="button" @click="beginEdit(product)">编辑</button>
             </td>
+          </tr>
+          <tr
+            v-for="placeholderIndex in placeholderCount"
+            :key="`placeholder-${placeholderIndex}`"
+            class="pagination-placeholder-row"
+            aria-hidden="true"
+          >
+            <td :colspan="canManage ? 8 : 7" />
           </tr>
         </tbody>
       </table>

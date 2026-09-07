@@ -1,9 +1,15 @@
 import { createApp, defineComponent, h, isRef } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 
-import { usePageData, usePaginatedList } from './usePageData'
+import { getPagePlaceholderCount, usePageData, usePaginatedList } from './usePageData'
 
 describe('usePageData', () => {
+  it('calculates placeholder rows needed to keep a paginated table at page size', () => {
+    expect(getPagePlaceholderCount(10, 10)).toBe(0)
+    expect(getPagePlaceholderCount(10, 6)).toBe(4)
+    expect(getPagePlaceholderCount(10, 12)).toBe(0)
+  })
+
   it('keeps page data reactive when rendered from the composable state', async () => {
     const loader = vi.fn().mockResolvedValue({ id: 'batch-1' })
     const root = document.createElement('div')

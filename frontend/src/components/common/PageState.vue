@@ -74,7 +74,7 @@ const emit = defineEmits<{
 .page-state--content {
   position: relative;
   display: block;
-  min-height: 36rem;
+  min-height: 0;
   border: 0;
   padding: 0;
   background: transparent;

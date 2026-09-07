@@ -8,11 +8,14 @@ import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { createBatch, listBatches, type BatchCreatePayload } from '@/api/batches'
 import { listProductOptions } from '@/api/products'
-import { usePageData, usePaginatedList } from '@/composables/usePageData'
+import { getPagePlaceholderCount, usePageData, usePaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 
 const batchList = usePaginatedList(listBatches)
+const placeholderCount = computed(() =>
+  getPagePlaceholderCount(batchList.pagination.pageSize, batchList.items.length),
+)
 const productState = usePageData(
   () => listProductOptions({ isActive: true, pageSize: 100 }),
   [],
@@ -163,6 +166,14 @@ async function handleSubmit(): Promise<void> {
             <td>{{ batch.expiryDate }}</td>
             <td><StatusBadge :label="batch.status" :tone="batchStatusTone(batch.status)" /></td>
             <td><RouterLink :to="{ name: 'batch-detail', params: { batchId: batch.id } }">查看</RouterLink></td>
+          </tr>
+          <tr
+            v-for="placeholderIndex in placeholderCount"
+            :key="`placeholder-${placeholderIndex}`"
+            class="pagination-placeholder-row"
+            aria-hidden="true"
+          >
+            <td colspan="8" />
           </tr>
         </tbody>
       </table>
