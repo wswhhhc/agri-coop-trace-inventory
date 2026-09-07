@@ -29,6 +29,20 @@ class WarehouseService:
         self.session = session
         self.repository = WarehouseRepository(session)
 
+    @staticmethod
+    def ensure_read_access(context: AuthContext) -> None:
+        WarehouseService._require_read_role(context)
+
+    @staticmethod
+    def ensure_detail_read_scope(context: AuthContext, warehouse_id: UUID) -> None:
+        """校验仓库详情范围；合作社管理员的范围由合作社查询约束保证。"""
+        WarehouseService._require_read_role(context)
+        if context.role_code not in {
+            SYSTEM_ADMIN_ROLE_CODE,
+            COOPERATIVE_ADMIN_ROLE_CODE,
+        }:
+            ensure_warehouse_scope(context, warehouse_id)
+
     async def list(
         self,
         context: AuthContext,

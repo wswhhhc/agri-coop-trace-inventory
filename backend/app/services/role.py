@@ -20,6 +20,10 @@ class RoleService:
         self.session = session
         self.repository = RoleRepository(session)
 
+    @staticmethod
+    def ensure_system_admin(context: AuthContext) -> None:
+        RoleService._require_system_admin(context)
+
     async def list_roles(self, context: AuthContext) -> list[Role]:
         self._require_system_admin(context)
         async with transaction_scope(self.session):

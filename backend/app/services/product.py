@@ -77,6 +77,10 @@ class ProductCategoryService:
         self.session = session
         self.repository = ProductCategoryRepository(session)
 
+    @staticmethod
+    def ensure_read_access(context: AuthContext) -> None:
+        _require_read_role(context)
+
     async def list(
         self,
         context: AuthContext,
@@ -135,6 +139,10 @@ class ProductService:
         self.session = session
         self.repository = ProductRepository(session)
         self.category_repository = ProductCategoryRepository(session)
+
+    @staticmethod
+    def ensure_read_access(context: AuthContext) -> None:
+        _require_read_role(context)
 
     async def list(
         self,
