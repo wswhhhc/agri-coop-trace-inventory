@@ -56,6 +56,7 @@ class CacheKeyBuilder:
         *,
         scope: Mapping[str, Any],
         filters: Mapping[str, Any] | None = None,
+        namespace: str | None = None,
     ) -> str:
         if not resource or ":" in resource:
             raise ValueError("缓存资源名不能为空且不能包含冒号")
@@ -66,7 +67,10 @@ class CacheKeyBuilder:
         digest = hashlib.sha256(
             json.dumps(document, sort_keys=True, separators=(",", ":"), default=str).encode()
         ).hexdigest()
-        return f"{self.key_prefix}query:{resource}:{digest}"
+        if namespace is None:
+            return f"{self.key_prefix}query:{resource}:{digest}"
+        safe_namespace = str(namespace).replace(":", "_")
+        return f"{self.key_prefix}query:{resource}:{safe_namespace}:{digest}"
 
 
 class JsonCache:

@@ -159,6 +159,8 @@ class Settings(DatabaseSettings):
     public_trace_url: str = Field(default="http://localhost:5173/trace", min_length=1)
     dashboard_cache_ttl_seconds: int = Field(default=300, ge=1)
     permission_cache_ttl_seconds: int = Field(default=300, ge=1)
+    reference_cache_ttl_seconds: int = Field(default=900, ge=1)
+    cache_ttl_jitter_ratio: float = Field(default=0.1, ge=0, le=1)
     login_rate_limit_per_minute: int = Field(default=10, ge=1)
     public_trace_rate_limit_per_minute: int = Field(default=60, ge=1)
     public_qr_rate_limit_per_minute: int = Field(default=120, ge=1)
