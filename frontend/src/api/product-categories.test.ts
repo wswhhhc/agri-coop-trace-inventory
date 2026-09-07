@@ -41,11 +41,10 @@ describe('product categories api', () => {
     })
 
     await expect(
-      createProductCategory({ code: 'FRUIT', name: '水果', description: null }),
+      createProductCategory({ name: '水果', description: null }),
     ).resolves.toEqual({ id: 'category-2', code: 'FRUIT', name: '水果', isActive: true })
 
     expect(http.post).toHaveBeenCalledWith('/product-categories', {
-      code: 'FRUIT',
       name: '水果',
       description: null,
     })

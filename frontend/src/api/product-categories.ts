@@ -11,7 +11,6 @@ export interface ProductCategoryListParams {
 }
 
 export interface ProductCategoryCreatePayload {
-  code: string
   name: string
   description: string | null
 }

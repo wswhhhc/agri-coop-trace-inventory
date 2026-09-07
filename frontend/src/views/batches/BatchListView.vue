@@ -6,6 +6,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
 import { createBatch, listBatches, type BatchCreatePayload } from '@/api/batches'
 import { listProductOptions } from '@/api/products'
 import { getPagePlaceholderCount, usePageData, usePaginatedList } from '@/composables/usePageData'
@@ -28,7 +29,6 @@ const formError = ref('')
 const successMessage = ref('')
 const form = reactive<BatchCreatePayload>({
   productId: '',
-  batchNo: '',
   origin: '',
   productionDate: '',
   expiryDate: '',
@@ -48,7 +48,6 @@ function batchStatusTone(value: string): 'success' | 'warning' | 'danger' | 'inf
 
 function resetForm(): void {
   form.productId = ''
-  form.batchNo = ''
   form.origin = ''
   form.productionDate = ''
   form.expiryDate = ''
@@ -62,7 +61,6 @@ async function handleSubmit(): Promise<void> {
   try {
     const created = await createBatch({
       productId: form.productId,
-      batchNo: form.batchNo?.trim() || undefined,
       origin: form.origin.trim(),
       productionDate: form.productionDate,
       expiryDate: form.expiryDate,
@@ -102,16 +100,7 @@ async function handleSubmit(): Promise<void> {
           暂无启用产品，请先到产品管理中新增产品。
         </span>
       </label>
-      <label>
-        批次编号
-        <input
-          v-model="form.batchNo"
-          name="batchNo"
-          maxlength="64"
-          placeholder="不填则自动生成，如 TOMATO-20260905-A1B2C3"
-        />
-        <span class="field-help">如已有纸质批次号，可手动填写；留空由系统自动生成。</span>
-      </label>
+      <GeneratedCodeField label="批次编号" format="产品编码-YYYYMMDD-XXXXXX" />
       <label>
         产地
         <input v-model="form.origin" name="origin" required maxlength="255" />

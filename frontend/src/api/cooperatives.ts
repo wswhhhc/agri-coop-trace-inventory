@@ -6,7 +6,6 @@ import http from './http'
 export type CooperativeStatus = 'ACTIVE' | 'INACTIVE'
 
 export interface CooperativeCreatePayload {
-  code: string
   name: string
   address: string | null
   contactName: string | null

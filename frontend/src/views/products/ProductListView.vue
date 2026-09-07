@@ -6,6 +6,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
 import {
   createProduct,
   listProducts,
@@ -42,7 +43,6 @@ const units: Array<{ value: ProductUnit; label: string }> = [
 ]
 const form = reactive<ProductCreatePayload>({
   categoryId: '',
-  code: '',
   name: '',
   unit: 'KG',
   shelfLifeDays: 1,
@@ -62,7 +62,6 @@ function categoryName(categoryId: string): string {
 
 function resetForm(): void {
   form.categoryId = ''
-  form.code = ''
   form.name = ''
   form.unit = 'KG'
   form.shelfLifeDays = 1
@@ -76,7 +75,6 @@ async function handleSubmit(): Promise<void> {
   try {
     await createProduct({
       categoryId: form.categoryId,
-      code: form.code.trim() || undefined,
       name: form.name.trim(),
       unit: form.unit,
       shelfLifeDays: form.shelfLifeDays,
@@ -155,16 +153,7 @@ async function handleUpdate(): Promise<void> {
           暂无启用分类，请先到产品分类中新增分类。
         </span>
       </label>
-      <label>
-        编码
-        <input
-          v-model="form.code"
-          name="code"
-          maxlength="32"
-          placeholder="不填则自动生成，如 VEGETABLE-A1B2C3"
-        />
-        <span class="field-help">如已有内部编码，可手动填写；留空由系统自动生成，创建后不可修改。</span>
-      </label>
+      <GeneratedCodeField label="编码" format="CAT-XXXXXX-XXXXXX" />
       <label>
         名称
         <input v-model="form.name" name="name" required maxlength="100" />

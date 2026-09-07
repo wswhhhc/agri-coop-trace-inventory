@@ -24,12 +24,13 @@ describe('warehouses api', () => {
   it('creates a warehouse', async () => {
     const payload = {
       cooperativeId: 'cooperative-1',
-      code: 'WH-01',
       name: '中心仓',
       address: '农业路 1 号',
       managerName: '张三',
     }
-    vi.mocked(http.post).mockResolvedValueOnce({ data: { data: { id: 'warehouse-1', ...payload, status: 'ACTIVE' } } })
+    vi.mocked(http.post).mockResolvedValueOnce({
+      data: { data: { id: 'warehouse-1', code: 'WH-ABC123', ...payload, status: 'ACTIVE' } },
+    })
 
     await expect(createWarehouse(payload)).resolves.toMatchObject({ id: 'warehouse-1' })
     expect(http.post).toHaveBeenCalledWith('/warehouses', payload)

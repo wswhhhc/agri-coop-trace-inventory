@@ -23,13 +23,14 @@ describe('cooperatives api', () => {
 
   it('creates a cooperative', async () => {
     const payload = {
-      code: 'COOP-01',
       name: '示范合作社',
       address: '农业路 1 号',
       contactName: '张三',
       contactPhone: '13800138000',
     }
-    vi.mocked(http.post).mockResolvedValueOnce({ data: { data: { id: 'cooperative-1', ...payload, status: 'ACTIVE' } } })
+    vi.mocked(http.post).mockResolvedValueOnce({
+      data: { data: { id: 'cooperative-1', code: 'COOP-ABC123', ...payload, status: 'ACTIVE' } },
+    })
 
     await expect(createCooperative(payload)).resolves.toMatchObject({ id: 'cooperative-1' })
     expect(http.post).toHaveBeenCalledWith('/cooperatives', payload)

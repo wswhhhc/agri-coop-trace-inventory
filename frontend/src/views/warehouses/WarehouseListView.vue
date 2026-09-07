@@ -8,6 +8,7 @@ import {
   updateWarehouse,
 } from '@/api/warehouses'
 import type { WarehouseStatus } from '@/api/warehouses'
+import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
@@ -31,7 +32,6 @@ const successMessage = ref('')
 const editingWarehouseId = ref<string | null>(null)
 const form = reactive({
   cooperativeId: '',
-  code: '',
   name: '',
   address: '',
   managerName: '',
@@ -50,7 +50,6 @@ const editForm = reactive<{
 
 function resetForm(): void {
   form.cooperativeId = ''
-  form.code = ''
   form.name = ''
   form.address = ''
   form.managerName = ''
@@ -63,7 +62,6 @@ async function handleSubmit(): Promise<void> {
   try {
     await createWarehouse({
       cooperativeId: form.cooperativeId || null,
-      code: form.code.trim(),
       name: form.name.trim(),
       address: form.address.trim() || null,
       managerName: form.managerName.trim() || null,
@@ -131,10 +129,7 @@ async function handleUpdate(): Promise<void> {
           </option>
         </select>
       </label>
-      <label>
-        编码
-        <input v-model="form.code" name="code" required minlength="2" maxlength="32" />
-      </label>
+      <GeneratedCodeField label="编码" format="WH-XXXXXX" />
       <label>
         名称
         <input v-model="form.name" name="name" required minlength="2" maxlength="100" />

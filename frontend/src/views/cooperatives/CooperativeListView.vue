@@ -7,6 +7,7 @@ import {
   updateCooperative,
 } from '@/api/cooperatives'
 import type { CooperativeStatus } from '@/api/cooperatives'
+import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
@@ -24,7 +25,6 @@ const formError = ref('')
 const successMessage = ref('')
 const editingCooperativeId = ref<string | null>(null)
 const form = reactive({
-  code: '',
   name: '',
   address: '',
   contactName: '',
@@ -45,7 +45,6 @@ const editForm = reactive<{
 })
 
 function resetForm(): void {
-  form.code = ''
   form.name = ''
   form.address = ''
   form.contactName = ''
@@ -58,7 +57,6 @@ async function handleSubmit(): Promise<void> {
   successMessage.value = ''
   try {
     await createCooperative({
-      code: form.code.trim(),
       name: form.name.trim(),
       address: form.address.trim() || null,
       contactName: form.contactName.trim() || null,
@@ -120,10 +118,7 @@ async function handleUpdate(): Promise<void> {
     <PageContext />
     <form v-if="canManage" class="cooperative-create-form" @submit.prevent="handleSubmit">
       <h2>新增合作社</h2>
-      <label>
-        编码
-        <input v-model="form.code" name="code" required minlength="2" maxlength="32" />
-      </label>
+      <GeneratedCodeField label="编码" format="COOP-XXXXXX" />
       <label>
         名称
         <input v-model="form.name" name="name" required minlength="2" maxlength="100" />

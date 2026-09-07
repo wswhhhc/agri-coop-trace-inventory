@@ -7,7 +7,6 @@ export type WarehouseStatus = 'ACTIVE' | 'INACTIVE'
 
 export interface WarehouseCreatePayload {
   cooperativeId?: string | null
-  code: string
   name: string
   address: string | null
   managerName: string | null

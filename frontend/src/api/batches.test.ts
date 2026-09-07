@@ -48,7 +48,6 @@ describe('batches api', () => {
 
     const payload = {
       productId: 'product-1',
-      batchNo: 'APPLE-20260906-001',
       origin: '山东',
       productionDate: '2026-09-06',
       expiryDate: '2026-10-06',

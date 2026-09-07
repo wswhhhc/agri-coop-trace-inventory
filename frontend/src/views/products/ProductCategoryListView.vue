@@ -5,6 +5,7 @@ import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
 import {
   createProductCategory,
   listProductCategories,
@@ -23,7 +24,6 @@ const formError = ref('')
 const successMessage = ref('')
 const editingCategoryId = ref<string | null>(null)
 const form = reactive({
-  code: '',
   name: '',
   description: '',
 })
@@ -34,7 +34,6 @@ const editForm = reactive({
 })
 
 function resetForm(): void {
-  form.code = ''
   form.name = ''
   form.description = ''
 }
@@ -45,7 +44,6 @@ async function handleSubmit(): Promise<void> {
   successMessage.value = ''
   try {
     await createProductCategory({
-      code: form.code.trim(),
       name: form.name.trim(),
       description: form.description.trim() || null,
     })
@@ -101,10 +99,7 @@ async function handleUpdate(): Promise<void> {
     <PageContext />
     <form v-if="canManage" class="product-category-create-form" @submit.prevent="handleSubmit">
       <h2>新增产品分类</h2>
-      <label>
-        编码
-        <input v-model="form.code" name="code" required maxlength="32" />
-      </label>
+      <GeneratedCodeField label="编码" format="CAT-XXXXXX" />
       <label>
         名称
         <input v-model="form.name" name="name" required maxlength="80" />
@@ -204,7 +199,7 @@ async function handleUpdate(): Promise<void> {
   font-weight: 600;
 }
 
-.product-category-create-form > label:nth-of-type(3),
+.product-category-create-form > label:nth-of-type(2),
 .product-category-edit-form > label:nth-of-type(2),
 .product-category-create-form > p,
 .product-category-edit-form > p {
@@ -237,7 +232,7 @@ async function handleUpdate(): Promise<void> {
 
   .product-category-create-form h2,
   .product-category-edit-form h2,
-  .product-category-create-form > label:nth-of-type(3),
+  .product-category-create-form > label:nth-of-type(2),
   .product-category-edit-form > label:nth-of-type(2),
   .product-category-create-form > p,
   .product-category-edit-form > p {

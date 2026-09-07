@@ -47,7 +47,6 @@ describe('products api', () => {
 
     const payload = {
       categoryId: 'category-1',
-      code: 'APPLE',
       name: '苹果',
       unit: 'KG' as const,
       shelfLifeDays: 30,
