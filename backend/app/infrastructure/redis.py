@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+import asyncio
+from typing import Annotated
+
+from fastapi import Depends
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
-from app.core.config import Settings
+from app.core.config import Settings, get_settings
 
 redis_client: Redis | None = None
+_redis_loop: asyncio.AbstractEventLoop | None = None
 
 
 def create_redis_client(settings: Settings) -> Redis:
@@ -31,16 +36,34 @@ def initialize_redis(settings: Settings) -> Redis:
     return redis_client
 
 
-def get_redis_client() -> Redis:
+def get_redis_client(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> Redis:
     """获取已初始化的 Redis 客户端。"""
+    global _redis_loop, redis_client
+
+    current_loop: asyncio.AbstractEventLoop | None
+    try:
+        current_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        current_loop = None
+
     if redis_client is None:
-        raise RuntimeError("Redis 尚未初始化")
+        redis_client = create_redis_client(settings)
+    if current_loop is not None and _redis_loop is None:
+        _redis_loop = current_loop
+    elif current_loop is not None and _redis_loop is not current_loop:
+        previous_client = redis_client
+        redis_client = create_redis_client(settings)
+        _redis_loop = current_loop
+        if previous_client is not redis_client:
+            asyncio.create_task(previous_client.aclose())
     return redis_client
 
 
 async def dispose_redis_client() -> None:
     """释放进程级 Redis 连接池。"""
-    global redis_client
+    global _redis_loop, redis_client
 
     if redis_client is not None:
         try:
@@ -51,6 +74,7 @@ async def dispose_redis_client() -> None:
             pass
         finally:
             redis_client = None
+            _redis_loop = None
 
 
 __all__ = [
