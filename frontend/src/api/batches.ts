@@ -5,7 +5,7 @@ import http from './http'
 
 export interface BatchCreatePayload {
   productId: string
-  batchNo: string
+  batchNo?: string
   origin: string
   productionDate: string
   expiryDate: string

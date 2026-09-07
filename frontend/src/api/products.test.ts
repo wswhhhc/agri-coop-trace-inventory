@@ -1,15 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { createProduct, updateProduct } from './products'
+import { createProduct, listProducts, updateProduct } from './products'
 
 vi.mock('./http', () => ({
-  default: { post: vi.fn(), patch: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
 }))
 
 describe('products api', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('loads only active products with a large enough page size for selectors', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: [] } })
+
+    await expect(listProducts({ isActive: true, pageSize: 100 })).resolves.toEqual([])
+    expect(http.get).toHaveBeenCalledWith('/products', {
+      params: { page: 1, pageSize: 100, isActive: true },
+    })
   })
 
   it('creates a product with the product contract', async () => {

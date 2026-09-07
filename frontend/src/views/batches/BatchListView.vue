@@ -12,9 +12,13 @@ import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 
 const { items, loading, error, loadData } = useListPage(listBatches)
-const productState = usePageData(listProducts, [])
+const productState = usePageData(
+  () => listProducts({ isActive: true, pageSize: 100 }),
+  [],
+)
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('batch:manage'))
+const canManageProducts = computed(() => authStore.hasPermission('product:manage'))
 const submitting = ref(false)
 const formError = ref('')
 const successMessage = ref('')
@@ -54,14 +58,14 @@ async function handleSubmit(): Promise<void> {
   try {
     const created = await createBatch({
       productId: form.productId,
-      batchNo: form.batchNo.trim(),
+      batchNo: form.batchNo?.trim() || undefined,
       origin: form.origin.trim(),
       productionDate: form.productionDate,
       expiryDate: form.expiryDate,
       responsiblePerson: form.responsiblePerson?.trim() || null,
     })
     resetForm()
-    successMessage.value = `批次创建成功，追溯码为 ${created.traceCode}。`
+    successMessage.value = `批次创建成功，编号为 ${created.batchNo}，追溯码为 ${created.traceCode}。`
     await loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
@@ -79,16 +83,30 @@ async function handleSubmit(): Promise<void> {
       <h2>新增批次</h2>
       <label>
         产品
-        <select v-model="form.productId" name="productId" required>
-          <option value="" disabled>请选择产品</option>
-          <option v-for="product in productState.data" :key="product.id" :value="product.id">
-            {{ product.name }}（{{ product.code }}）
-          </option>
-        </select>
+        <div class="field-with-action">
+          <select v-model="form.productId" name="productId" required>
+            <option value="" disabled>请选择产品</option>
+            <option v-for="product in productState.data" :key="product.id" :value="product.id">
+              {{ product.name }}（{{ product.code }}）
+            </option>
+          </select>
+          <RouterLink class="inline-link" :to="{ name: 'products' }">
+            {{ canManageProducts ? '新增产品' : '查看产品' }}
+          </RouterLink>
+        </div>
+        <span v-if="!productState.loading && !productState.error && productState.data.length === 0" class="field-help" role="status">
+          暂无启用产品，请先到产品管理中新增产品。
+        </span>
       </label>
       <label>
         批次编号
-        <input v-model="form.batchNo" name="batchNo" required maxlength="64" />
+        <input
+          v-model="form.batchNo"
+          name="batchNo"
+          maxlength="64"
+          placeholder="不填则自动生成，如 TOMATO-20260905-A1B2C3"
+        />
+        <span class="field-help">如已有纸质批次号，可手动填写；留空由系统自动生成。</span>
       </label>
       <label>
         产地
@@ -184,6 +202,32 @@ async function handleSubmit(): Promise<void> {
   font-weight: 600;
 }
 
+.field-with-action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.field-with-action select {
+  min-width: 0;
+  flex: 1;
+}
+
+.inline-link {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  color: var(--color-accent);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.field-help {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
 .batch-create-form > button {
   justify-self: start;
 }
@@ -219,6 +263,11 @@ async function handleSubmit(): Promise<void> {
 
   .batch-create-form > button {
     justify-self: stretch;
+  }
+
+  .field-with-action {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 </style>

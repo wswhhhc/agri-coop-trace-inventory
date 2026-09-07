@@ -21,9 +21,20 @@ export interface ProductUpdatePayload {
   isActive: boolean
 }
 
-export async function listProducts(): Promise<ProductSummary[]> {
+export interface ProductListParams {
+  page?: number
+  pageSize?: number
+  isActive?: boolean
+}
+
+export async function listProducts(options: ProductListParams = {}): Promise<ProductSummary[]> {
+  const params = {
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? 20,
+    ...(options.isActive === undefined ? {} : { isActive: options.isActive }),
+  }
   const response = await http.get<ListResponse<ProductSummary>>('/products', {
-    params: { page: 1, pageSize: 20 },
+    params,
   })
   return response.data.data
 }
