@@ -66,6 +66,10 @@ class QualityInspectionService:
         self.trace_cache = cache
         self.integration = integration or NullQualityIntegration()
 
+    @staticmethod
+    def ensure_read_access(context: AuthContext) -> None:
+        require_read_role(context)
+
     async def list(
         self,
         context: AuthContext,

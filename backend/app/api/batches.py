@@ -7,6 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api._cache import get_detail_query_cache
 from app.api._pagination import build_pagination_meta
 from app.api.traceability import get_traceability_cache
 from app.core.audit.service import (
@@ -21,6 +22,7 @@ from app.models import Batch
 from app.schemas.batch import BatchCreate, BatchData, BatchListParams, BatchUpdate
 from app.schemas.common import ApiResponse, ListResponse
 from app.services.batch import BatchService
+from app.services.query_cache import QueryCache
 from app.services.traceability import TraceabilityCache
 
 router = APIRouter(prefix="/batches", tags=["batches"])
@@ -103,8 +105,16 @@ async def get_batch(
     batch_id: Annotated[UUID, Path(alias="batchId")],
     context: CurrentAuthContext,
     service: Annotated[BatchService, Depends(get_batch_service)],
+    cache: Annotated[QueryCache, Depends(get_detail_query_cache)],
 ) -> ApiResponse[BatchData]:
-    return ApiResponse(data=_batch_data(await service.get(context, batch_id)))
+    service.ensure_read_access(context)
+    key = cache.key("batch-detail", context, {"id": batch_id})
+
+    async def load() -> ApiResponse[BatchData]:
+        return ApiResponse(data=_batch_data(await service.get(context, batch_id)))
+
+    response = await cache.get_or_set(key, ApiResponse[BatchData], load)
+    return response if response is not None else await load()
 
 
 @router.patch("/{batchId}", response_model=ApiResponse[BatchData])
@@ -115,6 +125,7 @@ async def update_batch(
     request: Request,
     service: Annotated[BatchService, Depends(get_batch_service)],
     audit_log_service: Annotated[AuditLogService, Depends(get_audit_log_service)],
+    cache: Annotated[QueryCache, Depends(get_detail_query_cache)],
 ) -> ApiResponse[BatchData]:
     try:
         batch = await service.update(context, batch_id, payload)
@@ -154,6 +165,7 @@ async def update_batch(
         ),
         logger,
     )
+    await cache.invalidate_resource("batch-detail", batch.cooperative_id)
     return ApiResponse(data=_batch_data(batch))
 
 

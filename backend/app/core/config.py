@@ -161,6 +161,7 @@ class Settings(DatabaseSettings):
     permission_cache_ttl_seconds: int = Field(default=300, ge=1)
     reference_cache_ttl_seconds: int = Field(default=900, ge=1)
     forecasting_cache_ttl_seconds: int = Field(default=600, ge=1)
+    detail_cache_ttl_seconds: int = Field(default=180, ge=1)
     cache_ttl_jitter_ratio: float = Field(default=0.1, ge=0, le=1)
     login_rate_limit_per_minute: int = Field(default=10, ge=1)
     public_trace_rate_limit_per_minute: int = Field(default=60, ge=1)

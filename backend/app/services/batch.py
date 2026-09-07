@@ -56,6 +56,10 @@ class BatchService:
         self.trace_writer = TraceEventWriter(session)
         self.trace_cache = cache
 
+    @staticmethod
+    def ensure_read_access(context: AuthContext) -> None:
+        require_read_role(context)
+
     async def list(
         self,
         context: AuthContext,

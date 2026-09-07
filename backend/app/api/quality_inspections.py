@@ -7,6 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api._cache import get_detail_query_cache
 from app.api._pagination import build_pagination_meta
 from app.api.traceability import get_traceability_cache
 from app.core.audit.service import AuditEvent, AuditLogService
@@ -22,7 +23,9 @@ from app.schemas.quality_inspection import (
     QualityInspectionListParams,
 )
 from app.services.alerting import AlertingQualityIntegration
+from app.services.quality_cache_policy import is_cacheable_quality_list
 from app.services.quality_inspection import QualityInspectionService
+from app.services.query_cache import QueryCache
 from app.services.traceability import TraceabilityCache
 
 router = APIRouter(
@@ -88,12 +91,28 @@ async def list_quality_inspections(
     service: Annotated[
         QualityInspectionService, Depends(get_quality_inspection_service)
     ],
+    cache: Annotated[QueryCache, Depends(get_detail_query_cache)],
 ) -> ListResponse[QualityInspectionData]:
-    items, total = await service.list(context, batch_id, params)
-    return ListResponse(
-        data=[_quality_inspection_data(item) for item in items],
-        pagination=build_pagination_meta(total, params.page, params.page_size),
+    service.ensure_read_access(context)
+
+    async def load() -> ListResponse[QualityInspectionData]:
+        items, total = await service.list(context, batch_id, params)
+        return ListResponse(
+            data=[_quality_inspection_data(item) for item in items],
+            pagination=build_pagination_meta(total, params.page, params.page_size),
+        )
+
+    if not is_cacheable_quality_list(params):
+        return await load()
+    key = cache.key(
+        "quality-inspection-list",
+        context,
+        {"batchId": batch_id, **params.model_dump(mode="json", by_alias=True)},
     )
+    response = await cache.get_or_set(
+        key, ListResponse[QualityInspectionData], load
+    )
+    return response if response is not None else await load()
 
 
 @router.post("", response_model=ApiResponse[QualityInspectionData], status_code=201)
@@ -108,6 +127,7 @@ async def create_quality_inspection(
     audit_log_service: Annotated[
         AuditLogService, Depends(get_audit_log_service)
     ],
+    cache: Annotated[QueryCache, Depends(get_detail_query_cache)],
 ) -> ApiResponse[QualityInspectionData]:
     try:
         inspection = await service.create(context, batch_id, payload)
@@ -143,6 +163,7 @@ async def create_quality_inspection(
             },
         ),
     )
+    await cache.invalidate_resource("quality-inspection-list", inspection.cooperative_id)
     return ApiResponse(
         data=_quality_inspection_data(
             inspection, fallback_inspector_name=context.real_name
