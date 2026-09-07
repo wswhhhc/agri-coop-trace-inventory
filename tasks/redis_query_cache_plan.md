@@ -219,7 +219,7 @@
 
 ### R6：性能验证、文档和回滚复查（已完成）
 
-- 真实 Redis 行为验证通过：临时前缀下 TTL 抖动为 `54..66` 秒，8 个并发请求只触发 1 次回源，坏 JSON 自动删除并完成临时 key 清理。
+- 真实 Redis 行为验证通过：临时前缀下 TTL 抖动为 `54..66` 秒，8 个并发请求只触发 1 次回源，坏 JSON 自动删除，临近过期 key 可后台刷新，并完成临时 key 清理。
 - 全量 pytest `301 passed, 2 warnings`；Ruff、mypy 和 `git diff --check` 均通过。
 - 新增 `QUERY_CACHE_ENABLED` 配置开关，关闭后新增查询缓存直接回源 PostgreSQL；认证会话、限流和已有追溯/dashboard 逻辑不受影响。
 - 已同步接口设计书、数据库设计书和 ADR；Git 保存点：`aed76b5`、`6065d0a`。
