@@ -8,6 +8,7 @@ htmlcov/
 /findings.md
 /progress.md
 /task_plan.md
+/docs/backend公共方法整理建议.md
 
 # Frontend dependencies and build output
 frontend/node_modules/
