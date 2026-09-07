@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from uuid import uuid4
 
 import httpx
@@ -171,6 +172,29 @@ async def test_cooperative_admin_can_manage_categories_and_products(product_api)
         saved = await session.scalar(select(Product).where(Product.id == product_id))
         assert saved is not None
         assert saved.cooperative_id == cooperative_id
+
+
+@pytest.mark.asyncio
+async def test_product_code_is_generated_when_create_request_omits_it(product_api):
+    client, _, _, category_id, _, _, _, _, _, _ = product_api
+    payload = {
+        "categoryId": str(category_id),
+        "name": "新鲜玉米",
+        "unit": "KG",
+        "shelfLifeDays": 30,
+        "safetyStock": 10,
+    }
+
+    first = await client.post("/api/v1/products", json=payload)
+    second = await client.post("/api/v1/products", json=payload)
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+    first_code = first.json()["data"]["code"]
+    second_code = second.json()["data"]["code"]
+    assert re.fullmatch(r"VEGETABLE-[A-Z0-9]{6}", first_code)
+    assert re.fullmatch(r"VEGETABLE-[A-Z0-9]{6}", second_code)
+    assert first_code != second_code
 
 
 @pytest.mark.asyncio

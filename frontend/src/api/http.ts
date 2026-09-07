@@ -6,6 +6,7 @@ import type { AuthTokenData } from '@/types/auth'
 
 const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? '/api/v1',
+  timeout: 15000,
   withCredentials: true,
   headers: {
     Accept: 'application/json',

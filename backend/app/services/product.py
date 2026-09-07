@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -182,10 +183,12 @@ class ProductService:
             )
             if category is None:
                 raise resource_not_found()
+            values = payload.model_dump(exclude_none=True)
+            values["code"] = payload.code or self._new_product_code(category.code)
             return await self.repository.add(
                 Product(
                     cooperative_id=cooperative_id,
-                    **payload.model_dump(exclude_none=True),
+                    **values,
                 )
             )
 
@@ -213,5 +216,13 @@ class ProductService:
                 if category is None:
                     raise resource_not_found()
             return await self.repository.update(product, values)
+
+    @staticmethod
+    def _new_product_code(category_code: str) -> str:
+        normalized_code = "".join(
+            character if character.isalnum() else "-"
+            for character in category_code.upper()
+        ).strip("-") or "PRODUCT"
+        return f"{normalized_code}-{secrets.token_hex(3).upper()}"
 
 __all__ = ["ProductCategoryService", "ProductService"]

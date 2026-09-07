@@ -6,7 +6,7 @@ import http from './http'
 
 export interface ProductCreatePayload {
   categoryId: string
-  code: string
+  code?: string
   name: string
   unit: ProductUnit
   shelfLifeDays: number

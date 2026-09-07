@@ -18,7 +18,9 @@ import { useAuthStore } from '@/stores/auth'
 import type { ProductUnit } from '@/types/resources'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const { items, loading, error, loadData } = useListPage(listProducts)
+const { items, loading, error, loadData } = useListPage(
+  () => listProducts({ pageSize: 100 }),
+)
 const categoryState = usePageData(
   () => listProductCategories({ isActive: true, pageSize: 100 }),
   [],
@@ -72,7 +74,7 @@ async function handleSubmit(): Promise<void> {
   try {
     await createProduct({
       categoryId: form.categoryId,
-      code: form.code.trim(),
+      code: form.code.trim() || undefined,
       name: form.name.trim(),
       unit: form.unit,
       shelfLifeDays: form.shelfLifeDays,
@@ -153,7 +155,13 @@ async function handleUpdate(): Promise<void> {
       </label>
       <label>
         编码
-        <input v-model="form.code" name="code" required maxlength="32" />
+        <input
+          v-model="form.code"
+          name="code"
+          maxlength="32"
+          placeholder="不填则自动生成，如 VEGETABLE-A1B2C3"
+        />
+        <span class="field-help">如已有内部编码，可手动填写；留空由系统自动生成，创建后不可修改。</span>
       </label>
       <label>
         名称
