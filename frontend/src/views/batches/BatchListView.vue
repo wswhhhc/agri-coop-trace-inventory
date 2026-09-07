@@ -136,6 +136,7 @@ async function handleSubmit(): Promise<void> {
       :loading="batchList.loading"
       :error="batchList.error"
       :empty="batchList.items.length === 0"
+      :preserve-content-on-loading="batchList.items.length > 0"
       @retry="batchList.loadData"
     >
       <table>

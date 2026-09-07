@@ -94,6 +94,7 @@ function handleSearch(params: DashboardQueryParams): void {
           :loading="forecastState.loading"
           :error="forecastState.error"
           :empty="forecastState.items.length === 0"
+          :preserve-content-on-loading="forecastState.items.length > 0"
           empty-message="暂无预测结果"
           @retry="forecastState.loadData"
         >

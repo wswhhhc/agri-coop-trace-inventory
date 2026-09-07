@@ -44,6 +44,7 @@ const groupedTrends = computed(() => {
       :loading="loading"
       :error="error"
       :empty="items.length === 0"
+      :preserve-content-on-loading="items.length > 0"
       empty-message="当前范围暂无库存趋势数据"
       @retry="emit('retry')"
     >

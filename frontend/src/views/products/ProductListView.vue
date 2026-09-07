@@ -218,6 +218,7 @@ async function handleUpdate(): Promise<void> {
       :loading="productList.loading"
       :error="productList.error"
       :empty="productList.items.length === 0"
+      :preserve-content-on-loading="productList.items.length > 0"
       @retry="productList.loadData"
     >
       <table>

@@ -5,12 +5,14 @@ withDefaults(
     error?: string
     empty?: boolean
     emptyMessage?: string
+    preserveContentOnLoading?: boolean
   }>(),
   {
     loading: false,
     error: '',
     empty: false,
     emptyMessage: '暂无数据',
+    preserveContentOnLoading: false,
   },
 )
 
@@ -20,7 +22,21 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <section v-if="loading" class="page-state page-state--loading" role="status" aria-live="polite">
+  <section
+    v-if="preserveContentOnLoading"
+    class="page-state page-state--content"
+    :aria-busy="loading ? 'true' : undefined"
+  >
+    <slot />
+    <div v-if="loading" class="page-state__refreshing" role="status" aria-live="polite">
+      加载中…
+    </div>
+    <div v-else-if="error" class="page-state__refresh-error" role="alert">
+      {{ error }}
+    </div>
+  </section>
+
+  <section v-else-if="loading" class="page-state page-state--loading" role="status" aria-live="polite">
     <div class="page-state__skeleton" aria-hidden="true">
       <span></span>
       <span></span>
@@ -53,6 +69,35 @@ const emit = defineEmits<{
   padding: var(--space-8);
   background: var(--color-surface);
   text-align: center;
+}
+
+.page-state--content {
+  position: relative;
+  display: block;
+  min-height: 36rem;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.page-state__refreshing,
+.page-state__refresh-error {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  pointer-events: none;
+}
+
+.page-state__refresh-error {
+  background: color-mix(in srgb, var(--color-danger-soft) 86%, transparent);
+  color: var(--color-danger);
 }
 
 .page-state__message {
