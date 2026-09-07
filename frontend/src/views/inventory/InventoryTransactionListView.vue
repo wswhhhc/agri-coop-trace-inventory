@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, toRefs } from 'vue'
 
 import { getInventoryTransaction, listInventoryTransactions } from '@/api/inventory'
 import { listBatchOptions } from '@/api/batches'
@@ -16,10 +16,12 @@ const filters = reactive({
   transactionType: '',
 })
 
-const { data: items, loading, error, loadData } = usePageData(
+const transactionState = usePageData(
   () => listInventoryTransactions(filters),
   [],
 )
+const { data: items, loading, error } = toRefs(transactionState)
+const { loadData } = transactionState
 const warehouseState = usePageData(listWarehouses, [])
 const batchState = usePageData(listBatchOptions, [])
 const selectedDetail = ref<InventoryTransactionDetail | null>(null)

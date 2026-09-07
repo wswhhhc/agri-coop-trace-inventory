@@ -4,6 +4,25 @@ import { describe, expect, it, vi } from 'vitest'
 import { usePageData, usePaginatedList } from './usePageData'
 
 describe('usePageData', () => {
+  it('keeps page data reactive when rendered from the composable state', async () => {
+    const loader = vi.fn().mockResolvedValue({ id: 'batch-1' })
+    const root = document.createElement('div')
+    const app = createApp(
+      defineComponent({
+        setup() {
+          const state = usePageData(loader, null as { id: string } | null)
+          return () => h('div', state.data?.id ?? 'empty')
+        },
+      }),
+    )
+
+    app.mount(root)
+
+    await vi.waitFor(() => expect(root.textContent).toBe('batch-1'))
+
+    app.unmount()
+  })
+
   it('exposes nested page state as plain reactive properties', async () => {
     const loader = vi.fn().mockResolvedValue([{ id: 'product-1' }])
     let state: ReturnType<typeof usePageData> | undefined

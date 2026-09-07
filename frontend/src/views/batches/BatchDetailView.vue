@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, toRefs, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { getBatch, updateBatch, type BatchStatus } from '@/api/batches'
@@ -16,7 +16,9 @@ import { getApiErrorMessage } from '@/utils/api-error'
 
 const route = useRoute()
 const batchId = String(route.params.batchId)
-const { data, loading, error, loadData } = usePageData(() => getBatch(batchId), null)
+const pageState = usePageData(() => getBatch(batchId), null)
+const { data, loading, error } = toRefs(pageState)
+const { loadData } = pageState
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('batch:manage'))
 const updating = ref(false)

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { toRefs } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { getPublicTrace } from '@/api/public-traceability'
@@ -8,7 +9,9 @@ import { usePageData } from '@/composables/usePageData'
 
 const route = useRoute()
 const traceCode = String(route.params.traceCode)
-const { data, loading, error, loadData } = usePageData(() => getPublicTrace(traceCode), null)
+const pageState = usePageData(() => getPublicTrace(traceCode), null)
+const { data, loading, error } = toRefs(pageState)
+const { loadData } = pageState
 
 function statusTone(value: string): 'success' | 'warning' | 'danger' | 'info' {
   if (value === 'IN_STOCK' || value === 'PASSED') return 'success'
