@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from uuid import uuid4
 
 import httpx
@@ -262,6 +263,28 @@ async def test_cooperative_admin_can_create_list_read_and_change_batch_status(ba
         "UPDATE_BATCH",
     ]
     assert all(log.result == "SUCCESS" for log in audit_logs)
+
+
+@pytest.mark.asyncio
+async def test_batch_number_is_generated_when_create_request_omits_it(batch_api):
+    client, _, _, product_id, _, _, _, _, _, _, _ = batch_api
+    payload = {
+        "productId": str(product_id),
+        "origin": "第一基地",
+        "productionDate": "2026-09-05",
+        "expiryDate": "2026-09-12",
+    }
+
+    first = await client.post("/api/v1/batches", json=payload)
+    second = await client.post("/api/v1/batches", json=payload)
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+    first_batch_no = first.json()["data"]["batchNo"]
+    second_batch_no = second.json()["data"]["batchNo"]
+    assert re.fullmatch(r"TOMATO-20260905-[A-Z0-9]{6}", first_batch_no)
+    assert re.fullmatch(r"TOMATO-20260905-[A-Z0-9]{6}", second_batch_no)
+    assert first_batch_no != second_batch_no
 
 
 @pytest.mark.asyncio

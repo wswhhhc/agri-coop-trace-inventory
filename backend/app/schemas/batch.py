@@ -11,7 +11,7 @@ from app.schemas.common import BaseSchema, PageParams
 
 class BatchCreate(BaseSchema):
     product_id: UUID
-    batch_no: str = Field(min_length=2, max_length=64)
+    batch_no: str | None = Field(default=None, min_length=2, max_length=64)
     origin: str = Field(min_length=1, max_length=255)
     production_date: date
     expiry_date: date

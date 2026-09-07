@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import secrets
-from datetime import UTC, datetime, time
+from datetime import UTC, date, datetime, time
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -113,7 +113,9 @@ class BatchService:
             batch = Batch(
                 cooperative_id=cooperative_id,
                 product_id=product.id,
-                batch_no=payload.batch_no,
+                batch_no=payload.batch_no or self._new_batch_no(
+                    product.code, payload.production_date
+                ),
                 trace_code=self._new_trace_code(),
                 origin=payload.origin,
                 production_date=payload.production_date,
@@ -178,6 +180,14 @@ class BatchService:
     async def _invalidate_trace_cache(self, trace_code: str) -> None:
         if self.trace_cache is not None:
             await self.trace_cache.invalidate(trace_code)
+
+    @staticmethod
+    def _new_batch_no(product_code: str, production_date: date) -> str:
+        normalized_code = "".join(
+            character if character.isalnum() else "-"
+            for character in product_code.upper()
+        ).strip("-") or "PRODUCT"
+        return f"{normalized_code}-{production_date:%Y%m%d}-{secrets.token_hex(3).upper()}"
 
     @staticmethod
     def _new_trace_code() -> str:
