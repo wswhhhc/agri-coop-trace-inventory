@@ -29,6 +29,7 @@ class QueryCache:
         name: str = "query",
         jitter_ratio: float = 0.1,
         enabled: bool = True,
+        refresh_threshold_seconds: int = 30,
     ) -> None:
         self._cache = JsonCache(
             redis,
@@ -36,10 +37,12 @@ class QueryCache:
             ttl_seconds=ttl_seconds,
             name=name,
             jitter_ratio=jitter_ratio,
+            refresh_threshold_seconds=refresh_threshold_seconds,
         )
         self._keys = CacheKeyBuilder(key_prefix)
         self.key_prefix = key_prefix
         self.enabled = enabled
+        self.refresh_threshold_seconds = refresh_threshold_seconds
 
     def key(
         self,
@@ -91,15 +94,27 @@ class QueryCache:
     ) -> ModelT | None:
         if not self.enabled:
             return await loader()
-        cached = await self.get(key, model_type)
-        if cached is not None:
-            return cached
 
         async def load_payload() -> dict[str, Any]:
             value = await loader()
             return value.model_dump(mode="json", by_alias=True)
 
-        raw = await self._cache.get_or_set(key, load_payload, ttl_seconds=ttl_seconds)
+        cached = await self.get(key, model_type)
+        if cached is not None:
+            await self._cache.schedule_refresh_if_needed(
+                key,
+                load_payload,
+                ttl_seconds=ttl_seconds,
+                threshold_seconds=self.refresh_threshold_seconds,
+            )
+            return cached
+
+        raw = await self._cache.get_or_set(
+            key,
+            load_payload,
+            ttl_seconds=ttl_seconds,
+            refresh_threshold_seconds=self.refresh_threshold_seconds,
+        )
         try:
             return model_type.model_validate(raw)
         except (TypeError, ValueError, ValidationError):

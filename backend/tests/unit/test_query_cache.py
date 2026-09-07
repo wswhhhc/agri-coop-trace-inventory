@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from uuid import uuid4
 
 import pytest
@@ -35,6 +36,9 @@ class MemoryRedis:
         self.values.pop(key, None)
         self.ttls.pop(key, None)
         return int(existed)
+
+    async def ttl(self, key: str) -> int:
+        return self.ttls.get(key, -2)
 
     async def eval(self, script: str, numkeys: int, key: str, token: str) -> int:
         if self.values.get(key) != token:
@@ -118,6 +122,35 @@ async def test_disabled_query_cache_reads_from_loader_without_redis() -> None:
 
     assert value == ApiResponse(data={"id": "product-1"})
     assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_query_cache_refreshes_validated_hit_in_background() -> None:
+    redis = MemoryRedis()
+    cache = QueryCache(
+        redis,
+        key_prefix="agri:",
+        ttl_seconds=60,
+        jitter_ratio=0,
+        refresh_threshold_seconds=30,
+    )
+    context = _context()
+    key = cache.key("product-list", context)
+    await cache.set(key, ApiResponse(data={"id": "old"}), ttl_seconds=10)
+    calls = 0
+
+    async def loader() -> ApiResponse[dict[str, str]]:
+        nonlocal calls
+        calls += 1
+        return ApiResponse(data={"id": "new"})
+
+    value = await cache.get_or_set(key, ApiResponse[dict[str, str]], loader)
+    assert value == ApiResponse(data={"id": "old"})
+    await asyncio.sleep(0.01)
+    assert calls == 1
+    assert await cache.get(key, ApiResponse[dict[str, str]]) == ApiResponse(
+        data={"id": "new"}
+    )
 
 
 def test_query_cache_rejects_invalid_ttl() -> None:

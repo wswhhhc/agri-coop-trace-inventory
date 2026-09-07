@@ -20,6 +20,7 @@ def get_reference_query_cache(
         ttl_seconds=settings.reference_cache_ttl_seconds,
         jitter_ratio=settings.cache_ttl_jitter_ratio,
         enabled=settings.query_cache_enabled,
+        refresh_threshold_seconds=settings.cache_refresh_threshold_seconds,
         name="reference",
     )
 
@@ -34,6 +35,7 @@ def get_permission_query_cache(
         ttl_seconds=settings.permission_cache_ttl_seconds,
         jitter_ratio=settings.cache_ttl_jitter_ratio,
         enabled=settings.query_cache_enabled,
+        refresh_threshold_seconds=settings.cache_refresh_threshold_seconds,
         name="permission",
     )
 
@@ -48,6 +50,7 @@ def get_forecasting_query_cache(
         ttl_seconds=settings.forecasting_cache_ttl_seconds,
         jitter_ratio=settings.cache_ttl_jitter_ratio,
         enabled=settings.query_cache_enabled,
+        refresh_threshold_seconds=settings.cache_refresh_threshold_seconds,
         name="forecasting",
     )
 
@@ -62,6 +65,7 @@ def get_detail_query_cache(
         ttl_seconds=settings.detail_cache_ttl_seconds,
         jitter_ratio=settings.cache_ttl_jitter_ratio,
         enabled=settings.query_cache_enabled,
+        refresh_threshold_seconds=settings.cache_refresh_threshold_seconds,
         name="detail",
     )
 

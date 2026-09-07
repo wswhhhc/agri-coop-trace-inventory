@@ -212,6 +212,7 @@ async def _invalidate_forecasting_cache(settings, cooperative_id: UUID) -> None:
             ttl_seconds=settings.forecasting_cache_ttl_seconds,
             jitter_ratio=settings.cache_ttl_jitter_ratio,
             enabled=settings.query_cache_enabled,
+            refresh_threshold_seconds=settings.cache_refresh_threshold_seconds,
             name="forecasting",
         )
         await cache.invalidate_resource("model-version-list", cooperative_id)

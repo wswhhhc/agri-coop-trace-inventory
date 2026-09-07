@@ -87,6 +87,7 @@ class JsonCache:
         lock_ttl_seconds: int = 5,
         lock_wait_seconds: float = 0.05,
         lock_wait_attempts: int = 3,
+        refresh_threshold_seconds: int = 30,
         random_fn: Callable[[float, float], float] = random.uniform,
     ) -> None:
         if ttl_seconds <= 0:
@@ -95,6 +96,8 @@ class JsonCache:
             raise ValueError("缓存 TTL 抖动比例必须在 0 到 1 之间")
         if lock_ttl_seconds <= 0 or lock_wait_seconds <= 0 or lock_wait_attempts <= 0:
             raise ValueError("缓存重建锁参数必须大于 0")
+        if refresh_threshold_seconds < 0:
+            raise ValueError("缓存提前刷新阈值不能小于 0")
         self.redis = redis
         self.key_prefix = key_prefix
         self.ttl_seconds = ttl_seconds
@@ -103,6 +106,7 @@ class JsonCache:
         self.lock_ttl_seconds = lock_ttl_seconds
         self.lock_wait_seconds = lock_wait_seconds
         self.lock_wait_attempts = lock_wait_attempts
+        self.refresh_threshold_seconds = refresh_threshold_seconds
         self.random_fn = random_fn
 
     async def get(self, key: str) -> Any | None:
@@ -147,7 +151,7 @@ class JsonCache:
     async def ttl(self, key: str) -> int | None:
         try:
             value = await self.redis.ttl(key)
-        except (RedisError, OSError, RuntimeError):
+        except (AttributeError, RedisError, OSError, RuntimeError):
             self._log_event("ttl_error")
             return None
         return int(value) if value is not None else None
@@ -189,10 +193,18 @@ class JsonCache:
         loader: Callable[[], Awaitable[T]],
         *,
         ttl_seconds: int | None = None,
+        refresh_threshold_seconds: int | None = None,
     ) -> T | Any:
         """缓存未命中时单键重建，避免并发请求重复访问数据库。"""
         cached = await self.get(key)
         if cached is not None:
+            if refresh_threshold_seconds is not None:
+                await self.schedule_refresh_if_needed(
+                    key,
+                    loader,
+                    ttl_seconds=ttl_seconds,
+                    threshold_seconds=refresh_threshold_seconds,
+                )
             return cached
 
         token = await self.acquire_rebuild_lock(key)
@@ -218,6 +230,53 @@ class JsonCache:
             return value
         finally:
             await self.release_rebuild_lock(key, token)
+
+    async def schedule_refresh_if_needed(
+        self,
+        key: str,
+        loader: Callable[[], Awaitable[T]],
+        *,
+        ttl_seconds: int | None,
+        threshold_seconds: int,
+    ) -> None:
+        remaining = await self.ttl(key)
+        if remaining is None or remaining < 0 or remaining > threshold_seconds:
+            return
+        task = asyncio.create_task(
+            self._refresh(
+                key,
+                loader,
+                ttl_seconds=ttl_seconds,
+                threshold_seconds=threshold_seconds,
+            )
+        )
+        task.add_done_callback(self._consume_refresh_task)
+        self._log_event("refresh_scheduled")
+
+    async def _refresh(
+        self,
+        key: str,
+        loader: Callable[[], Awaitable[T]],
+        *,
+        ttl_seconds: int | None,
+        threshold_seconds: int,
+    ) -> None:
+        token = await self.acquire_rebuild_lock(key)
+        if token is None:
+            return
+        try:
+            remaining = await self.ttl(key)
+            if remaining is None or remaining < 0 or remaining > threshold_seconds:
+                return
+            value = await loader()
+            await self.set(key, value, ttl_seconds=ttl_seconds)
+            self._log_event("refresh_success")
+        finally:
+            await self.release_rebuild_lock(key, token)
+
+    def _consume_refresh_task(self, task: asyncio.Task[None]) -> None:
+        if task.cancelled() or task.exception() is not None:
+            self._log_event("refresh_error")
 
     def effective_ttl(self, base_ttl: int | None = None) -> int:
         """返回带随机抖动的 TTL，至少保留 1 秒。"""

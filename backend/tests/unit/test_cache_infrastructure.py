@@ -37,6 +37,9 @@ class MemoryRedis:
         self.ttls.pop(key, None)
         return int(existed)
 
+    async def ttl(self, key: str) -> int:
+        return self.ttls.get(key, -2)
+
     async def eval(self, script: str, numkeys: int, key: str, token: str) -> int:
         if self.values.get(key) != token:
             return 0
@@ -146,3 +149,50 @@ async def test_json_cache_get_or_set_rechecks_after_lock_wait() -> None:
     assert value == {"count": 3}
     assert loader_calls == 1
     assert await cache.get("agri:key") == {"count": 3}
+
+
+@pytest.mark.asyncio
+async def test_json_cache_refreshes_near_expiry_without_blocking_hit() -> None:
+    redis = MemoryRedis()
+    cache = JsonCache(
+        redis,
+        key_prefix="agri:",
+        ttl_seconds=60,
+        jitter_ratio=0,
+        refresh_threshold_seconds=30,
+    )
+    await cache.set("agri:key", {"count": 1}, ttl_seconds=10)
+    loader_calls = 0
+
+    async def loader() -> dict[str, int]:
+        nonlocal loader_calls
+        loader_calls += 1
+        await asyncio.sleep(0)
+        return {"count": 2}
+
+    value = await cache.get_or_set(
+        "agri:key", loader, refresh_threshold_seconds=30
+    )
+    assert value == {"count": 1}
+
+    await asyncio.sleep(0.01)
+    assert loader_calls == 1
+    assert await cache.get("agri:key") == {"count": 2}
+
+
+@pytest.mark.asyncio
+async def test_json_cache_refresh_failure_keeps_existing_value() -> None:
+    redis = MemoryRedis()
+    cache = JsonCache(redis, key_prefix="agri:", ttl_seconds=60, jitter_ratio=0)
+    await cache.set("agri:key", {"count": 1}, ttl_seconds=10)
+
+    async def loader() -> dict[str, int]:
+        raise RuntimeError("database unavailable")
+
+    value = await cache.get_or_set(
+        "agri:key", loader, refresh_threshold_seconds=30
+    )
+    assert value == {"count": 1}
+
+    await asyncio.sleep(0.01)
+    assert await cache.get("agri:key") == {"count": 1}
