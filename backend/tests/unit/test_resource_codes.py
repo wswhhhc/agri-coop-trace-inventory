@@ -1,7 +1,6 @@
 import re
 
 import pytest
-
 from app.utils.resource_codes import new_prefixed_code
 
 
