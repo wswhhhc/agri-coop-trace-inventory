@@ -12,6 +12,7 @@ from celery import Task  # type: ignore[import-untyped]
 
 from app.core.config import get_settings
 from app.infrastructure.database import create_database_engine, create_session_factory
+from app.infrastructure.redis import create_redis_client
 from app.ml.forecasting import (
     build_daily_demand_features,
     evaluate_forecast,
@@ -31,6 +32,7 @@ from app.models import (
     TaskStatus,
 )
 from app.repositories.forecasting import ForecastingRepository
+from app.services.query_cache import QueryCache
 from app.tasks.celery_app import celery_app
 
 LIMITATION_NOTICE = "结果基于合成数据，仅用于验证算法流程，不代表真实经营效果。"
@@ -181,7 +183,9 @@ async def _run_training(task_id: UUID, celery_task_id: str) -> dict[str, str]:
                 finished_at=datetime.now(UTC),
                 result_payload={"modelVersionId": str(version.id)},
             )
-            return {"modelVersionId": str(version.id)}
+            result = {"modelVersionId": str(version.id)}
+        await _invalidate_forecasting_cache(settings, cooperative_id)
+        return result
     except Exception as error:
         async with factory() as session, session.begin():
             await _set_task(
@@ -196,6 +200,23 @@ async def _run_training(task_id: UUID, celery_task_id: str) -> dict[str, str]:
         raise
     finally:
         await engine.dispose()
+
+
+async def _invalidate_forecasting_cache(settings, cooperative_id: UUID) -> None:
+    """训练成功后清理模型版本查询缓存；缓存故障不影响任务结果。"""
+    redis = create_redis_client(settings)
+    try:
+        cache = QueryCache(
+            redis,
+            key_prefix=settings.redis_key_prefix,
+            ttl_seconds=settings.forecasting_cache_ttl_seconds,
+            jitter_ratio=settings.cache_ttl_jitter_ratio,
+            name="forecasting",
+        )
+        await cache.invalidate_resource("model-version-list", cooperative_id)
+        await cache.invalidate_resource("model-version-detail", cooperative_id)
+    finally:
+        await redis.aclose()
 
 
 async def _run_forecast(task_id: UUID, celery_task_id: str) -> dict[str, str]:

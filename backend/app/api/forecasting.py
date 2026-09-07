@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api._cache import get_forecasting_query_cache
 from app.api._pagination import build_pagination_meta
 from app.core.auth.dependencies import CurrentAuthContext
 from app.infrastructure.database import get_db_session
@@ -22,6 +23,8 @@ from app.schemas.forecasting import (
     ModelVersionListParams,
 )
 from app.services.forecasting import ForecastingService
+from app.services.forecasting_cache_policy import is_cacheable_active_model_list
+from app.services.query_cache import QueryCache
 from app.tasks.forecasting_tasks import forecast_demand_task, train_model_task
 
 router = APIRouter(tags=["forecasting"])
@@ -67,12 +70,24 @@ async def list_model_versions(
     params: Annotated[ModelVersionListParams, Query()],
     context: CurrentAuthContext,
     service: Annotated[ForecastingService, Depends(get_forecasting_service)],
+    cache: Annotated[QueryCache, Depends(get_forecasting_query_cache)],
 ) -> ListResponse[ModelVersionData]:
-    items, total = await service.list_model_versions(context, params)
-    return ListResponse(
-        data=[_model_data(item) for item in items],
-        pagination=build_pagination_meta(total, params.page, params.page_size),
+    service.ensure_model_read(context)
+
+    async def load() -> ListResponse[ModelVersionData]:
+        items, total = await service.list_model_versions(context, params)
+        return ListResponse(
+            data=[_model_data(item) for item in items],
+            pagination=build_pagination_meta(total, params.page, params.page_size),
+        )
+
+    if not is_cacheable_active_model_list(params):
+        return await load()
+    key = cache.key(
+        "model-version-list", context, params.model_dump(mode="json", by_alias=True)
     )
+    response = await cache.get_or_set(key, ListResponse[ModelVersionData], load)
+    return response if response is not None else await load()
 
 
 @router.get(
@@ -82,10 +97,18 @@ async def get_model_version(
     model_version_id: Annotated[UUID, Path(alias="modelVersionId")],
     context: CurrentAuthContext,
     service: Annotated[ForecastingService, Depends(get_forecasting_service)],
+    cache: Annotated[QueryCache, Depends(get_forecasting_query_cache)],
 ) -> ApiResponse[ModelVersionData]:
-    return ApiResponse(
-        data=_model_data(await service.get_model_version(context, model_version_id))
-    )
+    service.ensure_model_read(context)
+    key = cache.key("model-version-detail", context, {"id": model_version_id})
+
+    async def load() -> ApiResponse[ModelVersionData]:
+        return ApiResponse(
+            data=_model_data(await service.get_model_version(context, model_version_id))
+        )
+
+    response = await cache.get_or_set(key, ApiResponse[ModelVersionData], load)
+    return response if response is not None else await load()
 
 
 @router.post(
@@ -95,8 +118,12 @@ async def activate_model(
     payload: ModelActivationCreate,
     context: CurrentAuthContext,
     service: Annotated[ForecastingService, Depends(get_forecasting_service)],
+    cache: Annotated[QueryCache, Depends(get_forecasting_query_cache)],
 ) -> ApiResponse[ModelVersionData]:
-    return ApiResponse(data=_model_data(await service.activate_model(context, payload)))
+    version = await service.activate_model(context, payload)
+    await cache.invalidate_resource("model-version-list", version.cooperative_id)
+    await cache.invalidate_resource("model-version-detail", version.cooperative_id)
+    return ApiResponse(data=_model_data(version))
 
 
 @router.post("/forecast-tasks", response_model=ApiResponse[TaskData], status_code=202)
@@ -135,12 +162,20 @@ async def get_forecast_result(
     forecast_result_id: Annotated[UUID, Path(alias="forecastResultId")],
     context: CurrentAuthContext,
     service: Annotated[ForecastingService, Depends(get_forecasting_service)],
+    cache: Annotated[QueryCache, Depends(get_forecasting_query_cache)],
 ) -> ApiResponse[ForecastResultData]:
-    return ApiResponse(
-        data=_result_data(
-            await service.get_forecast_result(context, forecast_result_id)
+    service.ensure_model_read(context)
+    key = cache.key("forecast-result-detail", context, {"id": forecast_result_id})
+
+    async def load() -> ApiResponse[ForecastResultData]:
+        return ApiResponse(
+            data=_result_data(
+                await service.get_forecast_result(context, forecast_result_id)
+            )
         )
-    )
+
+    response = await cache.get_or_set(key, ApiResponse[ForecastResultData], load)
+    return response if response is not None else await load()
 
 
 @router.get("/tasks/{taskId}", response_model=ApiResponse[TaskData])

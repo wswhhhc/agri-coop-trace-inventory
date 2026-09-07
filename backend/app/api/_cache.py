@@ -36,4 +36,21 @@ def get_permission_query_cache(
     )
 
 
-__all__ = ["get_permission_query_cache", "get_reference_query_cache"]
+def get_forecasting_query_cache(
+    settings: Annotated[Settings, Depends(get_settings)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> QueryCache:
+    return QueryCache(
+        redis,
+        key_prefix=settings.redis_key_prefix,
+        ttl_seconds=settings.forecasting_cache_ttl_seconds,
+        jitter_ratio=settings.cache_ttl_jitter_ratio,
+        name="forecasting",
+    )
+
+
+__all__ = [
+    "get_forecasting_query_cache",
+    "get_permission_query_cache",
+    "get_reference_query_cache",
+]

@@ -30,6 +30,10 @@ class ForecastingService:
         self.session = session
         self.repository = ForecastingRepository(session)
 
+    @staticmethod
+    def ensure_model_read(context: AuthContext) -> None:
+        require_model_read(context)
+
     async def submit_model_training(
         self,
         context: AuthContext,
