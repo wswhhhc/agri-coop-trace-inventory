@@ -11,7 +11,7 @@ pnpm dev
 
 默认访问地址：`http://localhost:5173`。
 
-后端接口默认使用 `http://localhost:8000/api/v1`，如需修改，复制 `.env.example` 为 `.env` 后调整 `VITE_API_BASE_URL`。
+开发环境默认通过 Vite 代理使用 `/api/v1` 访问 `http://localhost:8000`，可避免本地联调时的跨域问题。部署到独立前端域名时，复制 `.env.example` 为 `.env` 并填写完整的 `VITE_API_BASE_URL`。
 
 ## 当前功能
 

@@ -20,14 +20,17 @@ import { useListPage } from '@/composables/usePageData'
 import { usePageData } from '@/composables/usePageData'
 import type { AlertDetailSummary, TaskSummary } from '@/types/resources'
 import { useAuthStore } from '@/stores/auth'
+import { canManageAlertRules } from '@/utils/alerting-permission'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const { items, loading, error, loadData } = useListPage(listAlertRules)
-const alertState = usePageData(listAlerts, [])
 const authStore = useAuthStore()
 const canEditRules = computed(
-  () => authStore.role === 'COOPERATIVE_ADMIN' && authStore.hasPermission('alert:read'),
+  () => canManageAlertRules(authStore.role, authStore.permissions),
 )
+const { items, loading, error, loadData } = useListPage(() =>
+  canEditRules.value ? listAlertRules() : Promise.resolve([]),
+)
+const alertState = usePageData(listAlerts, [])
 const canHandleAlerts = computed(() => authStore.hasPermission('alert:handle'))
 const editingRuleId = ref<string | null>(null)
 const submitting = ref(false)
@@ -179,39 +182,42 @@ async function runAlertScan(): Promise<void> {
     <p v-if="scanError" role="alert">{{ scanError }}</p>
     <p v-if="formError" role="alert">{{ formError }}</p>
     <p v-if="successMessage" role="status">{{ successMessage }}</p>
-    <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
-      <table>
-        <caption>预警规则列表</caption>
-        <thead>
-          <tr>
-            <th scope="col">类型</th>
-            <th scope="col">仓库</th>
-            <th scope="col">产品</th>
-            <th scope="col">数量阈值</th>
-            <th scope="col">天数阈值</th>
-            <th scope="col">周转天数</th>
-            <th scope="col">级别</th>
-            <th scope="col">状态</th>
-            <th v-if="canEditRules" scope="col">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="rule in items" :key="rule.id">
-            <td>{{ rule.alertType }}</td>
-            <td>{{ rule.warehouseId || '全局' }}</td>
-            <td>{{ rule.productId || '全局' }}</td>
-            <td>{{ rule.thresholdQuantity ?? '—' }}</td>
-            <td>{{ rule.thresholdDays ?? '—' }}</td>
-            <td>{{ rule.turnoverDays ?? '—' }}</td>
-            <td><StatusBadge :label="rule.severity" :tone="severityTone(rule.severity)" /></td>
-            <td><StatusBadge :label="rule.isEnabled ? '启用' : '停用'" :tone="rule.isEnabled ? 'success' : 'neutral'" /></td>
-            <td v-if="canEditRules">
-              <button type="button" @click="beginEdit(rule)">编辑</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </PageState>
+    <section v-if="canEditRules" class="alert-rule-list">
+      <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
+        <table>
+          <caption>预警规则列表</caption>
+          <thead>
+            <tr>
+              <th scope="col">类型</th>
+              <th scope="col">仓库</th>
+              <th scope="col">产品</th>
+              <th scope="col">数量阈值</th>
+              <th scope="col">天数阈值</th>
+              <th scope="col">周转天数</th>
+              <th scope="col">级别</th>
+              <th scope="col">状态</th>
+              <th scope="col">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="rule in items" :key="rule.id">
+              <td>{{ rule.alertType }}</td>
+              <td>{{ rule.warehouseId || '全局' }}</td>
+              <td>{{ rule.productId || '全局' }}</td>
+              <td>{{ rule.thresholdQuantity ?? '—' }}</td>
+              <td>{{ rule.thresholdDays ?? '—' }}</td>
+              <td>{{ rule.turnoverDays ?? '—' }}</td>
+              <td><StatusBadge :label="rule.severity" :tone="severityTone(rule.severity)" /></td>
+              <td><StatusBadge :label="rule.isEnabled ? '启用' : '停用'" :tone="rule.isEnabled ? 'success' : 'neutral'" /></td>
+              <td><button type="button" @click="beginEdit(rule)">编辑</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </PageState>
+    </section>
+    <p v-else class="permission-hint" role="status">
+      当前账号可查看和处理预警实例，暂无预警规则管理权限。
+    </p>
 
     <section class="alert-instance-list">
       <h2>预警实例</h2>

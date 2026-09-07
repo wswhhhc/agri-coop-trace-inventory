@@ -28,7 +28,7 @@ const form = reactive<BatchCreatePayload>({
 })
 
 function productName(productId: string): string {
-  return productState.data.value.find((product) => product.id === productId)?.name ?? '—'
+  return productState.data.find((product) => product.id === productId)?.name ?? '—'
 }
 
 function batchStatusTone(value: string): 'success' | 'warning' | 'danger' | 'info' {
