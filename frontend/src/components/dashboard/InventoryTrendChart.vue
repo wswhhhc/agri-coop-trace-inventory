@@ -110,6 +110,9 @@ const chart = computed(() => {
 .inventory-trend-chart {
   display: grid;
   gap: var(--space-3);
+  width: 100%;
+  min-width: 0;
+  justify-self: stretch;
   margin-bottom: var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -167,10 +170,12 @@ const chart = computed(() => {
 
 .inventory-trend-chart__groups {
   display: grid;
+  width: 100%;
   gap: var(--space-4);
 }
 
 .inventory-trend-chart__group {
+  width: 100%;
   min-width: 0;
 }
 
@@ -183,7 +188,8 @@ const chart = computed(() => {
 .inventory-trend-chart svg {
   display: block;
   width: 100%;
-  min-width: 34rem;
+  min-width: 0;
+  min-height: 18rem;
   height: auto;
 }
 
