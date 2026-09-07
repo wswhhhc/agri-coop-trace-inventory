@@ -124,14 +124,14 @@ INSERT INTO product_categories (id, cooperative_id, code, name, description, is_
 ON CONFLICT DO NOTHING;
 
 INSERT INTO products (id, cooperative_id, category_id, code, name, unit, shelf_life_days, safety_stock, is_active, created_at, updated_at) VALUES
-    ('899a6a53-9d2d-59da-8111-33457219abf3', '9abc47f4-fcf2-5763-a6e0-c5d598a11ba3', '30c0e94c-fae5-5800-922e-169adcfebedb', 'RICE', '优质粳米', '千克', 365, 180.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00'),
-    ('7810ed37-bb8a-536d-8f78-5ac253b5a2dd', '9abc47f4-fcf2-5763-a6e0-c5d598a11ba3', '30c0e94c-fae5-5800-922e-169adcfebedb', 'CORN', '鲜食玉米', '千克', 30, 120.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00'),
-    ('a5d4d5c6-ab60-5dbc-a6a2-c9d5c56fea44', '9abc47f4-fcf2-5763-a6e0-c5d598a11ba3', '30c0e94c-fae5-5800-922e-169adcfebedb', 'SOY', '非转基因黄豆', '千克', 300, 150.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00'),
-    ('8aa56646-320a-5899-a32c-15ca5973ac33', '9abc47f4-fcf2-5763-a6e0-c5d598a11ba3', '64314b39-285b-5fdb-9351-34df7f7d9ce2', 'POTATO', '红皮马铃薯', '千克', 90, 130.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00'),
-    ('29972350-7962-5572-85e3-247ddd6fdd2f', '626cafc9-d23f-5bfe-8237-9de15fd6f7d2', '920c8ce6-ca21-5e73-848b-7067714472c1', 'RICE', '优质粳米', '千克', 365, 180.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00'),
-    ('10541899-f230-598c-bdc9-b4d8adf13e23', '626cafc9-d23f-5bfe-8237-9de15fd6f7d2', '920c8ce6-ca21-5e73-848b-7067714472c1', 'CORN', '鲜食玉米', '千克', 30, 120.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00'),
-    ('dcbe49f4-d574-5593-8792-37bd375f1a7e', '626cafc9-d23f-5bfe-8237-9de15fd6f7d2', '920c8ce6-ca21-5e73-848b-7067714472c1', 'SOY', '非转基因黄豆', '千克', 300, 150.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00'),
-    ('eed1f9e9-e74b-57df-9bbc-7a9db1b46fa2', '626cafc9-d23f-5bfe-8237-9de15fd6f7d2', '73925a3e-a786-50cb-a2fe-5dc803b85c21', 'POTATO', '红皮马铃薯', '千克', 90, 130.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00')
+    ('899a6a53-9d2d-59da-8111-33457219abf3', '9abc47f4-fcf2-5763-a6e0-c5d598a11ba3', '30c0e94c-fae5-5800-922e-169adcfebedb', 'RICE', '优质粳米', 'KG', 365, 180.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00'),
+    ('7810ed37-bb8a-536d-8f78-5ac253b5a2dd', '9abc47f4-fcf2-5763-a6e0-c5d598a11ba3', '30c0e94c-fae5-5800-922e-169adcfebedb', 'CORN', '鲜食玉米', 'KG', 30, 120.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00'),
+    ('a5d4d5c6-ab60-5dbc-a6a2-c9d5c56fea44', '9abc47f4-fcf2-5763-a6e0-c5d598a11ba3', '30c0e94c-fae5-5800-922e-169adcfebedb', 'SOY', '非转基因黄豆', 'KG', 300, 150.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00'),
+    ('8aa56646-320a-5899-a32c-15ca5973ac33', '9abc47f4-fcf2-5763-a6e0-c5d598a11ba3', '64314b39-285b-5fdb-9351-34df7f7d9ce2', 'POTATO', '红皮马铃薯', 'KG', 90, 130.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00'),
+    ('29972350-7962-5572-85e3-247ddd6fdd2f', '626cafc9-d23f-5bfe-8237-9de15fd6f7d2', '920c8ce6-ca21-5e73-848b-7067714472c1', 'RICE', '优质粳米', 'KG', 365, 180.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00'),
+    ('10541899-f230-598c-bdc9-b4d8adf13e23', '626cafc9-d23f-5bfe-8237-9de15fd6f7d2', '920c8ce6-ca21-5e73-848b-7067714472c1', 'CORN', '鲜食玉米', 'KG', 30, 120.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00'),
+    ('dcbe49f4-d574-5593-8792-37bd375f1a7e', '626cafc9-d23f-5bfe-8237-9de15fd6f7d2', '920c8ce6-ca21-5e73-848b-7067714472c1', 'SOY', '非转基因黄豆', 'KG', 300, 150.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00'),
+    ('eed1f9e9-e74b-57df-9bbc-7a9db1b46fa2', '626cafc9-d23f-5bfe-8237-9de15fd6f7d2', '73925a3e-a786-50cb-a2fe-5dc803b85c21', 'POTATO', '红皮马铃薯', 'KG', 90, 130.000, TRUE, '2026-09-04T09:00:00+08:00', '2026-09-04T09:00:00+08:00')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO batches (id, cooperative_id, product_id, batch_no, trace_code, origin, production_date, expiry_date, responsible_person, status, created_by, created_at, updated_at) VALUES

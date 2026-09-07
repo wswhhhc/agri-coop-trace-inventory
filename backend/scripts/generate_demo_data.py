@@ -328,10 +328,10 @@ def _catalog_rows(
 ) -> tuple[list[TableRows], dict[str, Any]]:
     category_specs = (("GRAIN", "粮食作物"), ("VEGETABLE", "蔬菜作物"))
     product_specs = (
-        ("RICE", "优质粳米", "千克", 365, 180, 13.0),
-        ("CORN", "鲜食玉米", "千克", 30, 120, 18.0),
-        ("SOY", "非转基因黄豆", "千克", 300, 150, 11.0),
-        ("POTATO", "红皮马铃薯", "千克", 90, 130, 15.0),
+        ("RICE", "优质粳米", "KG", 365, 180, 13.0),
+        ("CORN", "鲜食玉米", "KG", 30, 120, 18.0),
+        ("SOY", "非转基因黄豆", "KG", 300, 150, 11.0),
+        ("POTATO", "红皮马铃薯", "KG", 90, 130, 15.0),
     )
     categories = []
     products = []

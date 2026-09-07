@@ -354,7 +354,7 @@ async def test_alembic_check_has_no_differences_for_the_shared_metadata(
             )
         )
         await connection.execute(
-                text("INSERT INTO alembic_version (version_num) VALUES ('g8b9c0d1e2f3')")
+                text("INSERT INTO alembic_version (version_num) VALUES ('h9c0d1e2f3a4')")
         )
         await connection.run_sync(
             lambda sync_connection: command.check(

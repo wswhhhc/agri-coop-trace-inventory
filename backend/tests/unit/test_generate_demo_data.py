@@ -114,3 +114,13 @@ def test_demo_models_use_xgboost_with_moving_average_as_baseline() -> None:
 
     assert "RANDOM_FOREST" not in sql
     assert "XGBOOST" in sql
+
+
+def test_demo_products_use_api_product_unit_codes() -> None:
+    sql = generate_demo_sql(20260904)
+    product_insert = sql.split("INSERT INTO products ", 1)[1].split(
+        "ON CONFLICT DO NOTHING;", 1
+    )[0]
+
+    assert "'千克'" not in product_insert
+    assert product_insert.count("'KG'") == 8
