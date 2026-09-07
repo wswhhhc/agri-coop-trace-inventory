@@ -19,7 +19,10 @@ import type { ProductUnit } from '@/types/resources'
 import { getApiErrorMessage } from '@/utils/api-error'
 
 const { items, loading, error, loadData } = useListPage(listProducts)
-const categoryState = usePageData(listProductCategories, [])
+const categoryState = usePageData(
+  () => listProductCategories({ isActive: true, pageSize: 100 }),
+  [],
+)
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('product:manage'))
 const submitting = ref(false)
@@ -133,12 +136,20 @@ async function handleUpdate(): Promise<void> {
       <h2>新增产品</h2>
       <label>
         产品分类
-        <select v-model="form.categoryId" name="categoryId" required>
-          <option value="" disabled>请选择产品分类</option>
-          <option v-for="category in categoryState.data" :key="category.id" :value="category.id">
-            {{ category.name }}
-          </option>
-        </select>
+        <div class="field-with-action">
+          <select v-model="form.categoryId" name="categoryId" required>
+            <option value="" disabled>请选择产品分类</option>
+            <option v-for="category in categoryState.data" :key="category.id" :value="category.id">
+              {{ category.name }}
+            </option>
+          </select>
+          <RouterLink class="inline-link" :to="{ name: 'product-categories' }">
+            管理分类
+          </RouterLink>
+        </div>
+        <span v-if="!categoryState.loading && !categoryState.error && categoryState.data.length === 0" class="field-help" role="status">
+          暂无启用分类，请先到产品分类中新增分类。
+        </span>
       </label>
       <label>
         编码
@@ -272,6 +283,32 @@ async function handleUpdate(): Promise<void> {
   font-weight: 600;
 }
 
+.field-with-action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.field-with-action select {
+  min-width: 0;
+  flex: 1;
+}
+
+.inline-link {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  color: var(--color-accent);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.field-help {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
 .product-create-form > p,
 .product-edit-form > p {
   grid-column: 1 / -1;
@@ -307,6 +344,11 @@ async function handleUpdate(): Promise<void> {
   .product-create-form > button,
   .product-edit-form > button {
     justify-self: stretch;
+  }
+
+  .field-with-action {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 </style>
