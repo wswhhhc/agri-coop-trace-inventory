@@ -13,9 +13,17 @@ describe('products api', () => {
   })
 
   it('loads only active products with a large enough page size for selectors', async () => {
-    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: [] } })
+    vi.mocked(http.get).mockResolvedValueOnce({
+      data: {
+        data: [],
+        pagination: { page: 1, pageSize: 100, totalItems: 0, totalPages: 0 },
+      },
+    })
 
-    await expect(listProducts({ isActive: true, pageSize: 100 })).resolves.toEqual([])
+    await expect(listProducts({ isActive: true, pageSize: 100 })).resolves.toEqual({
+      data: [],
+      pagination: { page: 1, pageSize: 100, totalItems: 0, totalPages: 0 },
+    })
     expect(http.get).toHaveBeenCalledWith('/products', {
       params: { page: 1, pageSize: 100, isActive: true },
     })

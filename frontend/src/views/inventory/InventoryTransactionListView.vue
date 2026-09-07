@@ -2,7 +2,7 @@
 import { reactive, ref } from 'vue'
 
 import { getInventoryTransaction, listInventoryTransactions } from '@/api/inventory'
-import { listBatches } from '@/api/batches'
+import { listBatchOptions } from '@/api/batches'
 import { listWarehouses } from '@/api/warehouses'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -21,7 +21,7 @@ const { data: items, loading, error, loadData } = usePageData(
   [],
 )
 const warehouseState = usePageData(listWarehouses, [])
-const batchState = usePageData(listBatches, [])
+const batchState = usePageData(listBatchOptions, [])
 const selectedDetail = ref<InventoryTransactionDetail | null>(null)
 const detailLoading = ref(false)
 const detailError = ref('')

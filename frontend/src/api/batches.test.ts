@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { createBatch, getBatch, updateBatch } from './batches'
+import { createBatch, getBatch, listBatches, updateBatch } from './batches'
 
 vi.mock('./http', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
@@ -10,6 +10,23 @@ vi.mock('./http', () => ({
 describe('batches api', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('loads a paginated batch list', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({
+      data: {
+        data: [{ id: 'batch-1' }],
+        pagination: { page: 2, pageSize: 10, totalItems: 11, totalPages: 2 },
+      },
+    })
+
+    await expect(listBatches({ page: 2, pageSize: 10 })).resolves.toEqual({
+      data: [{ id: 'batch-1' }],
+      pagination: { page: 2, pageSize: 10, totalItems: 11, totalPages: 2 },
+    })
+    expect(http.get).toHaveBeenCalledWith('/batches', {
+      params: { page: 2, pageSize: 10 },
+    })
   })
 
   it('creates a batch without fabricating the trace code', async () => {

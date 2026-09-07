@@ -18,7 +18,7 @@ import {
   type StocktakeCreatePayload,
   type StockTransferCreatePayload,
 } from '@/api/inventory'
-import { listBatches } from '@/api/batches'
+import { listBatchOptions } from '@/api/batches'
 import { listWarehouses } from '@/api/warehouses'
 import { useListPage, usePageData } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
@@ -26,7 +26,7 @@ import { getApiErrorMessage } from '@/utils/api-error'
 
 const { items, loading, error, loadData } = useListPage(listInventory)
 const warehouseState = usePageData(listWarehouses, [])
-const batchState = usePageData(listBatches, [])
+const batchState = usePageData(listBatchOptions, [])
 const authStore = useAuthStore()
 const canWrite = computed(() => authStore.hasPermission('inventory:write'))
 const submitting = ref(false)

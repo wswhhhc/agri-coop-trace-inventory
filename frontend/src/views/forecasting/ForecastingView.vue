@@ -11,7 +11,7 @@ import {
   submitForecastTask,
   submitModelTrainingTask,
 } from '@/api/forecasting'
-import { listProducts } from '@/api/products'
+import { listProductOptions } from '@/api/products'
 import { listWarehouses } from '@/api/warehouses'
 import ForecastRangeChart from '@/components/forecasting/ForecastRangeChart.vue'
 import PageContext from '@/components/common/PageContext.vue'
@@ -39,7 +39,7 @@ const canTrain = computed(
   () => authStore.role === 'COOPERATIVE_ADMIN' && authStore.hasPermission('model:manage'),
 )
 const warehouseState = usePageData(listWarehouses, [])
-const productState = usePageData(listProducts, [])
+const productState = usePageData(() => listProductOptions({ pageSize: 100 }), [])
 const selectedModel = ref<ModelVersionSummary | null>(null)
 const selectedForecast = ref<ForecastResultDetailSummary | null>(null)
 const forecastDetailLoading = ref(false)

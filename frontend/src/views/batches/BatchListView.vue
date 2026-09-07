@@ -3,17 +3,18 @@ import { computed, reactive, ref } from 'vue'
 
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { createBatch, listBatches, type BatchCreatePayload } from '@/api/batches'
-import { listProducts } from '@/api/products'
-import { useListPage, usePageData } from '@/composables/usePageData'
+import { listProductOptions } from '@/api/products'
+import { usePageData, usePaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const { items, loading, error, loadData } = useListPage(listBatches)
+const batchList = usePaginatedList(listBatches)
 const productState = usePageData(
-  () => listProducts({ isActive: true, pageSize: 100 }),
+  () => listProductOptions({ isActive: true, pageSize: 100 }),
   [],
 )
 const authStore = useAuthStore()
@@ -66,7 +67,7 @@ async function handleSubmit(): Promise<void> {
     })
     resetForm()
     successMessage.value = `批次创建成功，编号为 ${created.batchNo}，追溯码为 ${created.traceCode}。`
-    await loadData()
+    await batchList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -131,7 +132,12 @@ async function handleSubmit(): Promise<void> {
       <p v-if="productState.error" role="alert">{{ productState.error }}</p>
       <p v-if="successMessage" role="status">{{ successMessage }}</p>
     </form>
-    <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
+    <PageState
+      :loading="batchList.loading"
+      :error="batchList.error"
+      :empty="batchList.items.length === 0"
+      @retry="batchList.loadData"
+    >
       <table>
         <caption>批次列表</caption>
         <thead>
@@ -147,7 +153,7 @@ async function handleSubmit(): Promise<void> {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="batch in items" :key="batch.id">
+          <tr v-for="batch in batchList.items" :key="batch.id">
             <td>{{ batch.batchNo }}</td>
             <td>{{ productName(batch.productId) }}</td>
             <td>{{ batch.traceCode }}</td>
@@ -160,6 +166,15 @@ async function handleSubmit(): Promise<void> {
         </tbody>
       </table>
     </PageState>
+    <PaginationBar
+      :page="batchList.pagination.page"
+      :total-pages="batchList.pagination.totalPages"
+      :total-items="batchList.pagination.totalItems"
+      :page-size="batchList.pagination.pageSize"
+      :page-size-options="[10]"
+      @change="batchList.goToPage"
+      @page-size-change="batchList.setPageSize"
+    />
   </section>
 </template>
 

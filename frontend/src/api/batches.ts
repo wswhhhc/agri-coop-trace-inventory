@@ -21,11 +21,21 @@ export interface BatchUpdatePayload {
   status: BatchStatus
 }
 
-export async function listBatches(): Promise<BatchSummary[]> {
+export interface BatchListParams {
+  page?: number
+  pageSize?: number
+}
+
+export async function listBatches(options: BatchListParams = {}): Promise<ListResponse<BatchSummary>> {
   const response = await http.get<ListResponse<BatchSummary>>('/batches', {
-    params: { page: 1, pageSize: 20 },
+    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 20 },
   })
-  return response.data.data
+  return response.data
+}
+
+export async function listBatchOptions(options: BatchListParams = {}): Promise<BatchSummary[]> {
+  const response = await listBatches(options)
+  return response.data
 }
 
 export async function getBatch(batchId: string): Promise<BatchSummary> {

@@ -3,6 +3,7 @@ import { computed, reactive, ref } from 'vue'
 
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import {
@@ -13,14 +14,12 @@ import {
   type ProductUpdatePayload,
 } from '@/api/products'
 import { listProductCategories } from '@/api/product-categories'
-import { useListPage, usePageData } from '@/composables/usePageData'
+import { usePageData, usePaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import type { ProductUnit } from '@/types/resources'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const { items, loading, error, loadData } = useListPage(
-  () => listProducts({ pageSize: 100 }),
-)
+const productList = usePaginatedList(listProducts)
 const categoryState = usePageData(
   () => listProductCategories({ isActive: true, pageSize: 100 }),
   [],
@@ -55,7 +54,7 @@ const editForm = reactive<ProductUpdatePayload>({
 })
 
 function categoryName(categoryId: string): string {
-  return categoryState.data.value.find((category) => category.id === categoryId)?.name ?? '—'
+  return categoryState.data.find((category) => category.id === categoryId)?.name ?? '—'
 }
 
 function resetForm(): void {
@@ -82,7 +81,7 @@ async function handleSubmit(): Promise<void> {
     })
     resetForm()
     successMessage.value = '产品创建成功。'
-    await loadData()
+    await productList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -90,7 +89,7 @@ async function handleSubmit(): Promise<void> {
   }
 }
 
-function beginEdit(product: (typeof items.value)[number]): void {
+function beginEdit(product: (typeof productList.items)[number]): void {
   editingProductId.value = product.id
   editForm.name = product.name
   editForm.unit = product.unit
@@ -121,7 +120,7 @@ async function handleUpdate(): Promise<void> {
     })
     cancelEdit()
     successMessage.value = '产品更新成功。'
-    await loadData()
+    await productList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -215,7 +214,12 @@ async function handleUpdate(): Promise<void> {
       <button type="submit" :disabled="updating">{{ updating ? '保存中…' : '保存' }}</button>
       <button type="button" :disabled="updating" @click="cancelEdit">取消</button>
     </form>
-    <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
+    <PageState
+      :loading="productList.loading"
+      :error="productList.error"
+      :empty="productList.items.length === 0"
+      @retry="productList.loadData"
+    >
       <table>
         <caption>产品列表</caption>
         <thead>
@@ -231,7 +235,7 @@ async function handleUpdate(): Promise<void> {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="product in items" :key="product.id">
+          <tr v-for="product in productList.items" :key="product.id">
             <td>{{ product.code }}</td>
             <td>{{ product.name }}</td>
             <td>{{ categoryName(product.categoryId) }}</td>
@@ -246,6 +250,15 @@ async function handleUpdate(): Promise<void> {
         </tbody>
       </table>
     </PageState>
+    <PaginationBar
+      :page="productList.pagination.page"
+      :total-pages="productList.pagination.totalPages"
+      :total-items="productList.pagination.totalItems"
+      :page-size="productList.pagination.pageSize"
+      :page-size-options="[10]"
+      @change="productList.goToPage"
+      @page-size-change="productList.setPageSize"
+    />
   </section>
 </template>
 
