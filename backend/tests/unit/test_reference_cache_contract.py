@@ -22,6 +22,7 @@ def test_reference_cache_settings_have_safe_defaults() -> None:
     settings = _settings()
 
     assert settings.reference_cache_ttl_seconds == 900
+    assert settings.query_cache_enabled is True
     assert settings.cache_ttl_jitter_ratio == 0.1
 
 

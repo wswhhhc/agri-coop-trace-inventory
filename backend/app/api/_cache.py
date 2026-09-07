@@ -19,6 +19,7 @@ def get_reference_query_cache(
         key_prefix=settings.redis_key_prefix,
         ttl_seconds=settings.reference_cache_ttl_seconds,
         jitter_ratio=settings.cache_ttl_jitter_ratio,
+        enabled=settings.query_cache_enabled,
         name="reference",
     )
 
@@ -32,6 +33,7 @@ def get_permission_query_cache(
         key_prefix=settings.redis_key_prefix,
         ttl_seconds=settings.permission_cache_ttl_seconds,
         jitter_ratio=settings.cache_ttl_jitter_ratio,
+        enabled=settings.query_cache_enabled,
         name="permission",
     )
 
@@ -45,6 +47,7 @@ def get_forecasting_query_cache(
         key_prefix=settings.redis_key_prefix,
         ttl_seconds=settings.forecasting_cache_ttl_seconds,
         jitter_ratio=settings.cache_ttl_jitter_ratio,
+        enabled=settings.query_cache_enabled,
         name="forecasting",
     )
 
@@ -58,6 +61,7 @@ def get_detail_query_cache(
         key_prefix=settings.redis_key_prefix,
         ttl_seconds=settings.detail_cache_ttl_seconds,
         jitter_ratio=settings.cache_ttl_jitter_ratio,
+        enabled=settings.query_cache_enabled,
         name="detail",
     )
 

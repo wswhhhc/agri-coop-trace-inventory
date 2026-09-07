@@ -28,6 +28,7 @@ class QueryCache:
         ttl_seconds: int,
         name: str = "query",
         jitter_ratio: float = 0.1,
+        enabled: bool = True,
     ) -> None:
         self._cache = JsonCache(
             redis,
@@ -38,6 +39,7 @@ class QueryCache:
         )
         self._keys = CacheKeyBuilder(key_prefix)
         self.key_prefix = key_prefix
+        self.enabled = enabled
 
     def key(
         self,
@@ -59,6 +61,8 @@ class QueryCache:
         )
 
     async def get(self, key: str, model_type: type[ModelT]) -> ModelT | None:
+        if not self.enabled:
+            return None
         raw = await self._cache.get(key)
         if raw is None:
             return None
@@ -69,6 +73,8 @@ class QueryCache:
             return None
 
     async def set(self, key: str, value: BaseModel, *, ttl_seconds: int | None = None) -> None:
+        if not self.enabled:
+            return
         await self._cache.set(
             key,
             value.model_dump(mode="json", by_alias=True),
@@ -83,6 +89,8 @@ class QueryCache:
         *,
         ttl_seconds: int | None = None,
     ) -> ModelT | None:
+        if not self.enabled:
+            return await loader()
         cached = await self.get(key, model_type)
         if cached is not None:
             return cached
@@ -103,6 +111,8 @@ class QueryCache:
         resource: str,
         cooperative_id: UUID | None,
     ) -> None:
+        if not self.enabled:
+            return
         namespace = str(cooperative_id) if cooperative_id else "global"
         try:
             namespaces = {namespace}

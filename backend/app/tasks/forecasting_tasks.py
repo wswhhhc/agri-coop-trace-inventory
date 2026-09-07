@@ -211,6 +211,7 @@ async def _invalidate_forecasting_cache(settings, cooperative_id: UUID) -> None:
             key_prefix=settings.redis_key_prefix,
             ttl_seconds=settings.forecasting_cache_ttl_seconds,
             jitter_ratio=settings.cache_ttl_jitter_ratio,
+            enabled=settings.query_cache_enabled,
             name="forecasting",
         )
         await cache.invalidate_resource("model-version-list", cooperative_id)

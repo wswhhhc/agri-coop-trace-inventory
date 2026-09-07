@@ -100,6 +100,26 @@ async def test_query_cache_rebuilds_once_and_invalidates_scope() -> None:
     assert await cache.get(key, ApiResponse[dict[str, str]]) is None
 
 
+@pytest.mark.asyncio
+async def test_disabled_query_cache_reads_from_loader_without_redis() -> None:
+    cache = QueryCache(
+        object(), key_prefix="agri:", ttl_seconds=300, enabled=False
+    )
+    calls = 0
+
+    async def loader() -> ApiResponse[dict[str, str]]:
+        nonlocal calls
+        calls += 1
+        return ApiResponse(data={"id": "product-1"})
+
+    value = await cache.get_or_set(
+        "unused", ApiResponse[dict[str, str]], loader
+    )
+
+    assert value == ApiResponse(data={"id": "product-1"})
+    assert calls == 1
+
+
 def test_query_cache_rejects_invalid_ttl() -> None:
     with pytest.raises(ValueError):
         QueryCache(MemoryRedis(), key_prefix="agri:", ttl_seconds=0)
