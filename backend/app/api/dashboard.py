@@ -6,13 +6,15 @@ from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api._pagination import build_pagination_meta
 from app.core.auth.dependencies import CurrentAuthContext
 from app.core.config import Settings, get_settings
 from app.infrastructure.database import get_db_session
 from app.infrastructure.redis import get_redis_client
-from app.schemas.common import ApiResponse
+from app.schemas.common import ApiResponse, ListResponse
 from app.schemas.dashboard import (
     AlertDistributionResult,
+    DashboardListQueryParams,
     DashboardQueryParams,
     DashboardSummaryData,
     ForecastComparisonData,
@@ -55,14 +57,18 @@ async def dashboard_summary(
 
 @router.get(
     "/dashboard/inventory-trends",
-    response_model=ApiResponse[list[InventoryTrendData]],
+    response_model=ListResponse[InventoryTrendData],
 )
 async def dashboard_inventory_trends(
-    params: Annotated[DashboardQueryParams, Query()],
+    params: Annotated[DashboardListQueryParams, Query()],
     context: CurrentAuthContext,
     service: Annotated[DashboardService, Depends(get_dashboard_service)],
-) -> ApiResponse[list[InventoryTrendData]]:
-    return ApiResponse(data=await service.inventory_trends(context, params))
+) -> ListResponse[InventoryTrendData]:
+    items, total = await service.inventory_trends(context, params)
+    return ListResponse(
+        data=items,
+        pagination=build_pagination_meta(total, params.page, params.page_size),
+    )
 
 
 @router.get(

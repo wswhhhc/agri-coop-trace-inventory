@@ -1,4 +1,4 @@
-import type { ApiResponse } from '@/types/api'
+import type { ApiResponse, ListResponse } from '@/types/api'
 import type {
   AlertDistribution,
   DashboardQueryParams,
@@ -18,12 +18,31 @@ export async function getDashboardSummary(
 }
 
 export async function getInventoryTrends(
-  params: DashboardQueryParams = {},
+  params: DashboardListParams = {},
 ): Promise<InventoryTrend[]> {
-  const response = await http.get<ApiResponse<InventoryTrend[]>>('/dashboard/inventory-trends', {
+  const response = await listInventoryTrendsPage(params)
+  return response.data
+}
+
+export interface DashboardListParams extends DashboardQueryParams {
+  page?: number
+  pageSize?: number
+}
+
+export async function listInventoryTrendsPage(
+  options: DashboardListParams = {},
+): Promise<ListResponse<InventoryTrend>> {
+  const params = {
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? 20,
+    ...(options.warehouseId ? { warehouseId: options.warehouseId } : {}),
+    ...(options.startDate ? { startDate: options.startDate } : {}),
+    ...(options.endDate ? { endDate: options.endDate } : {}),
+  }
+  const response = await http.get<ListResponse<InventoryTrend>>('/dashboard/inventory-trends', {
     params,
   })
-  return response.data.data
+  return response.data
 }
 
 export async function getAlertDistribution(

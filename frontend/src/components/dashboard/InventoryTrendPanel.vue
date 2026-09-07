@@ -2,17 +2,22 @@
 import { computed } from 'vue'
 
 import PageState from '@/components/common/PageState.vue'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import type { InventoryTrend } from '@/types/dashboard'
+import type { PaginationMeta } from '@/types/api'
 import { formatDashboardNumber } from '@/utils/dashboard-format'
 
 const props = defineProps<{
   items: InventoryTrend[]
   loading: boolean
   error: string
+  pagination: PaginationMeta
 }>()
 
 const emit = defineEmits<{
   retry: []
+  change: [page: number]
+  'page-size-change': [pageSize: number]
 }>()
 
 const groupedTrends = computed(() => {
@@ -71,6 +76,15 @@ const groupedTrends = computed(() => {
       <div class="inventory-trend-table-note" aria-label="库存趋势数据说明">
         当前以明细表展示趋势数据，已包含入库、出库和期末库存。
       </div>
+      <PaginationBar
+        :page="pagination.page"
+        :total-pages="pagination.totalPages"
+        :total-items="pagination.totalItems"
+        :page-size="pagination.pageSize"
+        :page-size-options="[10]"
+        @change="emit('change', $event)"
+        @page-size-change="emit('page-size-change', $event)"
+      />
     </PageState>
   </section>
 </template>

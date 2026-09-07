@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, Field, model_validator
 
-from app.schemas.common import BaseSchema
+from app.schemas.common import BaseSchema, PageParams
 
 
 class DashboardQueryParams(BaseSchema):
@@ -24,6 +24,10 @@ class DashboardQueryParams(BaseSchema):
         if (self.end_date - self.start_date).days > 365:
             raise ValueError("查询时间范围不能超过 366 天")
         return self
+
+
+class DashboardListQueryParams(DashboardQueryParams, PageParams):
+    """大屏列表查询的通用筛选、分页和排序参数。"""
 
 
 class ProductRankingParams(DashboardQueryParams):
@@ -89,6 +93,7 @@ class ForecastComparisonData(BaseSchema):
 __all__ = [
     "AlertDistributionData",
     "AlertDistributionResult",
+    "DashboardListQueryParams",
     "DashboardQueryParams",
     "DashboardSummaryData",
     "ForecastComparisonData",

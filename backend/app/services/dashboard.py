@@ -15,6 +15,7 @@ from app.schemas.common import BaseSchema
 from app.schemas.dashboard import (
     AlertDistributionData,
     AlertDistributionResult,
+    DashboardListQueryParams,
     DashboardQueryParams,
     DashboardSummaryData,
     ForecastComparisonData,
@@ -72,20 +73,22 @@ class DashboardService:
         return result
 
     async def inventory_trends(
-        self, context: AuthContext, params: DashboardQueryParams
-    ) -> list[InventoryTrendData]:
+        self, context: AuthContext, params: DashboardListQueryParams
+    ) -> tuple[list[InventoryTrendData], int]:
         require_dashboard_read(context)
         ensure_dashboard_warehouse_scope(context, params.warehouse_id)
         start_date, end_date = resolve_dashboard_dates(params)
         cache_key = self._cache_key("inventory-trends", context, params)
-        if (cached := await self._cache_get(cache_key, InventoryTrendData, many=True)) is not None:
+        if (cached := await self._cache_get_page(cache_key, InventoryTrendData)) is not None:
             return cached
         async with transaction_scope(self.session):
-            rows = await self.repository.inventory_trends(
+            rows, total = await self.repository.inventory_trends(
                 context.cooperative_id,
                 self._warehouse_scope(context, params.warehouse_id),
                 start_date=start_date,
                 end_date=end_date,
+                page=params.page,
+                page_size=params.page_size,
             )
         result = [
             InventoryTrendData(
@@ -97,8 +100,8 @@ class DashboardService:
             )
             for row in rows
         ]
-        await self._cache_set(cache_key, result)
-        return result
+        await self._cache_set_page(cache_key, result, total)
+        return result, total
 
     async def alert_distribution(
         self, context: AuthContext, params: DashboardQueryParams
@@ -205,7 +208,9 @@ class DashboardService:
             "startDate": start_date.isoformat(),
             "endDate": end_date.isoformat(),
         }
-        if isinstance(params, ProductRankingParams):
+        if isinstance(params, DashboardListQueryParams):
+            filters.update(page=params.page, pageSize=params.page_size)
+        elif isinstance(params, ProductRankingParams):
             filters["limit"] = params.limit
         return self.cache.key(
             endpoint,
@@ -228,6 +233,23 @@ class DashboardService:
             await self.cache.delete(key)
             return None
 
+    async def _cache_get_page(
+        self, key: str | None, model_type: type[BaseSchema]
+    ) -> tuple[list[Any], int] | None:
+        if self.cache is None or key is None:
+            return None
+        raw = await self.cache.get(key)
+        if not isinstance(raw, dict) or not isinstance(raw.get("items"), list):
+            return None
+        try:
+            return (
+                [model_type.model_validate(item) for item in raw["items"]],
+                int(raw["total"]),
+            )
+        except (KeyError, TypeError, ValueError, ValidationError):
+            await self.cache.delete(key)
+            return None
+
     async def _cache_set(
         self, key: str | None, value: BaseSchema | Sequence[BaseSchema]
     ) -> None:
@@ -239,6 +261,19 @@ class DashboardService:
             else [item.model_dump(mode="json") for item in value]
         )
         await self.cache.set(key, payload)
+
+    async def _cache_set_page(
+        self, key: str | None, value: Sequence[BaseSchema], total: int
+    ) -> None:
+        if self.cache is None or key is None:
+            return
+        await self.cache.set(
+            key,
+            {
+                "items": [item.model_dump(mode="json") for item in value],
+                "total": total,
+            },
+        )
 
     @staticmethod
     def _warehouse_scope(

@@ -29,7 +29,11 @@ from app.models import (
     User,
     Warehouse,
 )
-from app.schemas.dashboard import DashboardQueryParams, ProductRankingParams
+from app.schemas.dashboard import (
+    DashboardListQueryParams,
+    DashboardQueryParams,
+    ProductRankingParams,
+)
 from app.services.dashboard import DashboardService
 
 pytestmark = pytest.mark.postgres
@@ -236,7 +240,15 @@ async def test_dashboard_summary_and_inventory_trends_group_units_and_respect_da
     params = DashboardQueryParams(start_date=date(2026, 9, 1), end_date=date(2026, 9, 2))
 
     summary = await service.summary(context, params)
-    trends = await service.inventory_trends(context, params)
+    trends, trend_total = await service.inventory_trends(
+        context,
+        DashboardListQueryParams(
+            start_date=params.start_date,
+            end_date=params.end_date,
+            page=1,
+            page_size=1,
+        ),
+    )
     distribution = await service.alert_distribution(context, params)
     ranking = await service.product_ranking(
         context,
@@ -260,10 +272,11 @@ async def test_dashboard_summary_and_inventory_trends_group_units_and_respect_da
     assert summary.pending_alert_count == 1
     assert summary.expiring_batch_count == 1
     assert summary.low_stock_product_count == 2
-    assert [(item.date, item.unit, item.inbound_quantity, item.outbound_quantity, item.ending_quantity) for item in trends] == [
-        (date(2026, 9, 1), "KG", 100.0, 0.0, 100.0),
-        (date(2026, 9, 2), "KG", 0.0, 20.0, 80.0),
-    ]
+    assert trend_total == 2
+    assert [
+        (item.date, item.unit, item.inbound_quantity, item.outbound_quantity, item.ending_quantity)
+        for item in trends
+    ] == [(date(2026, 9, 1), "KG", 100.0, 0.0, 100.0)]
     assert distribution.total_count == 1
     assert [(item.alert_type, item.severity, item.count) for item in distribution.items] == [
         ("LOW_STOCK", "HIGH", 1)

@@ -32,15 +32,18 @@ class FakeDashboardService:
         )
 
     async def inventory_trends(self, context, params):
-        return [
-            InventoryTrendData(
-                date=date(2026, 9, 1),
-                unit="KG",
-                inbound_quantity=10,
-                outbound_quantity=2,
-                ending_quantity=8,
-            )
-        ]
+        return (
+            [
+                InventoryTrendData(
+                    date=date(2026, 9, 1),
+                    unit="KG",
+                    inbound_quantity=10,
+                    outbound_quantity=2,
+                    ending_quantity=8,
+                )
+            ],
+            11,
+        )
 
     async def alert_distribution(self, context, params):
         return AlertDistributionResult(
@@ -98,7 +101,9 @@ async def test_dashboard_routes_are_registered_and_return_api_data() -> None:
             "/api/v1/dashboard/summary",
             params={"startDate": "2026-09-01", "endDate": "2026-09-02"},
         )
-        trends = await client.get("/api/v1/dashboard/inventory-trends")
+        trends = await client.get(
+            "/api/v1/dashboard/inventory-trends", params={"page": 2, "pageSize": 10}
+        )
         distribution = await client.get("/api/v1/dashboard/alert-distribution")
         ranking = await client.get("/api/v1/dashboard/product-ranking?limit=5")
         comparison = await client.get("/api/v1/dashboard/forecast-comparison")
@@ -107,6 +112,12 @@ async def test_dashboard_routes_are_registered_and_return_api_data() -> None:
     assert summary.json()["data"]["inventoryByUnit"][0]["quantity"] == 10
     assert trends.status_code == 200
     assert trends.json()["data"][0]["endingQuantity"] == 8
+    assert trends.json()["pagination"] == {
+        "page": 2,
+        "pageSize": 10,
+        "totalItems": 11,
+        "totalPages": 2,
+    }
     assert distribution.status_code == 200
     assert distribution.json()["data"]["totalCount"] == 1
     assert ranking.status_code == 200

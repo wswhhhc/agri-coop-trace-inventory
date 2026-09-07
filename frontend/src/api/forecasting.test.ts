@@ -6,6 +6,7 @@ import {
   getForecastResult,
   getModelVersion,
   listModelVersions,
+  listForecastResultsPage,
   submitForecastTask,
   submitModelTrainingTask,
 } from './forecasting'
@@ -25,6 +26,19 @@ describe('forecasting api', () => {
     await expect(listModelVersions()).resolves.toEqual([])
     expect(http.get).toHaveBeenCalledWith('/model-versions', {
       params: { page: 1, pageSize: 100 },
+    })
+  })
+
+  it('lists a paginated forecast result page', async () => {
+    const page = {
+      data: [],
+      pagination: { page: 2, pageSize: 10, totalItems: 21, totalPages: 3 },
+    }
+    vi.mocked(http.get).mockResolvedValueOnce({ data: page })
+
+    await expect(listForecastResultsPage({ page: 2, pageSize: 10 })).resolves.toEqual(page)
+    expect(http.get).toHaveBeenCalledWith('/forecast-results', {
+      params: { page: 2, pageSize: 10 },
     })
   })
 

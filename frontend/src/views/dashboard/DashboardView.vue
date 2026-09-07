@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { listForecastResults } from '@/api/forecasting'
+import { listForecastResultsPage } from '@/api/forecasting'
+import { listInventoryTrendsPage } from '@/api/dashboard'
 import DashboardFilters from '@/components/dashboard/DashboardFilters.vue'
 import AlertDistributionPanel from '@/components/dashboard/AlertDistributionPanel.vue'
 import DashboardSummary from '@/components/dashboard/DashboardSummary.vue'
@@ -9,14 +10,15 @@ import InventoryTrendPanel from '@/components/dashboard/InventoryTrendPanel.vue'
 import ProductRankingPanel from '@/components/dashboard/ProductRankingPanel.vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import { useDashboard } from '@/composables/useDashboard'
-import { usePageData } from '@/composables/usePageData'
+import { usePaginatedList } from '@/composables/usePageData'
 import type { DashboardQueryParams } from '@/types/dashboard'
 
 const {
+  query,
   summary,
-  inventoryTrends,
   alertDistribution,
   productRanking,
   loading: moduleLoading,
@@ -24,11 +26,21 @@ const {
   loadDashboard,
   retry,
 } = useDashboard()
-const forecastState = usePageData(listForecastResults, [])
-const loading = computed(() => Object.values(moduleLoading).some(Boolean))
+const inventoryTrendList = usePaginatedList((pagination) =>
+  listInventoryTrendsPage({ ...pagination, ...query.value }),
+)
+const forecastState = usePaginatedList(listForecastResultsPage)
+const loading = computed(
+  () =>
+    Object.values(moduleLoading).some(Boolean) ||
+    inventoryTrendList.loading ||
+    forecastState.loading,
+)
 
 function handleSearch(params: DashboardQueryParams): void {
-  void loadDashboard(params)
+  void loadDashboard(params).then(() =>
+    Promise.all([inventoryTrendList.loadData(1), forecastState.loadData(1)]),
+  )
 }
 </script>
 
@@ -53,10 +65,13 @@ function handleSearch(params: DashboardQueryParams): void {
       </section>
 
       <InventoryTrendPanel
-        :items="inventoryTrends"
-        :loading="moduleLoading.inventoryTrends"
-        :error="moduleErrors.inventoryTrends"
-        @retry="retry('inventoryTrends')"
+        :items="inventoryTrendList.items"
+        :loading="inventoryTrendList.loading"
+        :error="inventoryTrendList.error"
+        :pagination="inventoryTrendList.pagination"
+        @retry="inventoryTrendList.loadData"
+        @change="inventoryTrendList.goToPage"
+        @page-size-change="inventoryTrendList.setPageSize"
       />
 
       <AlertDistributionPanel
@@ -78,7 +93,7 @@ function handleSearch(params: DashboardQueryParams): void {
         <PageState
           :loading="forecastState.loading"
           :error="forecastState.error"
-          :empty="forecastState.data.length === 0"
+          :empty="forecastState.items.length === 0"
           empty-message="暂无预测结果"
           @retry="forecastState.loadData"
         >
@@ -93,7 +108,7 @@ function handleSearch(params: DashboardQueryParams): void {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in forecastState.data" :key="item.id">
+              <tr v-for="item in forecastState.items" :key="item.id">
                 <td>{{ item.forecastStartDate }} ～ {{ item.forecastEndDate }}</td>
                 <td>{{ item.predictedDemand }}</td>
                 <td>{{ item.currentStock }}</td>
@@ -102,6 +117,15 @@ function handleSearch(params: DashboardQueryParams): void {
             </tbody>
           </table>
         </PageState>
+        <PaginationBar
+          :page="forecastState.pagination.page"
+          :total-pages="forecastState.pagination.totalPages"
+          :total-items="forecastState.pagination.totalItems"
+          :page-size="forecastState.pagination.pageSize"
+          :page-size-options="[10]"
+          @change="forecastState.goToPage"
+          @page-size-change="forecastState.setPageSize"
+        />
       </section>
     </section>
   </section>
@@ -127,9 +151,12 @@ function handleSearch(params: DashboardQueryParams): void {
   grid-column: span 8;
 }
 
-.dashboard-page__modules > .alert-distribution-panel,
-.dashboard-page__modules > .product-ranking-panel {
+.dashboard-page__modules > .alert-distribution-panel {
   grid-column: span 4;
+}
+
+.dashboard-page__modules > .product-ranking-panel {
+  grid-column: 1 / -1;
 }
 
 .dashboard-module--forecast {

@@ -6,6 +6,7 @@ import {
   getDashboardSummary,
   getInventoryTrends,
   getProductRanking,
+  listInventoryTrendsPage,
 } from './dashboard'
 
 vi.mock('./http', () => ({
@@ -27,10 +28,44 @@ describe('dashboard api', () => {
     await getProductRanking({ ...params, limit: 10 })
 
     expect(http.get).toHaveBeenNthCalledWith(1, '/dashboard/summary', { params })
-    expect(http.get).toHaveBeenNthCalledWith(2, '/dashboard/inventory-trends', { params })
+    expect(http.get).toHaveBeenNthCalledWith(2, '/dashboard/inventory-trends', {
+      params: { page: 1, pageSize: 20, ...params },
+    })
     expect(http.get).toHaveBeenNthCalledWith(3, '/dashboard/alert-distribution', { params })
     expect(http.get).toHaveBeenNthCalledWith(4, '/dashboard/product-ranking', { params: { ...params, limit: 10 } })
     expect(JSON.stringify(http.get.mock.calls)).not.toContain('cooperativeId')
+  })
+
+  it('requests a paginated inventory trend page with dashboard filters', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({
+      data: {
+        data: [],
+        pagination: { page: 2, pageSize: 10, totalItems: 21, totalPages: 3 },
+      },
+    })
+
+    await expect(
+      listInventoryTrendsPage({
+        page: 2,
+        pageSize: 10,
+        warehouseId: 'warehouse-1',
+        startDate: '2026-08-01',
+        endDate: '2026-08-30',
+      }),
+    ).resolves.toEqual({
+      data: [],
+      pagination: { page: 2, pageSize: 10, totalItems: 21, totalPages: 3 },
+    })
+
+    expect(http.get).toHaveBeenCalledWith('/dashboard/inventory-trends', {
+      params: {
+        page: 2,
+        pageSize: 10,
+        warehouseId: 'warehouse-1',
+        startDate: '2026-08-01',
+        endDate: '2026-08-30',
+      },
+    })
   })
 
   it('omits undefined options instead of sending empty URL parameters', async () => {

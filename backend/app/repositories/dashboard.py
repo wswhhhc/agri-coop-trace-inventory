@@ -151,9 +151,11 @@ class DashboardRepository:
         *,
         start_date: date,
         end_date: date,
-    ) -> list[tuple[date, str, Decimal, Decimal, Decimal]]:
+        page: int,
+        page_size: int,
+    ) -> tuple[list[tuple[date, str, Decimal, Decimal, Decimal]], int]:
         if warehouse_ids == frozenset():
-            return []
+            return [], 0
 
         start_at = datetime.combine(start_date, time.min, tzinfo=UTC)
         end_at = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=UTC)
@@ -225,11 +227,14 @@ class DashboardRepository:
             .select_from(daily)
             .outerjoin(opening, opening.c.unit == daily.c.unit)
             .order_by(daily.c.day, daily.c.unit)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
         )
+        total = await self.session.scalar(select(func.count()).select_from(daily))
+        rows = await self.session.execute(statement)
         return [
-            (row[0], row[1], row[2], row[3], row[4])
-            for row in (await self.session.execute(statement)).all()
-        ]
+            (row[0], row[1], row[2], row[3], row[4]) for row in rows.all()
+        ], int(total or 0)
 
     async def alert_distribution(
         self,

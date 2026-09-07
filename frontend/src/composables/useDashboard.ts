@@ -3,7 +3,6 @@ import { onMounted, reactive, ref } from 'vue'
 import {
   getAlertDistribution,
   getDashboardSummary,
-  getInventoryTrends,
   getProductRanking,
 } from '@/api/dashboard'
 import { getApiErrorMessage } from '@/utils/api-error'
@@ -12,18 +11,16 @@ import type {
   AlertDistribution,
   DashboardQueryParams,
   DashboardSummary,
-  InventoryTrend,
   ProductRankingItem,
 } from '@/types/dashboard'
 
-export type DashboardModule = 'summary' | 'inventoryTrends' | 'alertDistribution' | 'productRanking'
+export type DashboardModule = 'summary' | 'alertDistribution' | 'productRanking'
 
 export type DashboardLoadingState = Record<DashboardModule, boolean>
 export type DashboardErrorState = Record<DashboardModule, string>
 
 const dashboardModules: DashboardModule[] = [
   'summary',
-  'inventoryTrends',
   'alertDistribution',
   'productRanking',
 ]
@@ -32,18 +29,15 @@ export function useDashboard() {
   const defaultRange = getDefaultDashboardDateRange()
   const query = ref<DashboardQueryParams>({ ...defaultRange })
   const summary = ref<DashboardSummary | null>(null)
-  const inventoryTrends = ref<InventoryTrend[]>([])
   const alertDistribution = ref<AlertDistribution | null>(null)
   const productRanking = ref<ProductRankingItem[]>([])
   const loading = reactive<DashboardLoadingState>({
     summary: false,
-    inventoryTrends: false,
     alertDistribution: false,
     productRanking: false,
   })
   const errors = reactive<DashboardErrorState>({
     summary: '',
-    inventoryTrends: '',
     alertDistribution: '',
     productRanking: '',
   })
@@ -54,7 +48,6 @@ export function useDashboard() {
 
     try {
       if (module === 'summary') summary.value = await getDashboardSummary(params)
-      if (module === 'inventoryTrends') inventoryTrends.value = await getInventoryTrends(params)
       if (module === 'alertDistribution') alertDistribution.value = await getAlertDistribution(params)
       if (module === 'productRanking') {
         productRanking.value = await getProductRanking({ ...params, limit: 10 })
@@ -80,7 +73,6 @@ export function useDashboard() {
   return {
     query,
     summary,
-    inventoryTrends,
     alertDistribution,
     productRanking,
     loading,
