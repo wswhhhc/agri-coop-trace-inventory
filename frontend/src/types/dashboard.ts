@@ -49,3 +49,17 @@ export interface ProductRankingItem {
   outboundQuantity: number
   outboundCount: number
 }
+
+export interface ForecastComparisonItem {
+  forecastResultId: string
+  warehouseId: string
+  productId: string
+  modelVersionId: string
+  modelVersion: string
+  forecastStartDate: string
+  forecastEndDate: string
+  predictedDemand: number
+  actualDemand: number
+  absoluteError: number
+  metrics: Record<string, number>
+}

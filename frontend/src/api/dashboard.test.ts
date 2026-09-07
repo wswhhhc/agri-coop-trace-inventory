@@ -4,6 +4,7 @@ import http from './http'
 import {
   getAlertDistribution,
   getDashboardSummary,
+  getForecastComparison,
   getInventoryTrends,
   getProductRanking,
   listInventoryTrendsPage,
@@ -26,6 +27,7 @@ describe('dashboard api', () => {
     await getInventoryTrends(params)
     await getAlertDistribution(params)
     await getProductRanking({ ...params, limit: 10 })
+    await getForecastComparison(params)
 
     expect(http.get).toHaveBeenNthCalledWith(1, '/dashboard/summary', { params })
     expect(http.get).toHaveBeenNthCalledWith(2, '/dashboard/inventory-trends', {
@@ -33,6 +35,7 @@ describe('dashboard api', () => {
     })
     expect(http.get).toHaveBeenNthCalledWith(3, '/dashboard/alert-distribution', { params })
     expect(http.get).toHaveBeenNthCalledWith(4, '/dashboard/product-ranking', { params: { ...params, limit: 10 } })
+    expect(http.get).toHaveBeenNthCalledWith(5, '/dashboard/forecast-comparison', { params })
     expect(JSON.stringify(http.get.mock.calls)).not.toContain('cooperativeId')
   })
 

@@ -3,6 +3,7 @@ import type {
   AlertDistribution,
   DashboardQueryParams,
   DashboardSummary,
+  ForecastComparisonItem,
   InventoryTrend,
   ProductRankingItem,
   ProductRankingParams,
@@ -60,5 +61,15 @@ export async function getProductRanking(
   const response = await http.get<ApiResponse<ProductRankingItem[]>>('/dashboard/product-ranking', {
     params,
   })
+  return response.data.data
+}
+
+export async function getForecastComparison(
+  params: DashboardQueryParams = {},
+): Promise<ForecastComparisonItem[]> {
+  const response = await http.get<ApiResponse<ForecastComparisonItem[]>>(
+    '/dashboard/forecast-comparison',
+    { params },
+  )
   return response.data.data
 }
