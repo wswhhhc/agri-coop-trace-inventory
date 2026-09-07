@@ -6,6 +6,12 @@ from celery import Celery  # type: ignore[import-untyped]
 
 from app.core.config import Settings, get_settings
 
+TASK_MODULES = (
+    "app.tasks.alerting_tasks",
+    "app.tasks.export_tasks",
+    "app.tasks.forecasting_tasks",
+)
+
 
 def create_celery_app(settings: Settings | None = None) -> Celery:
     settings = settings or get_settings()
@@ -13,6 +19,7 @@ def create_celery_app(settings: Settings | None = None) -> Celery:
         settings.app_name,
         broker=settings.celery_broker_url.get_secret_value(),
         backend=settings.celery_result_backend.get_secret_value(),
+        include=TASK_MODULES,
     )
     application.conf.update(
         task_always_eager=settings.celery_task_always_eager,
@@ -33,4 +40,4 @@ def create_celery_app(settings: Settings | None = None) -> Celery:
 celery_app = create_celery_app()
 
 
-__all__ = ["celery_app", "create_celery_app"]
+__all__ = ["TASK_MODULES", "celery_app", "create_celery_app"]
