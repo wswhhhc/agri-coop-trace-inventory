@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from uuid import uuid4
 
 import httpx
@@ -91,13 +92,13 @@ async def test_system_admin_can_list_create_read_and_update_cooperatives(coopera
     created = await client.post(
         "/api/v1/cooperatives",
         json={
-            "code": "COOP-THREE",
             "name": "第三合作社",
             "contactName": "张三",
             "contactPhone": "13800138000",
         },
     )
     assert created.status_code == 201
+    assert re.fullmatch(r"COOP-[A-Z0-9]{6}", created.json()["data"]["code"])
     created_id = created.json()["data"]["id"]
 
     detail = await client.get(f"/api/v1/cooperatives/{created_id}")
@@ -146,7 +147,7 @@ async def test_missing_cooperative_permission_returns_403(cooperative_api):
 
     response = await client.post(
         "/api/v1/cooperatives",
-        json={"code": "COOP-NO-PERM", "name": "无权限合作社"},
+        json={"name": "无权限合作社"},
     )
 
     assert response.status_code == 403
@@ -164,13 +165,12 @@ async def test_empty_cooperative_update_returns_400(cooperative_api):
 
 
 @pytest.mark.asyncio
-async def test_duplicate_cooperative_code_returns_409(cooperative_api):
+async def test_manual_cooperative_code_is_rejected(cooperative_api):
     client, _, _, _ = cooperative_api
 
     response = await client.post(
         "/api/v1/cooperatives",
-        json={"code": "COOP-ONE", "name": "重复编码合作社"},
+        json={"code": "COOP-MANUAL", "name": "手动编码合作社"},
     )
 
-    assert response.status_code == 409
-    assert response.json()["error"]["code"] == "UNIQUE_CONFLICT"
+    assert response.status_code == 422

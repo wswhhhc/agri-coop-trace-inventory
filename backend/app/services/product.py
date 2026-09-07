@@ -29,6 +29,7 @@ from app.schemas.product import (
     ProductListParams,
     ProductUpdate,
 )
+from app.utils.resource_codes import new_prefixed_code
 
 PRODUCT_MANAGE_PERMISSION = "product:manage"
 COOPERATIVE_ADMIN_ROLE_CODE = "COOPERATIVE_ADMIN"
@@ -110,6 +111,7 @@ class ProductCategoryService:
             return await self.repository.add(
                 ProductCategory(
                     cooperative_id=cooperative_id,
+                    code=new_prefixed_code("CAT"),
                     **payload.model_dump(exclude_none=True),
                 )
             )
@@ -192,7 +194,7 @@ class ProductService:
             if category is None:
                 raise resource_not_found()
             values = payload.model_dump(exclude_none=True)
-            values["code"] = payload.code or self._new_product_code(category.code)
+            values["code"] = self._new_product_code(category.code)
             return await self.repository.add(
                 Product(
                     cooperative_id=cooperative_id,

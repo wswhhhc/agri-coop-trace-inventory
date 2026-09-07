@@ -12,7 +12,6 @@ ProductUnit = Literal["KG", "TON", "BOX", "PIECE"]
 
 
 class ProductCategoryCreate(BaseSchema):
-    code: str = Field(min_length=2, max_length=32)
     name: str = Field(min_length=1, max_length=80)
     description: str | None = Field(default=None, max_length=255)
 
@@ -41,7 +40,6 @@ class ProductCategoryData(BaseSchema):
 
 class ProductCreate(BaseSchema):
     category_id: UUID
-    code: str | None = Field(default=None, min_length=2, max_length=32)
     name: str = Field(min_length=1, max_length=100)
     unit: ProductUnit
     shelf_life_days: int = Field(gt=0)

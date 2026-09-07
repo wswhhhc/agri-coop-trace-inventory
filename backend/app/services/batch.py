@@ -117,9 +117,7 @@ class BatchService:
             batch = Batch(
                 cooperative_id=cooperative_id,
                 product_id=product.id,
-                batch_no=payload.batch_no or self._new_batch_no(
-                    product.code, payload.production_date
-                ),
+                batch_no=self._new_batch_no(product.code, payload.production_date),
                 trace_code=self._new_trace_code(),
                 origin=payload.origin,
                 production_date=payload.production_date,

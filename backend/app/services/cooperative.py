@@ -19,6 +19,7 @@ from app.schemas.cooperative import (
     CooperativeListParams,
     CooperativeUpdate,
 )
+from app.utils.resource_codes import new_prefixed_code
 
 COOPERATIVE_ADMIN_ROLE_CODE = "COOPERATIVE_ADMIN"
 COOPERATIVE_MANAGE_PERMISSION = "cooperative:manage"
@@ -70,7 +71,10 @@ class CooperativeService:
         self._require_manage_permission(context)
         async with transaction_scope(self.session):
             return await self.repository.add(
-                Cooperative(**payload.model_dump(exclude_none=True))
+                Cooperative(
+                    code=new_prefixed_code("COOP"),
+                    **payload.model_dump(exclude_none=True),
+                )
             )
 
     async def update(

@@ -9,7 +9,6 @@ from app.schemas.common import BaseSchema, PageParams
 
 
 class CooperativeCreate(BaseSchema):
-    code: str = Field(min_length=2, max_length=32)
     name: str = Field(min_length=2, max_length=100)
     address: str | None = Field(default=None, max_length=255)
     contact_name: str | None = Field(default=None, max_length=50)

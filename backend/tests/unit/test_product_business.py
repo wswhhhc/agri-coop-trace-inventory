@@ -134,9 +134,10 @@ async def test_cooperative_admin_can_manage_categories_and_products(product_api)
 
     category = await client.post(
         "/api/v1/product-categories",
-        json={"code": "GRAIN", "name": "粮食", "description": "粮食类"},
+        json={"name": "粮食", "description": "粮食类"},
     )
     assert category.status_code == 201
+    assert re.fullmatch(r"CAT-[A-Z0-9]{6}", category.json()["data"]["code"])
     category_id = category.json()["data"]["id"]
 
     listed_categories = await client.get(
@@ -149,7 +150,6 @@ async def test_cooperative_admin_can_manage_categories_and_products(product_api)
         "/api/v1/products",
         json={
             "categoryId": category_id,
-            "code": "CORN",
             "name": "玉米",
             "unit": "KG",
             "shelfLifeDays": 365,
@@ -157,6 +157,8 @@ async def test_cooperative_admin_can_manage_categories_and_products(product_api)
         },
     )
     assert product.status_code == 201
+    category_code = category.json()["data"]["code"]
+    assert re.fullmatch(rf"{category_code}-[A-Z0-9]{{6}}", product.json()["data"]["code"])
     product_id = product.json()["data"]["id"]
     assert product.json()["data"]["cooperativeId"] == str(cooperative_id)
 
@@ -248,7 +250,6 @@ async def test_product_rejects_cross_cooperative_category_and_missing_permission
         "/api/v1/products",
         json={
             "categoryId": str(second_category_id),
-            "code": "CROSS",
             "name": "跨合作社产品",
             "unit": "KG",
             "shelfLifeDays": 10,
@@ -268,7 +269,6 @@ async def test_product_rejects_cross_cooperative_category_and_missing_permission
         "/api/v1/products",
         json={
             "categoryId": str(second_category_id),
-            "code": "NO-PERM",
             "name": "无权限产品",
             "unit": "KG",
             "shelfLifeDays": 10,
@@ -287,7 +287,6 @@ async def test_product_schema_rejects_invalid_shelf_life_and_safety_stock(produc
         "/api/v1/products",
         json={
             "categoryId": str(category_id),
-            "code": "INVALID",
             "name": "非法产品",
             "unit": "KG",
             "shelfLifeDays": 0,

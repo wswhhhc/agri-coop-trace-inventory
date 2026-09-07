@@ -207,7 +207,6 @@ async def test_cooperative_admin_can_create_list_read_and_change_batch_status(ba
         "/api/v1/batches",
         json={
             "productId": str(product_id),
-            "batchNo": "BATCH-001",
             "origin": "第一基地",
             "productionDate": "2026-09-05",
             "expiryDate": "2026-09-12",
@@ -219,6 +218,7 @@ async def test_cooperative_admin_can_create_list_read_and_change_batch_status(ba
     batch_id = data["id"]
     assert data["cooperativeId"] == str(cooperative_id)
     assert data["createdBy"] == str(admin_id)
+    assert re.fullmatch(r"TOMATO-20260905-[A-Z0-9]{6}", data["batchNo"])
     assert data["traceCode"].startswith("tr_")
     assert data["status"] == "CREATED"
 
@@ -295,7 +295,6 @@ async def test_batch_rejects_inactive_or_cross_cooperative_product(batch_api):
         "/api/v1/batches",
         json={
             "productId": str(inactive_product_id),
-            "batchNo": "BATCH-INACTIVE",
             "origin": "基地",
             "productionDate": "2026-09-05",
             "expiryDate": "2026-09-12",
@@ -308,7 +307,6 @@ async def test_batch_rejects_inactive_or_cross_cooperative_product(batch_api):
         "/api/v1/batches",
         json={
             "productId": str(other_product_id),
-            "batchNo": "BATCH-CROSS",
             "origin": "基地",
             "productionDate": "2026-09-05",
             "expiryDate": "2026-09-12",
@@ -324,39 +322,24 @@ async def test_batch_rejects_inactive_or_cross_cooperative_product(batch_api):
 
 
 @pytest.mark.asyncio
-async def test_batch_enforces_unique_no_date_order_and_status_transition(batch_api):
+async def test_batch_generates_unique_no_date_order_and_status_transition(batch_api):
     client, _, _, product_id, _, _, _, _, _, _, _ = batch_api
     payload = {
         "productId": str(product_id),
-        "batchNo": "BATCH-DUPLICATE",
         "origin": "基地",
         "productionDate": "2026-09-05",
         "expiryDate": "2026-09-12",
     }
     first = await client.post("/api/v1/batches", json=payload)
     assert first.status_code == 201
-    duplicate = await client.post("/api/v1/batches", json=payload)
-    assert duplicate.status_code == 409
-    assert duplicate.json()["error"]["code"] == "UNIQUE_CONFLICT"
-
-    async with batch_api[-1]() as session:
-        duplicate_logs = list(
-            await session.scalars(
-                select(AuditLog)
-                .where(
-                    AuditLog.action == "CREATE_BATCH",
-                    AuditLog.result == "FAILURE",
-                )
-            )
-        )
-    assert duplicate_logs
-    assert duplicate_logs[-1].detail == {"errorCode": "UNIQUE_CONFLICT"}
+    second = await client.post("/api/v1/batches", json=payload)
+    assert second.status_code == 201
+    assert first.json()["data"]["batchNo"] != second.json()["data"]["batchNo"]
 
     invalid_dates = await client.post(
         "/api/v1/batches",
         json={
             **payload,
-            "batchNo": "BATCH-DATE",
             "productionDate": "2026-09-12",
             "expiryDate": "2026-09-05",
         },
@@ -398,7 +381,6 @@ async def test_warehouse_staff_requires_an_authorized_warehouse_and_cannot_cross
         "/api/v1/batches",
         json={
             "productId": str(product_id),
-            "batchNo": "BATCH-STAFF",
             "origin": "基地",
             "productionDate": "2026-09-05",
             "expiryDate": "2026-09-12",
@@ -410,7 +392,6 @@ async def test_warehouse_staff_requires_an_authorized_warehouse_and_cannot_cross
         "/api/v1/batches",
         json={
             "productId": str(other_product_id),
-            "batchNo": "BATCH-OTHER",
             "origin": "基地",
             "productionDate": "2026-09-05",
             "expiryDate": "2026-09-12",
@@ -436,7 +417,6 @@ async def test_warehouse_staff_requires_an_authorized_warehouse_and_cannot_cross
         "/api/v1/batches",
         json={
             "productId": str(product_id),
-            "batchNo": "BATCH-NO-WAREHOUSE",
             "origin": "基地",
             "productionDate": "2026-09-05",
             "expiryDate": "2026-09-12",

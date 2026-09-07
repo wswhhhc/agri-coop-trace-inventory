@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from uuid import uuid4
 
 import httpx
@@ -130,9 +131,10 @@ async def test_cooperative_admin_can_list_create_and_update_own_warehouses(
 
     created = await client.post(
         "/api/v1/warehouses",
-        json={"code": "WH-THREE", "name": "三号仓库"},
+        json={"name": "三号仓库"},
     )
     assert created.status_code == 201
+    assert re.fullmatch(r"WH-[A-Z0-9]{6}", created.json()["data"]["code"])
     created_id = created.json()["data"]["id"]
 
     updated = await client.patch(
@@ -182,7 +184,7 @@ async def test_missing_warehouse_permission_returns_403(warehouse_api):
 
     response = await client.post(
         "/api/v1/warehouses",
-        json={"code": "WH-NO-PERM", "name": "无权限仓库"},
+        json={"name": "无权限仓库"},
     )
 
     assert response.status_code == 403

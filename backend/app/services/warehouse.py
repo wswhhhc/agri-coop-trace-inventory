@@ -17,6 +17,7 @@ from app.infrastructure.transaction import transaction_scope
 from app.models import SYSTEM_ADMIN_ROLE_CODE, Warehouse
 from app.repositories.warehouse import WarehouseRepository
 from app.schemas.warehouse import WarehouseCreate, WarehouseListParams, WarehouseUpdate
+from app.utils.resource_codes import new_prefixed_code
 
 COOPERATIVE_ADMIN_ROLE_CODE = "COOPERATIVE_ADMIN"
 WAREHOUSE_MANAGE_PERMISSION = "warehouse:manage"
@@ -92,7 +93,11 @@ class WarehouseService:
         values.pop("cooperative_id", None)
         async with transaction_scope(self.session):
             return await self.repository.add(
-                Warehouse(cooperative_id=target_cooperative_id, **values)
+                Warehouse(
+                    cooperative_id=target_cooperative_id,
+                    code=new_prefixed_code("WH"),
+                    **values,
+                )
             )
 
     async def update(
