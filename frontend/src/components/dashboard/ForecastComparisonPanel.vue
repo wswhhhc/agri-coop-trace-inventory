@@ -162,7 +162,25 @@ function formatMetric(value: number | undefined): string {
 
 .forecast-comparison-panel table {
   width: 100%;
-  min-width: 64rem;
+  min-width: 72rem;
+  font-size: var(--font-size-md);
+}
+
+.forecast-comparison-panel caption {
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-4);
+  font-size: var(--font-size-md);
+}
+
+.forecast-comparison-panel th {
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-4);
+  font-size: var(--font-size-sm);
+}
+
+.forecast-comparison-panel td {
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-4);
 }
 
 .forecast-comparison-panel__id {
