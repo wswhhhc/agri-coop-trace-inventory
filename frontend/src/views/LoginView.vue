@@ -101,7 +101,14 @@ async function handleSubmit(): Promise<void> {
   min-height: 100dvh;
   padding: clamp(1.5rem, 5vw, 5rem) clamp(1.5rem, 9vw, 10rem);
   background:
-    linear-gradient(125deg, var(--color-brand-950) 0 40%, transparent 40%),
+    linear-gradient(
+      125deg,
+      var(--color-brand-950) 0 36%,
+      rgb(15 51 38 / 90%) 40%,
+      rgb(15 51 38 / 58%) 43%,
+      rgb(15 51 38 / 20%) 46%,
+      transparent 50%
+    ),
     radial-gradient(circle at 78% 10%, var(--color-accent-soft), transparent 23rem),
     var(--color-bg);
 }
