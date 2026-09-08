@@ -76,19 +76,32 @@ export interface StockTransferResult {
   inTransactionId: string
 }
 
-export async function listInventory(): Promise<InventorySummary[]> {
-  const response = await http.get<ListResponse<InventorySummary>>('/inventories', {
-    params: { page: 1, pageSize: 20 },
-  })
-  return response.data.data
+export interface InventoryListParams {
+  page?: number
+  pageSize?: number
 }
 
-export async function listInventoryTransactions(
+export async function listInventoryPage(
+  options: InventoryListParams = {},
+): Promise<ListResponse<InventorySummary>> {
+  const response = await http.get<ListResponse<InventorySummary>>('/inventories', {
+    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
+  })
+  return response.data
+}
+
+export async function listInventory(
+  options: InventoryListParams = {},
+): Promise<InventorySummary[]> {
+  return (await listInventoryPage({ pageSize: options.pageSize ?? 100, ...options })).data
+}
+
+export async function listInventoryTransactionsPage(
   options: InventoryTransactionListParams = {},
-): Promise<InventoryTransactionSummary[]> {
+): Promise<ListResponse<InventoryTransactionSummary>> {
   const params = {
     page: options.page ?? 1,
-    pageSize: options.pageSize ?? 20,
+    pageSize: options.pageSize ?? 10,
     ...(options.warehouseId ? { warehouseId: options.warehouseId } : {}),
     ...(options.batchId ? { batchId: options.batchId } : {}),
     ...(options.transactionType ? { transactionType: options.transactionType } : {}),
@@ -97,7 +110,13 @@ export async function listInventoryTransactions(
     '/inventory-transactions',
     { params },
   )
-  return response.data.data
+  return response.data
+}
+
+export async function listInventoryTransactions(
+  options: InventoryTransactionListParams = {},
+): Promise<InventoryTransactionSummary[]> {
+  return (await listInventoryTransactionsPage(options)).data
 }
 
 export async function getInventoryTransaction(

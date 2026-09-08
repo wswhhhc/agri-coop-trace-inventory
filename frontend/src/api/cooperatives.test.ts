@@ -17,7 +17,7 @@ describe('cooperatives api', () => {
 
     await expect(listCooperatives()).resolves.toEqual([])
     expect(http.get).toHaveBeenCalledWith('/cooperatives', {
-      params: { page: 1, pageSize: 20 },
+      params: { page: 1, pageSize: 100 },
     })
   })
 

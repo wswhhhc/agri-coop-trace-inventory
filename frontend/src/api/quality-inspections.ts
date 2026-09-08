@@ -26,7 +26,7 @@ export async function listQualityInspections(
 ): Promise<QualityInspectionSummary[]> {
   const response = await http.get<ListResponse<QualityInspectionSummary>>(
     `/batches/${batchId}/quality-inspections`,
-    { params: { page: 1, pageSize: 20 } },
+    { params: { page: 1, pageSize: 10 } },
   )
   return response.data.data
 }

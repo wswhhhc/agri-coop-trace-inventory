@@ -20,11 +20,24 @@ export interface CooperativeUpdatePayload {
   status: CooperativeStatus
 }
 
-export async function listCooperatives(): Promise<CooperativeSummary[]> {
+export interface CooperativeListParams {
+  page?: number
+  pageSize?: number
+}
+
+export async function listCooperativesPage(
+  options: CooperativeListParams = {},
+): Promise<ListResponse<CooperativeSummary>> {
   const response = await http.get<ListResponse<CooperativeSummary>>('/cooperatives', {
-    params: { page: 1, pageSize: 20 },
+    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
   })
-  return response.data.data
+  return response.data
+}
+
+export async function listCooperatives(
+  options: CooperativeListParams = {},
+): Promise<CooperativeSummary[]> {
+  return (await listCooperativesPage({ pageSize: options.pageSize ?? 100, ...options })).data
 }
 
 export async function createCooperative(

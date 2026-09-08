@@ -29,7 +29,7 @@ export interface ProductListParams {
 export async function listProducts(options: ProductListParams = {}): Promise<ListResponse<ProductSummary>> {
   const params = {
     page: options.page ?? 1,
-    pageSize: options.pageSize ?? 20,
+    pageSize: options.pageSize ?? 10,
     ...(options.isActive === undefined ? {} : { isActive: options.isActive }),
   }
   const response = await http.get<ListResponse<ProductSummary>>('/products', {

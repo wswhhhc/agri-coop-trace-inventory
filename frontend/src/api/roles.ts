@@ -3,11 +3,22 @@ import type { PermissionSummary, RoleSummary } from '@/types/resources'
 
 import http from './http'
 
-export async function listRoles(): Promise<RoleSummary[]> {
+export interface RoleListParams {
+  page?: number
+  pageSize?: number
+}
+
+export async function listRolesPage(
+  options: RoleListParams = {},
+): Promise<ListResponse<RoleSummary>> {
   const response = await http.get<ListResponse<RoleSummary>>('/roles', {
-    params: { page: 1, pageSize: 100 },
+    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
   })
-  return response.data.data
+  return response.data
+}
+
+export async function listRoles(options: RoleListParams = {}): Promise<RoleSummary[]> {
+  return (await listRolesPage({ pageSize: options.pageSize ?? 100, ...options })).data
 }
 
 export async function listPermissions(): Promise<PermissionSummary[]> {

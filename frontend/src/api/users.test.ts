@@ -23,7 +23,7 @@ describe('users api', () => {
 
     await expect(listUsers()).resolves.toEqual([])
     expect(http.get).toHaveBeenCalledWith('/users', {
-      params: { page: 1, pageSize: 20 },
+      params: { page: 1, pageSize: 100 },
     })
   })
 

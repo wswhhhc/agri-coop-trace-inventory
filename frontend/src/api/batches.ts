@@ -27,7 +27,7 @@ export interface BatchListParams {
 
 export async function listBatches(options: BatchListParams = {}): Promise<ListResponse<BatchSummary>> {
   const response = await http.get<ListResponse<BatchSummary>>('/batches', {
-    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 20 },
+    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
   })
   return response.data
 }

@@ -36,7 +36,7 @@ class PageParams(BaseSchema):
     """列表接口的通用分页和排序参数。"""
 
     page: int = Field(default=1, ge=1)
-    page_size: int = Field(default=20, ge=1, le=100)
+    page_size: int = Field(default=10, ge=1, le=100)
     sort_by: str = Field(default="createdAt", min_length=1, max_length=50)
     sort_order: SortOrder = SortOrder.DESC
 

@@ -19,11 +19,22 @@ export interface WarehouseUpdatePayload {
   status: WarehouseStatus
 }
 
-export async function listWarehouses(): Promise<WarehouseSummary[]> {
+export interface WarehouseListParams {
+  page?: number
+  pageSize?: number
+}
+
+export async function listWarehousesPage(
+  options: WarehouseListParams = {},
+): Promise<ListResponse<WarehouseSummary>> {
   const response = await http.get<ListResponse<WarehouseSummary>>('/warehouses', {
-    params: { page: 1, pageSize: 20 },
+    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
   })
-  return response.data.data
+  return response.data
+}
+
+export async function listWarehouses(options: WarehouseListParams = {}): Promise<WarehouseSummary[]> {
+  return (await listWarehousesPage({ pageSize: options.pageSize ?? 100, ...options })).data
 }
 
 export async function createWarehouse(

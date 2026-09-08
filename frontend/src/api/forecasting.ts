@@ -37,7 +37,7 @@ export async function listForecastResultsPage(
   options: ForecastResultListParams = {},
 ): Promise<ListResponse<ForecastResultDetailSummary>> {
   const response = await http.get<ListResponse<ForecastResultDetailSummary>>('/forecast-results', {
-    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 20 },
+    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
   })
   return response.data
 }

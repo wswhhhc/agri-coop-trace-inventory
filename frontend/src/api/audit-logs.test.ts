@@ -15,7 +15,7 @@ describe('audit logs api', () => {
 
     await expect(listAuditLogs()).resolves.toEqual([])
     expect(http.get).toHaveBeenCalledWith('/audit-logs', {
-      params: { page: 1, pageSize: 20 },
+      params: { page: 1, pageSize: 10 },
     })
   })
 
@@ -24,7 +24,7 @@ describe('audit logs api', () => {
 
     await listAuditLogs({ action: 'CREATE_BATCH', result: 'FAILURE' })
     expect(http.get).toHaveBeenCalledWith('/audit-logs', {
-      params: { page: 1, pageSize: 20, action: 'CREATE_BATCH', result: 'FAILURE' },
+      params: { page: 1, pageSize: 10, action: 'CREATE_BATCH', result: 'FAILURE' },
     })
   })
 

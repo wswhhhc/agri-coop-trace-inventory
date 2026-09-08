@@ -21,18 +21,35 @@ export interface AlertStatusUpdatePayload {
   handlingNote: string | null
 }
 
-export async function listAlerts(): Promise<AlertSummary[]> {
-  const response = await http.get<ListResponse<AlertSummary>>('/alerts', {
-    params: { page: 1, pageSize: 20 },
-  })
-  return response.data.data
+export interface AlertListParams {
+  page?: number
+  pageSize?: number
 }
 
-export async function listAlertRules(): Promise<AlertRuleSummary[]> {
-  const response = await http.get<ListResponse<AlertRuleSummary>>('/alert-rules', {
-    params: { page: 1, pageSize: 100 },
+export async function listAlertsPage(
+  options: AlertListParams = {},
+): Promise<ListResponse<AlertSummary>> {
+  const response = await http.get<ListResponse<AlertSummary>>('/alerts', {
+    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
   })
-  return response.data.data
+  return response.data
+}
+
+export async function listAlerts(options: AlertListParams = {}): Promise<AlertSummary[]> {
+  return (await listAlertsPage(options)).data
+}
+
+export async function listAlertRulesPage(
+  options: AlertListParams = {},
+): Promise<ListResponse<AlertRuleSummary>> {
+  const response = await http.get<ListResponse<AlertRuleSummary>>('/alert-rules', {
+    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
+  })
+  return response.data
+}
+
+export async function listAlertRules(options: AlertListParams = {}): Promise<AlertRuleSummary[]> {
+  return (await listAlertRulesPage({ pageSize: options.pageSize ?? 100, ...options })).data
 }
 
 export async function getAlert(alertId: string): Promise<AlertDetailSummary> {

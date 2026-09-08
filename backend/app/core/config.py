@@ -150,7 +150,7 @@ class Settings(DatabaseSettings):
     cors_allowed_headers: str = "*"
     cors_expose_headers: str = "X-Request-ID,Retry-After"
     trusted_hosts: str = ""
-    default_page_size: int = Field(default=20, ge=1)
+    default_page_size: int = Field(default=10, ge=1)
     max_page_size: int = Field(default=100, ge=1)
     idempotency_retention_days: int = Field(default=7, ge=1)
 

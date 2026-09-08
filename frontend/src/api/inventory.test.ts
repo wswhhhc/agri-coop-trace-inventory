@@ -145,7 +145,7 @@ describe('inventory api', () => {
     expect(http.get).toHaveBeenCalledWith('/inventory-transactions', {
       params: {
         page: 1,
-        pageSize: 20,
+        pageSize: 10,
         warehouseId: 'warehouse-1',
         batchId: 'batch-1',
         transactionType: 'OUTBOUND',

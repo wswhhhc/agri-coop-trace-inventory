@@ -33,11 +33,22 @@ export interface PasswordResetResult {
   temporaryPassword: string
 }
 
-export async function listUsers(): Promise<UserSummary[]> {
+export interface UserListParams {
+  page?: number
+  pageSize?: number
+}
+
+export async function listUsersPage(
+  options: UserListParams = {},
+): Promise<ListResponse<UserSummary>> {
   const response = await http.get<ListResponse<UserSummary>>('/users', {
-    params: { page: 1, pageSize: 20 },
+    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
   })
-  return response.data.data
+  return response.data
+}
+
+export async function listUsers(options: UserListParams = {}): Promise<UserSummary[]> {
+  return (await listUsersPage({ pageSize: options.pageSize ?? 100, ...options })).data
 }
 
 export async function createUser(payload: UserCreatePayload): Promise<UserCreateResult> {

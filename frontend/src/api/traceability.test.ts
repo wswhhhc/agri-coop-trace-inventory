@@ -17,7 +17,7 @@ describe('traceability api', () => {
 
     await expect(listTraceEvents('batch-1')).resolves.toEqual([])
     expect(http.get).toHaveBeenCalledWith('/batches/batch-1/trace-events', {
-      params: { page: 1, pageSize: 20, sortBy: 'eventTime', sortOrder: 'ASC' },
+      params: { page: 1, pageSize: 10, sortBy: 'eventTime', sortOrder: 'ASC' },
     })
   })
 })

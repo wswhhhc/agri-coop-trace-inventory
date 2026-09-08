@@ -4,6 +4,8 @@ import type { AuditLogSummary } from '@/types/resources'
 import http from './http'
 
 export interface AuditLogListParams {
+  page?: number
+  pageSize?: number
   action?: string
   resourceType?: string
   resourceId?: string
@@ -12,13 +14,19 @@ export interface AuditLogListParams {
   endDate?: string
 }
 
+export async function listAuditLogsPage(
+  params: AuditLogListParams = {},
+): Promise<ListResponse<AuditLogSummary>> {
+  const response = await http.get<ListResponse<AuditLogSummary>>('/audit-logs', {
+    params: { page: params.page ?? 1, pageSize: params.pageSize ?? 10, ...params },
+  })
+  return response.data
+}
+
 export async function listAuditLogs(
   params: AuditLogListParams = {},
 ): Promise<AuditLogSummary[]> {
-  const response = await http.get<ListResponse<AuditLogSummary>>('/audit-logs', {
-    params: { page: 1, pageSize: 20, ...params },
-  })
-  return response.data.data
+  return (await listAuditLogsPage(params)).data
 }
 
 export async function getAuditLog(auditLogId: string): Promise<AuditLogSummary> {

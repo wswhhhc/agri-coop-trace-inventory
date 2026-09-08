@@ -31,7 +31,7 @@ describe('dashboard api', () => {
 
     expect(http.get).toHaveBeenNthCalledWith(1, '/dashboard/summary', { params })
     expect(http.get).toHaveBeenNthCalledWith(2, '/dashboard/inventory-trends', {
-      params: { page: 1, pageSize: 20, ...params },
+      params: { page: 1, pageSize: 10, ...params },
     })
     expect(http.get).toHaveBeenNthCalledWith(3, '/dashboard/alert-distribution', { params })
     expect(http.get).toHaveBeenNthCalledWith(4, '/dashboard/product-ranking', { params: { ...params, limit: 10 } })

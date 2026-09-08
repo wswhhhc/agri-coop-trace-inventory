@@ -49,10 +49,10 @@ def test_page_params_use_contract_defaults_and_validate_bounds() -> None:
     params = PageParams()
 
     assert params.page == 1
-    assert params.page_size == 20
+    assert params.page_size == 10
     assert params.sort_by == "createdAt"
     assert params.sort_order is SortOrder.DESC
-    assert params.model_dump(by_alias=True)["pageSize"] == 20
+    assert params.model_dump(by_alias=True)["pageSize"] == 10
 
     with pytest.raises(ValidationError):
         PageParams(page=0)

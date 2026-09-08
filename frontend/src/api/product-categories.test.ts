@@ -21,7 +21,7 @@ describe('product categories api', () => {
     await listProductCategories({ keyword: '蔬菜', isActive: true })
 
     expect(http.get).toHaveBeenCalledWith('/product-categories', {
-      params: { page: 1, pageSize: 20, keyword: '蔬菜', isActive: true },
+      params: { page: 1, pageSize: 100, keyword: '蔬菜', isActive: true },
     })
   })
 

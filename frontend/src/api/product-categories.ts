@@ -21,19 +21,25 @@ export interface ProductCategoryUpdatePayload {
   isActive: boolean
 }
 
-export async function listProductCategories(
+export async function listProductCategoriesPage(
   options: ProductCategoryListParams = {},
-): Promise<ProductCategorySummary[]> {
+): Promise<ListResponse<ProductCategorySummary>> {
   const params = {
     page: options.page ?? 1,
-    pageSize: options.pageSize ?? 20,
+    pageSize: options.pageSize ?? 10,
     ...(options.keyword ? { keyword: options.keyword } : {}),
     ...(options.isActive === undefined ? {} : { isActive: options.isActive }),
   }
   const response = await http.get<ListResponse<ProductCategorySummary>>('/product-categories', {
     params,
   })
-  return response.data.data
+  return response.data
+}
+
+export async function listProductCategories(
+  options: ProductCategoryListParams = {},
+): Promise<ProductCategorySummary[]> {
+  return (await listProductCategoriesPage({ pageSize: options.pageSize ?? 100, ...options })).data
 }
 
 export async function createProductCategory(

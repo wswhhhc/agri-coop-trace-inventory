@@ -17,7 +17,7 @@ describe('warehouses api', () => {
 
     await expect(listWarehouses()).resolves.toEqual([])
     expect(http.get).toHaveBeenCalledWith('/warehouses', {
-      params: { page: 1, pageSize: 20 },
+      params: { page: 1, pageSize: 100 },
     })
   })
 

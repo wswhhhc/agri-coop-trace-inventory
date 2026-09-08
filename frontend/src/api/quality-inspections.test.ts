@@ -17,7 +17,7 @@ describe('quality inspections api', () => {
 
     await expect(listQualityInspections('batch-1')).resolves.toEqual([])
     expect(http.get).toHaveBeenCalledWith('/batches/batch-1/quality-inspections', {
-      params: { page: 1, pageSize: 20 },
+      params: { page: 1, pageSize: 10 },
     })
   })
 

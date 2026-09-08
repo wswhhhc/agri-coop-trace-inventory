@@ -35,7 +35,7 @@ export async function listInventoryTrendsPage(
 ): Promise<ListResponse<InventoryTrend>> {
   const params = {
     page: options.page ?? 1,
-    pageSize: options.pageSize ?? 20,
+    pageSize: options.pageSize ?? 10,
     ...(options.warehouseId ? { warehouseId: options.warehouseId } : {}),
     ...(options.startDate ? { startDate: options.startDate } : {}),
     ...(options.endDate ? { endDate: options.endDate } : {}),
