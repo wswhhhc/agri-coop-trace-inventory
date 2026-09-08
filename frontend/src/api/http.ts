@@ -28,8 +28,14 @@ http.interceptors.response.use(
   async (error: AxiosError<ApiErrorBody>) => {
     const originalRequest = error.config
     const isRefreshRequest = originalRequest?.url?.endsWith('/auth/refresh')
+    const isLoginRequest = originalRequest?.url?.endsWith('/auth/login')
 
-    if (error.response?.status !== 401 || !originalRequest || isRefreshRequest) {
+    if (
+      error.response?.status !== 401 ||
+      !originalRequest ||
+      isRefreshRequest ||
+      isLoginRequest
+    ) {
       return Promise.reject(error)
     }
 
