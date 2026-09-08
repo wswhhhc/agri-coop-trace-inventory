@@ -4,6 +4,7 @@ import { computed, reactive, ref } from 'vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
+import CreateFormModal from '@/components/common/CreateFormModal.vue'
 import {
   createProductCategory,
   listProductCategoriesPage,
@@ -17,6 +18,7 @@ import { getApiErrorMessage } from '@/utils/api-error'
 const categoryList = usePaginatedList(listProductCategoriesPage)
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('product:manage'))
+const showCreateModal = ref(false)
 const submitting = ref(false)
 const updating = ref(false)
 const formError = ref('')
@@ -37,6 +39,19 @@ function resetForm(): void {
   form.description = ''
 }
 
+function openCreateModal(): void {
+  resetForm()
+  formError.value = ''
+  successMessage.value = ''
+  showCreateModal.value = true
+}
+
+function closeCreateModal(): void {
+  if (submitting.value) return
+  showCreateModal.value = false
+  formError.value = ''
+}
+
 async function handleSubmit(): Promise<void> {
   submitting.value = true
   formError.value = ''
@@ -47,6 +62,7 @@ async function handleSubmit(): Promise<void> {
       description: form.description.trim() || null,
     })
     resetForm()
+    showCreateModal.value = false
     successMessage.value = '产品分类创建成功。'
     await categoryList.loadData()
   } catch (reason) {
@@ -94,8 +110,19 @@ async function handleUpdate(): Promise<void> {
 
 <template>
   <section class="product-category-list-page">
-    <form v-if="canManage" class="product-category-create-form" @submit.prevent="handleSubmit">
-      <h2>新增产品分类</h2>
+    <div class="page-toolbar">
+      <button v-if="canManage" class="create-button" type="button" @click="openCreateModal">创建产品分类</button>
+    </div>
+    <p v-if="successMessage" class="create-status" role="status">{{ successMessage }}</p>
+
+    <CreateFormModal
+      :open="showCreateModal"
+      title="创建产品分类"
+      :submitting="submitting"
+      :error="formError"
+      @close="closeCreateModal"
+      @submit="handleSubmit"
+    >
       <GeneratedCodeField label="编码" format="CAT-XXXXXX" />
       <label>
         名称
@@ -105,10 +132,7 @@ async function handleUpdate(): Promise<void> {
         描述
         <textarea v-model="form.description" name="description" maxlength="255" />
       </label>
-      <button type="submit" :disabled="submitting">{{ submitting ? '提交中…' : '创建' }}</button>
-      <p v-if="formError" role="alert">{{ formError }}</p>
-      <p v-if="successMessage" role="status">{{ successMessage }}</p>
-    </form>
+    </CreateFormModal>
     <form v-if="canManage && editingCategoryId" class="product-category-edit-form" @submit.prevent="handleUpdate">
       <h2>编辑产品分类</h2>
       <label>
@@ -181,7 +205,6 @@ async function handleUpdate(): Promise<void> {
   min-width: 46rem;
 }
 
-.product-category-create-form,
 .product-category-edit-form {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -193,14 +216,12 @@ async function handleUpdate(): Promise<void> {
   box-shadow: var(--shadow-sm);
 }
 
-.product-category-create-form h2,
 .product-category-edit-form h2 {
   grid-column: 1 / -1;
   margin-bottom: 0;
   font-size: var(--font-size-lg);
 }
 
-.product-category-create-form > label,
 .product-category-edit-form > label {
   display: grid;
   gap: var(--space-1);
@@ -209,49 +230,55 @@ async function handleUpdate(): Promise<void> {
   font-weight: 600;
 }
 
-.product-category-create-form > label:nth-of-type(2),
 .product-category-edit-form > label:nth-of-type(2),
-.product-category-create-form > p,
 .product-category-edit-form > p {
   grid-column: 1 / -1;
 }
 
-.product-category-create-form > button,
 .product-category-edit-form > button {
   justify-self: start;
 }
 
-.product-category-create-form > p,
 .product-category-edit-form > p {
   margin: 0;
   color: var(--color-danger);
   font-size: var(--font-size-sm);
 }
 
-.product-category-create-form > p[role='status'],
 .product-category-edit-form > p[role='status'] {
   color: var(--color-success);
 }
 
 @media (max-width: 48rem) {
-  .product-category-create-form,
   .product-category-edit-form {
     grid-template-columns: 1fr;
     padding: var(--space-4);
   }
 
-  .product-category-create-form h2,
   .product-category-edit-form h2,
-  .product-category-create-form > label:nth-of-type(2),
   .product-category-edit-form > label:nth-of-type(2),
-  .product-category-create-form > p,
   .product-category-edit-form > p {
     grid-column: auto;
   }
 
-  .product-category-create-form > button,
   .product-category-edit-form > button {
     justify-self: stretch;
   }
+}
+
+.page-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.create-button {
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-4);
+}
+
+.create-status {
+  margin: 0;
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
 }
 </style>

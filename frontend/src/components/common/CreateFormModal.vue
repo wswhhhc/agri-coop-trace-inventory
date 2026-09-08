@@ -6,11 +6,13 @@ const props = withDefaults(
     open: boolean
     title: string
     submitting?: boolean
+    submitDisabled?: boolean
     error?: string
     submitLabel?: string
   }>(),
   {
     submitting: false,
+    submitDisabled: false,
     error: '',
     submitLabel: '创建',
   },
@@ -37,7 +39,7 @@ function handleClose(): void {
       </p>
       <slot name="status" />
       <div class="create-form-modal__actions">
-        <button type="submit" :disabled="props.submitting">
+        <button type="submit" :disabled="props.submitting || props.submitDisabled">
           {{ props.submitting ? '提交中…' : props.submitLabel }}
         </button>
         <button type="button" :disabled="props.submitting" @click="handleClose">取消</button>

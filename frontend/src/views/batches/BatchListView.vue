@@ -5,6 +5,7 @@ import PaginationBar from '@/components/common/PaginationBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
+import CreateFormModal from '@/components/common/CreateFormModal.vue'
 import { createBatch, listBatches, type BatchCreatePayload } from '@/api/batches'
 import { listProductOptions } from '@/api/products'
 import { getPagePlaceholderCount, usePageData, usePaginatedList } from '@/composables/usePageData'
@@ -23,6 +24,7 @@ const productState = usePageData(
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('batch:manage'))
 const canManageProducts = computed(() => authStore.hasPermission('product:manage'))
+const showCreateModal = ref(false)
 const submitting = ref(false)
 const formError = ref('')
 const successMessage = ref('')
@@ -53,6 +55,19 @@ function resetForm(): void {
   form.responsiblePerson = null
 }
 
+function openCreateModal(): void {
+  resetForm()
+  formError.value = ''
+  successMessage.value = ''
+  showCreateModal.value = true
+}
+
+function closeCreateModal(): void {
+  if (submitting.value) return
+  showCreateModal.value = false
+  formError.value = ''
+}
+
 async function handleSubmit(): Promise<void> {
   submitting.value = true
   formError.value = ''
@@ -66,6 +81,7 @@ async function handleSubmit(): Promise<void> {
       responsiblePerson: form.responsiblePerson?.trim() || null,
     })
     resetForm()
+    showCreateModal.value = false
     successMessage.value = `批次创建成功，编号为 ${created.batchNo}，追溯码为 ${created.traceCode}。`
     await batchList.loadData()
   } catch (reason) {
@@ -78,8 +94,20 @@ async function handleSubmit(): Promise<void> {
 
 <template>
   <section class="batch-list-page">
-    <form v-if="canManage" class="batch-create-form" @submit.prevent="handleSubmit">
-      <h2>新增批次</h2>
+    <div class="page-toolbar">
+      <button v-if="canManage" class="create-button" type="button" @click="openCreateModal">创建批次</button>
+    </div>
+    <p v-if="successMessage" class="create-status" role="status">{{ successMessage }}</p>
+
+    <CreateFormModal
+      :open="showCreateModal"
+      title="创建批次"
+      :submitting="submitting"
+      :submit-disabled="productState.loading"
+      :error="formError || productState.error"
+      @close="closeCreateModal"
+      @submit="handleSubmit"
+    >
       <label>
         产品
         <div class="field-with-action">
@@ -114,13 +142,7 @@ async function handleSubmit(): Promise<void> {
         负责人
         <input v-model="form.responsiblePerson" name="responsiblePerson" maxlength="50" />
       </label>
-      <button type="submit" :disabled="submitting || productState.loading">
-        {{ submitting ? '提交中…' : '创建' }}
-      </button>
-      <p v-if="formError" role="alert">{{ formError }}</p>
-      <p v-if="productState.error" role="alert">{{ productState.error }}</p>
-      <p v-if="successMessage" role="status">{{ successMessage }}</p>
-    </form>
+    </CreateFormModal>
     <PageState
       :loading="batchList.loading"
       :error="batchList.error"
@@ -190,31 +212,6 @@ async function handleSubmit(): Promise<void> {
   min-width: 64rem;
 }
 
-.batch-create-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
-}
-
-.batch-create-form h2 {
-  grid-column: 1 / -1;
-  margin-bottom: 0;
-  font-size: var(--font-size-lg);
-}
-
-.batch-create-form > label {
-  display: grid;
-  gap: var(--space-1);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-}
-
 .field-with-action {
   display: flex;
   align-items: center;
@@ -241,46 +238,26 @@ async function handleSubmit(): Promise<void> {
   line-height: 1.5;
 }
 
-.batch-create-form > button {
-  justify-self: start;
-}
-
-.batch-create-form > p {
-  grid-column: 1 / -1;
-  margin: 0;
-  padding: var(--space-3);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-}
-
-.batch-create-form > p[role='alert'] {
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
-}
-
-.batch-create-form > p[role='status'] {
-  background: var(--color-success-soft);
-  color: var(--color-success);
-}
-
 @media (max-width: 48rem) {
-  .batch-create-form {
-    grid-template-columns: 1fr;
-    padding: var(--space-4);
-  }
-
-  .batch-create-form h2,
-  .batch-create-form > p {
-    grid-column: auto;
-  }
-
-  .batch-create-form > button {
-    justify-self: stretch;
-  }
-
   .field-with-action {
     align-items: stretch;
     flex-direction: column;
   }
+}
+
+.page-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.create-button {
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-4);
+}
+
+.create-status {
+  margin: 0;
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
 }
 </style>

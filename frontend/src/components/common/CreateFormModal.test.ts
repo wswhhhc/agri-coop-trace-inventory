@@ -78,4 +78,36 @@ describe('CreateFormModal', () => {
     app.unmount()
     root.remove()
   })
+
+  it('can disable submit while related options are loading without showing a submitting label', () => {
+    const root = document.createElement('div')
+    const app = createApp(
+      defineComponent({
+        setup() {
+          return () =>
+            h(
+              CreateFormModal,
+              {
+                open: true,
+                title: '创建产品',
+                submitDisabled: true,
+              },
+              { default: () => h('input', { name: 'name' }) },
+            )
+        },
+      }),
+    )
+
+    app.mount(root)
+
+    const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement | null
+    const submitButton = Array.from(dialog?.querySelectorAll('button') ?? []).find(
+      (button) => button.type === 'submit',
+    )
+    expect(submitButton?.disabled).toBe(true)
+    expect(submitButton?.textContent).toBe('创建')
+
+    app.unmount()
+    root.remove()
+  })
 })

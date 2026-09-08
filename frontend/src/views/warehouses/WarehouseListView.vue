@@ -81,6 +81,7 @@ async function handleSubmit(): Promise<void> {
       managerName: form.managerName.trim() || null,
     })
     resetForm()
+    showCreateModal.value = false
     successMessage.value = '仓库创建成功。'
     await warehouseList.loadData()
   } catch (reason) {

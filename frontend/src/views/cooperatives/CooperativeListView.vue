@@ -7,6 +7,7 @@ import {
   updateCooperative,
 } from '@/api/cooperatives'
 import type { CooperativeStatus } from '@/api/cooperatives'
+import CreateFormModal from '@/components/common/CreateFormModal.vue'
 import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
@@ -18,6 +19,7 @@ import { getApiErrorMessage } from '@/utils/api-error'
 const cooperativeList = usePaginatedList(listCooperativesPage)
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('cooperative:manage'))
+const showCreateModal = ref(false)
 const submitting = ref(false)
 const updating = ref(false)
 const formError = ref('')
@@ -50,6 +52,19 @@ function resetForm(): void {
   form.contactPhone = ''
 }
 
+function openCreateModal(): void {
+  resetForm()
+  formError.value = ''
+  successMessage.value = ''
+  showCreateModal.value = true
+}
+
+function closeCreateModal(): void {
+  if (submitting.value) return
+  showCreateModal.value = false
+  formError.value = ''
+}
+
 async function handleSubmit(): Promise<void> {
   submitting.value = true
   formError.value = ''
@@ -62,6 +77,7 @@ async function handleSubmit(): Promise<void> {
       contactPhone: form.contactPhone.trim() || null,
     })
     resetForm()
+    showCreateModal.value = false
     successMessage.value = '合作社创建成功。'
     await cooperativeList.loadData()
   } catch (reason) {
@@ -113,8 +129,19 @@ async function handleUpdate(): Promise<void> {
 
 <template>
   <section class="cooperative-list-page">
-    <form v-if="canManage" class="cooperative-create-form" @submit.prevent="handleSubmit">
-      <h2>新增合作社</h2>
+    <div class="page-toolbar">
+      <button v-if="canManage" class="create-button" type="button" @click="openCreateModal">创建合作社</button>
+    </div>
+    <p v-if="successMessage" class="create-status" role="status">{{ successMessage }}</p>
+
+    <CreateFormModal
+      :open="showCreateModal"
+      title="创建合作社"
+      :submitting="submitting"
+      :error="formError"
+      @close="closeCreateModal"
+      @submit="handleSubmit"
+    >
       <GeneratedCodeField label="编码" format="COOP-XXXXXX" />
       <label>
         名称
@@ -138,10 +165,7 @@ async function handleUpdate(): Promise<void> {
           maxlength="11"
         />
       </label>
-      <button type="submit" :disabled="submitting">{{ submitting ? '提交中…' : '创建' }}</button>
-      <p v-if="formError" role="alert">{{ formError }}</p>
-      <p v-if="successMessage" role="status">{{ successMessage }}</p>
-    </form>
+    </CreateFormModal>
 
     <form v-if="canManage && editingCooperativeId" class="cooperative-edit-form" @submit.prevent="handleUpdate">
       <h2>编辑合作社</h2>
@@ -237,7 +261,6 @@ async function handleUpdate(): Promise<void> {
   min-width: 48rem;
 }
 
-.cooperative-create-form,
 .cooperative-edit-form {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -249,14 +272,12 @@ async function handleUpdate(): Promise<void> {
   box-shadow: var(--shadow-sm);
 }
 
-.cooperative-create-form h2,
 .cooperative-edit-form h2 {
   grid-column: 1 / -1;
   margin-bottom: 0;
   font-size: var(--font-size-lg);
 }
 
-.cooperative-create-form > label,
 .cooperative-edit-form > label {
   display: grid;
   gap: var(--space-1);
@@ -265,45 +286,53 @@ async function handleUpdate(): Promise<void> {
   font-weight: 600;
 }
 
-.cooperative-create-form > p,
 .cooperative-edit-form > p {
   grid-column: 1 / -1;
   margin: 0;
   font-size: var(--font-size-sm);
 }
 
-.cooperative-create-form > p[role='alert'],
 .cooperative-edit-form > p[role='alert'] {
   color: var(--color-danger);
 }
 
-.cooperative-create-form > p[role='status'],
 .cooperative-edit-form > p[role='status'] {
   color: var(--color-success);
 }
 
-.cooperative-create-form > button,
 .cooperative-edit-form > button {
   justify-self: start;
 }
 
 @media (max-width: 48rem) {
-  .cooperative-create-form,
   .cooperative-edit-form {
     grid-template-columns: 1fr;
     padding: var(--space-4);
   }
 
-  .cooperative-create-form h2,
   .cooperative-edit-form h2,
-  .cooperative-create-form > p,
   .cooperative-edit-form > p {
     grid-column: auto;
   }
 
-  .cooperative-create-form > button,
   .cooperative-edit-form > button {
     justify-self: stretch;
   }
+}
+
+.page-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.create-button {
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-4);
+}
+
+.create-status {
+  margin: 0;
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
 }
 </style>

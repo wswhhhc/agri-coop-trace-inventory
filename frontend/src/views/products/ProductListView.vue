@@ -5,6 +5,7 @@ import PaginationBar from '@/components/common/PaginationBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
+import CreateFormModal from '@/components/common/CreateFormModal.vue'
 import {
   createProduct,
   listProducts,
@@ -28,6 +29,7 @@ const categoryState = usePageData(
 )
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('product:manage'))
+const showCreateModal = ref(false)
 const submitting = ref(false)
 const updating = ref(false)
 const formError = ref('')
@@ -66,6 +68,19 @@ function resetForm(): void {
   form.safetyStock = 0
 }
 
+function openCreateModal(): void {
+  resetForm()
+  formError.value = ''
+  successMessage.value = ''
+  showCreateModal.value = true
+}
+
+function closeCreateModal(): void {
+  if (submitting.value) return
+  showCreateModal.value = false
+  formError.value = ''
+}
+
 async function handleSubmit(): Promise<void> {
   submitting.value = true
   formError.value = ''
@@ -79,6 +94,7 @@ async function handleSubmit(): Promise<void> {
       safetyStock: form.safetyStock,
     })
     resetForm()
+    showCreateModal.value = false
     successMessage.value = '产品创建成功。'
     await productList.loadData()
   } catch (reason) {
@@ -130,8 +146,20 @@ async function handleUpdate(): Promise<void> {
 
 <template>
   <section class="product-list-page">
-    <form v-if="canManage" class="product-create-form" @submit.prevent="handleSubmit">
-      <h2>新增产品</h2>
+    <div class="page-toolbar">
+      <button v-if="canManage" class="create-button" type="button" @click="openCreateModal">创建产品</button>
+    </div>
+    <p v-if="successMessage" class="create-status" role="status">{{ successMessage }}</p>
+
+    <CreateFormModal
+      :open="showCreateModal"
+      title="创建产品"
+      :submitting="submitting"
+      :submit-disabled="categoryState.loading"
+      :error="formError || categoryState.error"
+      @close="closeCreateModal"
+      @submit="handleSubmit"
+    >
       <label>
         产品分类
         <div class="field-with-action">
@@ -168,13 +196,7 @@ async function handleUpdate(): Promise<void> {
         安全库存
         <input v-model.number="form.safetyStock" type="number" name="safetyStock" min="0" step="0.001" required />
       </label>
-      <button type="submit" :disabled="submitting || categoryState.loading">
-        {{ submitting ? '提交中…' : '创建' }}
-      </button>
-      <p v-if="formError" role="alert">{{ formError }}</p>
-      <p v-if="categoryState.error" role="alert">{{ categoryState.error }}</p>
-      <p v-if="successMessage" role="status">{{ successMessage }}</p>
-    </form>
+    </CreateFormModal>
     <form v-if="canManage && editingProductId" class="product-edit-form" @submit.prevent="handleUpdate">
       <h2>编辑产品</h2>
       <label>
@@ -273,7 +295,6 @@ async function handleUpdate(): Promise<void> {
   min-width: 62rem;
 }
 
-.product-create-form,
 .product-edit-form {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -285,14 +306,12 @@ async function handleUpdate(): Promise<void> {
   box-shadow: var(--shadow-sm);
 }
 
-.product-create-form h2,
 .product-edit-form h2 {
   grid-column: 1 / -1;
   margin-bottom: 0;
   font-size: var(--font-size-lg);
 }
 
-.product-create-form > label,
 .product-edit-form > label {
   display: grid;
   gap: var(--space-1);
@@ -327,7 +346,6 @@ async function handleUpdate(): Promise<void> {
   line-height: 1.5;
 }
 
-.product-create-form > p,
 .product-edit-form > p {
   grid-column: 1 / -1;
   margin: 0;
@@ -335,31 +353,25 @@ async function handleUpdate(): Promise<void> {
   font-size: var(--font-size-sm);
 }
 
-.product-create-form > p[role='status'],
 .product-edit-form > p[role='status'] {
   color: var(--color-success);
 }
 
-.product-create-form > button,
 .product-edit-form > button {
   justify-self: start;
 }
 
 @media (max-width: 48rem) {
-  .product-create-form,
   .product-edit-form {
     grid-template-columns: 1fr;
     padding: var(--space-4);
   }
 
-  .product-create-form h2,
   .product-edit-form h2,
-  .product-create-form > p,
   .product-edit-form > p {
     grid-column: auto;
   }
 
-  .product-create-form > button,
   .product-edit-form > button {
     justify-self: stretch;
   }
@@ -368,5 +380,21 @@ async function handleUpdate(): Promise<void> {
     align-items: stretch;
     flex-direction: column;
   }
+}
+
+.page-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.create-button {
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-4);
+}
+
+.create-status {
+  margin: 0;
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
 }
 </style>
