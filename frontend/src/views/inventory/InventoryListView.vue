@@ -23,6 +23,7 @@ import { listBatchOptions } from '@/api/batches'
 import { listProductOptions } from '@/api/products'
 import { listWarehouses } from '@/api/warehouses'
 import CreateFormModal from '@/components/common/CreateFormModal.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import SelectField, { type SelectFieldOption } from '@/components/common/SelectField.vue'
 import { usePageData, usePaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
@@ -74,6 +75,7 @@ const canWrite = computed(() => authStore.hasPermission('inventory:write'))
 type InventoryOperation = 'receipt' | 'issue' | 'stocktake' | 'loss' | 'transfer'
 
 const activeOperation = ref<InventoryOperation | null>(null)
+const confirmationOperation = ref<InventoryOperation | null>(null)
 const submitting = ref(false)
 const formError = ref('')
 const successMessage = ref('')
@@ -84,6 +86,21 @@ const riskOptions = [
   { value: 'NEAR_EXPIRY', label: '临近过期' },
   { value: 'OVERSTOCK', label: '库存积压' },
 ]
+const operationLabels: Record<InventoryOperation, string> = {
+  receipt: '入库',
+  issue: '出库',
+  stocktake: '盘点',
+  loss: '报损',
+  transfer: '仓库调拨',
+}
+const confirmationTitle = computed(() =>
+  confirmationOperation.value ? `确认提交${operationLabels[confirmationOperation.value]}` : '',
+)
+const confirmationDescription = computed(() =>
+  confirmationOperation.value
+    ? `即将提交${operationLabels[confirmationOperation.value]}操作，该操作会立即更新库存数据，提交后请确认业务信息无误。`
+    : '',
+)
 
 function applyFilters(): void {
   void inventoryList.loadData(1)
@@ -160,8 +177,30 @@ function openOperation(operation: InventoryOperation): void {
 
 function closeOperation(): void {
   if (submitting.value) return
+  confirmationOperation.value = null
   activeOperation.value = null
   formError.value = ''
+}
+
+function requestOperationConfirmation(operation: InventoryOperation): void {
+  if (submitting.value) return
+  confirmationOperation.value = operation
+}
+
+function cancelOperationConfirmation(): void {
+  if (submitting.value) return
+  confirmationOperation.value = null
+}
+
+async function confirmOperation(): Promise<void> {
+  const operation = confirmationOperation.value
+  if (!operation || submitting.value) return
+  confirmationOperation.value = null
+  if (operation === 'receipt') await handleReceipt()
+  if (operation === 'issue') await handleIssue()
+  if (operation === 'stocktake') await handleStocktake()
+  if (operation === 'loss') await handleLoss()
+  if (operation === 'transfer') await handleTransfer()
 }
 
 function resetOperationForm(operation: InventoryOperation): void {
@@ -387,7 +426,7 @@ async function handleTransfer(): Promise<void> {
       :submit-disabled="warehouseState.loading || batchState.loading"
       :error="formError || operationOptionsError"
       @close="closeOperation"
-      @submit="handleReceipt"
+      @submit="requestOperationConfirmation('receipt')"
     >
       <label>
         仓库
@@ -423,7 +462,7 @@ async function handleTransfer(): Promise<void> {
       :submit-disabled="warehouseState.loading || batchState.loading"
       :error="formError || operationOptionsError"
       @close="closeOperation"
-      @submit="handleIssue"
+      @submit="requestOperationConfirmation('issue')"
     >
       <label>
         仓库
@@ -463,7 +502,7 @@ async function handleTransfer(): Promise<void> {
       :submit-disabled="warehouseState.loading || batchState.loading"
       :error="formError || operationOptionsError"
       @close="closeOperation"
-      @submit="handleStocktake"
+      @submit="requestOperationConfirmation('stocktake')"
     >
       <label>
         仓库
@@ -499,7 +538,7 @@ async function handleTransfer(): Promise<void> {
       :submit-disabled="warehouseState.loading || batchState.loading"
       :error="formError || operationOptionsError"
       @close="closeOperation"
-      @submit="handleLoss"
+      @submit="requestOperationConfirmation('loss')"
     >
       <label>
         仓库
@@ -535,7 +574,7 @@ async function handleTransfer(): Promise<void> {
       :submit-disabled="warehouseState.loading || batchState.loading"
       :error="formError || operationOptionsError"
       @close="closeOperation"
-      @submit="handleTransfer"
+      @submit="requestOperationConfirmation('transfer')"
     >
       <label>
         调出仓库
@@ -562,6 +601,16 @@ async function handleTransfer(): Promise<void> {
         <textarea v-model="transferForm.remark" maxlength="500" name="transferRemark" />
       </label>
     </CreateFormModal>
+    <ConfirmDialog
+      :open="confirmationOperation !== null"
+      :title="confirmationTitle"
+      :description="confirmationDescription"
+      confirm-text="确认提交"
+      cancel-text="取消"
+      tone="danger"
+      @confirm="confirmOperation"
+      @cancel="cancelOperationConfirmation"
+    />
     <FilterBar @submit="applyFilters" @reset="resetFilters">
       <label>
         仓库

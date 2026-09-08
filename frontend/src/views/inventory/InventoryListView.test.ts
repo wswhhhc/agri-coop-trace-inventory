@@ -111,4 +111,71 @@ describe('InventoryListView', () => {
 
     app.unmount()
   })
+
+  it('requires explicit confirmation before submitting an inventory operation', async () => {
+    const root = document.createElement('div')
+    document.body.append(root)
+    const app = createApp(InventoryListView)
+    app.mount(root)
+
+    await flushPromises()
+
+    const operationButton = Array.from(root.querySelectorAll('button')).find(
+      (item) => item.textContent?.trim() === '入库',
+    )
+    operationButton?.click()
+    await nextTick()
+
+    const operationForm = document.body.querySelector('form.create-form-modal')
+    operationForm?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    await nextTick()
+
+    expect(createInventoryReceipt).not.toHaveBeenCalled()
+    expect(document.body.querySelector('.confirm-dialog')?.textContent).toContain('确认提交')
+
+    const cancelButton = document.body.querySelector('.confirm-dialog button')
+    cancelButton?.click()
+    await nextTick()
+    expect(createInventoryReceipt).not.toHaveBeenCalled()
+    expect(document.body.querySelector('.confirm-dialog')).toBeNull()
+
+    operationForm?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    await nextTick()
+    const confirmButton = document.body.querySelector('.confirm-dialog button:last-child')
+    confirmButton?.click()
+    await flushPromises()
+
+    expect(createInventoryReceipt).toHaveBeenCalledOnce()
+    app.unmount()
+  })
+
+  it('opens the confirmation dialog for every inventory operation', async () => {
+    const root = document.createElement('div')
+    document.body.append(root)
+    const app = createApp(InventoryListView)
+    app.mount(root)
+
+    await flushPromises()
+
+    for (const operation of ['入库', '出库', '盘点', '报损', '仓库调拨']) {
+      const operationButton = Array.from(root.querySelectorAll('button')).find(
+        (item) => item.textContent?.trim() === operation,
+      )
+      operationButton?.click()
+      await nextTick()
+
+      const operationForm = document.body.querySelector('form.create-form-modal')
+      operationForm?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await nextTick()
+
+      expect(document.body.querySelector('.confirm-dialog')?.textContent).toContain(`确认提交${operation}`)
+      document.body.querySelector('.confirm-dialog button')?.click()
+      await nextTick()
+      expect(document.body.querySelector('.confirm-dialog')).toBeNull()
+      document.body.querySelector('.modal-shell__close')?.dispatchEvent(new Event('click', { bubbles: true }))
+      await nextTick()
+    }
+
+    app.unmount()
+  })
 })
