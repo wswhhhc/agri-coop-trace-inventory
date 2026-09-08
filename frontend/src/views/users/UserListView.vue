@@ -5,7 +5,7 @@ import { listCooperatives } from '@/api/cooperatives'
 import { listWarehouses } from '@/api/warehouses'
 import {
   createUser,
-  listUsers,
+  listUsersPage,
   replaceUserWarehouses,
   resetUserPassword,
   updateUser,
@@ -14,12 +14,13 @@ import type { UserStatus } from '@/api/users'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
-import { useListPage, usePageData } from '@/composables/usePageData'
+import { usePageData, usePaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const { items, loading, error, loadData } = useListPage(listUsers)
+const userList = usePaginatedList(listUsersPage)
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('user:manage'))
 const showCooperativeSelector = computed(() => authStore.role === 'SYSTEM_ADMIN')
@@ -95,7 +96,7 @@ async function handleSubmit(): Promise<void> {
     resetForm()
     createdCredentials.value = `用户名：${result.username}；初始密码：${result.initialPassword}`
     successMessage.value = '用户创建成功，请安全传递初始密码。'
-    await loadData()
+    await userList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -103,7 +104,7 @@ async function handleSubmit(): Promise<void> {
   }
 }
 
-function beginEdit(user: (typeof items.value)[number]): void {
+function beginEdit(user: (typeof userList.items)[number]): void {
   editingUserId.value = user.id
   editForm.displayName = user.displayName
   editForm.role = user.role
@@ -137,7 +138,7 @@ async function handleUpdate(): Promise<void> {
     })
     cancelEdit()
     successMessage.value = '用户更新成功。'
-    await loadData()
+    await userList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -154,7 +155,7 @@ async function handleWarehouseAuthorization(): Promise<void> {
       warehouseIds: editForm.warehouseIds,
     })
     successMessage.value = '仓库授权更新成功。'
-    await loadData()
+    await userList.loadData()
   } catch (reason) {
     authorizationError.value = getApiErrorMessage(reason)
   } finally {
@@ -286,7 +287,12 @@ async function handleResetPassword(): Promise<void> {
       <p v-if="resetCredential" role="status">{{ resetCredential }}</p>
     </form>
 
-    <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
+    <PageState
+      :loading="userList.loading"
+      :error="userList.error"
+      :empty="userList.items.length === 0"
+      @retry="userList.loadData"
+    >
       <table>
         <caption>用户列表</caption>
         <thead>
@@ -300,7 +306,7 @@ async function handleResetPassword(): Promise<void> {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="user in items" :key="user.id">
+          <tr v-for="user in userList.items" :key="user.id">
             <td>{{ user.username }}</td>
             <td>{{ user.displayName }}</td>
             <td>{{ user.role }}</td>
@@ -313,6 +319,14 @@ async function handleResetPassword(): Promise<void> {
         </tbody>
       </table>
     </PageState>
+    <PaginationBar
+      :page="userList.pagination.page"
+      :total-pages="userList.pagination.totalPages"
+      :total-items="userList.pagination.totalItems"
+      :page-size="userList.pagination.pageSize"
+      @change="userList.goToPage"
+      @page-size-change="userList.setPageSize"
+    />
   </section>
 </template>
 

@@ -4,7 +4,7 @@ import { computed, reactive, ref } from 'vue'
 import { listCooperatives } from '@/api/cooperatives'
 import {
   createWarehouse,
-  listWarehouses,
+  listWarehousesPage,
   updateWarehouse,
 } from '@/api/warehouses'
 import type { WarehouseStatus } from '@/api/warehouses'
@@ -12,12 +12,13 @@ import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
-import { useListPage, usePageData } from '@/composables/usePageData'
+import { usePageData, usePaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const { items, loading, error, loadData } = useListPage(listWarehouses)
+const warehouseList = usePaginatedList(listWarehousesPage)
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('warehouse:manage'))
 const showCooperativeSelector = computed(() => authStore.role === 'SYSTEM_ADMIN')
@@ -68,7 +69,7 @@ async function handleSubmit(): Promise<void> {
     })
     resetForm()
     successMessage.value = '仓库创建成功。'
-    await loadData()
+    await warehouseList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -76,7 +77,7 @@ async function handleSubmit(): Promise<void> {
   }
 }
 
-function beginEdit(warehouse: (typeof items.value)[number]): void {
+function beginEdit(warehouse: (typeof warehouseList.items)[number]): void {
   editingWarehouseId.value = warehouse.id
   editForm.name = warehouse.name
   editForm.address = warehouse.address ?? ''
@@ -105,7 +106,7 @@ async function handleUpdate(): Promise<void> {
     })
     cancelEdit()
     successMessage.value = '仓库更新成功。'
-    await loadData()
+    await warehouseList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -172,7 +173,12 @@ async function handleUpdate(): Promise<void> {
       <button type="button" :disabled="updating" @click="cancelEdit">取消</button>
     </form>
 
-    <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
+    <PageState
+      :loading="warehouseList.loading"
+      :error="warehouseList.error"
+      :empty="warehouseList.items.length === 0"
+      @retry="warehouseList.loadData"
+    >
       <table>
         <caption>仓库列表</caption>
         <thead>
@@ -186,7 +192,7 @@ async function handleUpdate(): Promise<void> {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="warehouse in items" :key="warehouse.id">
+          <tr v-for="warehouse in warehouseList.items" :key="warehouse.id">
             <td>{{ warehouse.code }}</td>
             <td>{{ warehouse.name }}</td>
             <td>{{ warehouse.address || '—' }}</td>
@@ -199,6 +205,14 @@ async function handleUpdate(): Promise<void> {
         </tbody>
       </table>
     </PageState>
+    <PaginationBar
+      :page="warehouseList.pagination.page"
+      :total-pages="warehouseList.pagination.totalPages"
+      :total-items="warehouseList.pagination.totalItems"
+      :page-size="warehouseList.pagination.pageSize"
+      @change="warehouseList.goToPage"
+      @page-size-change="warehouseList.setPageSize"
+    />
   </section>
 </template>
 
