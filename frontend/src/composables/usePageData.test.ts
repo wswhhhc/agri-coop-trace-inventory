@@ -1,13 +1,25 @@
 import { createApp, defineComponent, h, isRef } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 
-import { getPagePlaceholderCount, usePageData, usePaginatedList } from './usePageData'
+import {
+  cleanQueryParams,
+  getPagePlaceholderCount,
+  useFilteredPaginatedList,
+  usePageData,
+  usePaginatedList,
+} from './usePageData'
 
 describe('usePageData', () => {
   it('calculates placeholder rows needed to keep a paginated table at page size', () => {
     expect(getPagePlaceholderCount(10, 10)).toBe(0)
     expect(getPagePlaceholderCount(10, 6)).toBe(4)
     expect(getPagePlaceholderCount(10, 12)).toBe(0)
+  })
+
+  it('removes empty query values without dropping false or zero', () => {
+    expect(
+      cleanQueryParams({ keyword: '  ', categoryId: null, isActive: false, page: 0 }),
+    ).toEqual({ isActive: false, page: 0 })
   })
 
   it('keeps page data reactive when rendered from the composable state', async () => {
@@ -80,6 +92,44 @@ describe('usePageData', () => {
 
     expect(loader).toHaveBeenLastCalledWith({ page: 2, pageSize: 10 })
     expect(state?.items).toEqual([{ id: 'product-2' }])
+
+    app.unmount()
+  })
+
+  it('loads filtered pages from page one and resets the shared filters', async () => {
+    const loader = vi.fn().mockResolvedValue({
+      data: [{ id: 'product-1' }],
+      pagination: { page: 1, pageSize: 10, totalItems: 1, totalPages: 1 },
+    })
+    let state: ReturnType<typeof useFilteredPaginatedList> | undefined
+    const app = createApp(
+      defineComponent({
+        setup() {
+          state = useFilteredPaginatedList(loader, {
+            keyword: '',
+            isActive: undefined as boolean | undefined,
+          })
+          return () => h('div')
+        },
+      }),
+    )
+
+    app.mount(document.createElement('div'))
+    await vi.waitFor(() => expect(loader).toHaveBeenCalledWith({ page: 1, pageSize: 10 }))
+
+    state!.filters.keyword = '  番茄  '
+    state!.filters.isActive = false
+    await state!.applyFilters()
+    expect(loader).toHaveBeenLastCalledWith({
+      page: 1,
+      pageSize: 10,
+      keyword: '番茄',
+      isActive: false,
+    })
+
+    await state!.resetFilters()
+    expect(loader).toHaveBeenLastCalledWith({ page: 1, pageSize: 10 })
+    expect(state!.filters).toEqual({ keyword: '', isActive: undefined })
 
     app.unmount()
   })

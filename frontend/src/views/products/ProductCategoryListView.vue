@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
+import FilterBar from '@/components/common/FilterBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
@@ -8,14 +9,27 @@ import CreateFormModal from '@/components/common/CreateFormModal.vue'
 import {
   createProductCategory,
   listProductCategoriesPage,
+  type ProductCategoryListParams,
   updateProductCategory,
 } from '@/api/product-categories'
 import PaginationBar from '@/components/common/PaginationBar.vue'
-import { usePaginatedList } from '@/composables/usePageData'
+import SelectField, { type SelectFieldOption } from '@/components/common/SelectField.vue'
+import { useFilteredPaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const categoryList = usePaginatedList(listProductCategoriesPage)
+type CategoryFilterState = Pick<ProductCategoryListParams, 'keyword' | 'isActive'> & {
+  keyword: string
+  isActive: boolean | undefined
+}
+
+const categoryList = useFilteredPaginatedList(
+  (params) => listProductCategoriesPage(params),
+  {
+    keyword: '',
+    isActive: undefined as boolean | undefined,
+  } satisfies CategoryFilterState,
+)
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('product:manage'))
 const showCreateModal = ref(false)
@@ -33,6 +47,19 @@ const editForm = reactive({
   description: '',
   isActive: true,
 })
+const filterStatusOptions: SelectFieldOption[] = [
+  { value: '', label: '全部状态' },
+  { value: 'true', label: '启用' },
+  { value: 'false', label: '停用' },
+]
+
+function setCategoryActiveFilter(value: string): void {
+  categoryList.filters.isActive = value === '' ? undefined : value === 'true'
+}
+
+function categoryActiveFilterValue(): string {
+  return categoryList.filters.isActive === undefined ? '' : String(categoryList.filters.isActive)
+}
 
 function resetForm(): void {
   form.name = ''
@@ -150,6 +177,26 @@ async function handleUpdate(): Promise<void> {
       <button type="submit" :disabled="updating">{{ updating ? '保存中…' : '保存' }}</button>
       <button type="button" :disabled="updating" @click="cancelEdit">取消</button>
     </form>
+    <FilterBar @submit="categoryList.applyFilters" @reset="categoryList.resetFilters">
+      <label>
+        关键字
+        <input
+          v-model="categoryList.filters.keyword"
+          name="productCategoryKeywordFilter"
+          placeholder="分类编码或名称"
+          maxlength="100"
+        />
+      </label>
+      <label>
+        启用状态
+        <SelectField
+          :model-value="categoryActiveFilterValue()"
+          :options="filterStatusOptions"
+          name="productCategoryStatusFilter"
+          @update:model-value="setCategoryActiveFilter"
+        />
+      </label>
+    </FilterBar>
     <PageState
       :loading="categoryList.loading"
       :error="categoryList.error"

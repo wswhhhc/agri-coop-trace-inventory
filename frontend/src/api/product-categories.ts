@@ -1,5 +1,6 @@
 import type { ListResponse } from '@/types/api'
 import type { ProductCategorySummary } from '@/types/resources'
+import { cleanQueryParams } from '@/composables/usePageData'
 
 import http from './http'
 
@@ -24,12 +25,12 @@ export interface ProductCategoryUpdatePayload {
 export async function listProductCategoriesPage(
   options: ProductCategoryListParams = {},
 ): Promise<ListResponse<ProductCategorySummary>> {
-  const params = {
+  const params = cleanQueryParams({
     page: options.page ?? 1,
     pageSize: options.pageSize ?? 10,
-    ...(options.keyword ? { keyword: options.keyword } : {}),
-    ...(options.isActive === undefined ? {} : { isActive: options.isActive }),
-  }
+    keyword: options.keyword,
+    isActive: options.isActive,
+  })
   const response = await http.get<ListResponse<ProductCategorySummary>>('/product-categories', {
     params,
   })

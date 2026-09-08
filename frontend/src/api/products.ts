@@ -1,6 +1,7 @@
 import type { ListResponse } from '@/types/api'
 import type { ApiResponse } from '@/types/api'
 import type { ProductSummary, ProductUnit } from '@/types/resources'
+import { cleanQueryParams } from '@/composables/usePageData'
 
 import http from './http'
 
@@ -23,15 +24,21 @@ export interface ProductUpdatePayload {
 export interface ProductListParams {
   page?: number
   pageSize?: number
+  keyword?: string
+  categoryId?: string
   isActive?: boolean
+  warehouseId?: string
 }
 
 export async function listProducts(options: ProductListParams = {}): Promise<ListResponse<ProductSummary>> {
-  const params = {
+  const params = cleanQueryParams({
     page: options.page ?? 1,
     pageSize: options.pageSize ?? 10,
-    ...(options.isActive === undefined ? {} : { isActive: options.isActive }),
-  }
+    keyword: options.keyword,
+    categoryId: options.categoryId,
+    isActive: options.isActive,
+    warehouseId: options.warehouseId,
+  })
   const response = await http.get<ListResponse<ProductSummary>>('/products', {
     params,
   })

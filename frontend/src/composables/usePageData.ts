@@ -25,6 +25,32 @@ export interface PaginatedListState<T> {
   setPageSize: (pageSize: number) => Promise<void>
 }
 
+export type QueryParamValue = string | number | boolean | null | undefined
+
+export interface FilteredPaginatedListState<
+  T,
+  F extends Record<string, QueryParamValue>,
+> extends PaginatedListState<T> {
+  filters: F
+  applyFilters: () => Promise<void>
+  resetFilters: () => Promise<void>
+}
+
+export function cleanQueryParams<T extends Record<string, QueryParamValue>>(
+  params: T,
+): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(params).flatMap(([key, value]) => {
+      if (value === null || value === undefined) return []
+      if (typeof value === 'string') {
+        const trimmedValue = value.trim()
+        return trimmedValue ? [[key, trimmedValue]] : []
+      }
+      return [[key, value]]
+    }),
+  ) as Partial<T>
+}
+
 export function getPagePlaceholderCount(pageSize: number, itemCount: number): number {
   return Math.max(0, pageSize - itemCount)
 }
@@ -112,4 +138,30 @@ export function usePaginatedList<T>(
   onMounted(() => void loadData(1, initialPageSize))
 
   return reactive({ items, pagination, loading, error, loadData, goToPage, setPageSize }) as PaginatedListState<T>
+}
+
+export function useFilteredPaginatedList<
+  T,
+  F extends Record<string, QueryParamValue>,
+>(
+  loader: (params: PaginationQuery & Partial<F>) => Promise<ListResponse<T>>,
+  initialFilters: F,
+  initialPageSize = 10,
+): FilteredPaginatedListState<T, F> {
+  const filters = reactive({ ...initialFilters }) as F
+  const list = usePaginatedList(
+    (pagination) => loader({ ...pagination, ...cleanQueryParams(filters) }),
+    initialPageSize,
+  )
+
+  async function applyFilters(): Promise<void> {
+    await list.loadData(1)
+  }
+
+  async function resetFilters(): Promise<void> {
+    Object.assign(filters, initialFilters)
+    await list.loadData(1)
+  }
+
+  return { ...list, filters, applyFilters, resetFilters }
 }

@@ -29,6 +29,35 @@ describe('products api', () => {
     })
   })
 
+  it('lists products with keyword, category, warehouse, and status filters', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({
+      data: {
+        data: [],
+        pagination: { page: 2, pageSize: 20, totalItems: 0, totalPages: 0 },
+      },
+    })
+
+    await listProducts({
+      page: 2,
+      pageSize: 20,
+      keyword: '  番茄  ',
+      categoryId: 'category-1',
+      warehouseId: 'warehouse-1',
+      isActive: false,
+    })
+
+    expect(http.get).toHaveBeenCalledWith('/products', {
+      params: {
+        page: 2,
+        pageSize: 20,
+        keyword: '番茄',
+        categoryId: 'category-1',
+        warehouseId: 'warehouse-1',
+        isActive: false,
+      },
+    })
+  })
+
   it('creates a product with the product contract', async () => {
     vi.mocked(http.post).mockResolvedValueOnce({
       data: {

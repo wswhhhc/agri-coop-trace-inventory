@@ -1,32 +1,79 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
+import FilterBar from '@/components/common/FilterBar.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
 import CreateFormModal from '@/components/common/CreateFormModal.vue'
+import SelectField, { type SelectFieldOption } from '@/components/common/SelectField.vue'
 import {
   createProduct,
   listProducts,
+  type ProductListParams,
   updateProduct,
   type ProductCreatePayload,
   type ProductUpdatePayload,
 } from '@/api/products'
 import { listProductCategories } from '@/api/product-categories'
-import { getPagePlaceholderCount, usePageData, usePaginatedList } from '@/composables/usePageData'
+import { listWarehouses } from '@/api/warehouses'
+import { getPagePlaceholderCount, useFilteredPaginatedList, usePageData } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import type { ProductUnit } from '@/types/resources'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const productList = usePaginatedList(listProducts)
+type ProductFilterState = Pick<
+  ProductListParams,
+  'keyword' | 'categoryId' | 'isActive' | 'warehouseId'
+> & {
+  keyword: string
+  categoryId: string
+  warehouseId: string
+  isActive: boolean | undefined
+}
+
+const productList = useFilteredPaginatedList(
+  (params) => listProducts(params),
+  {
+    keyword: '',
+    categoryId: '',
+    isActive: undefined as boolean | undefined,
+    warehouseId: '',
+  } satisfies ProductFilterState,
+)
 const placeholderCount = computed(() =>
   getPagePlaceholderCount(productList.pagination.pageSize, productList.items.length),
 )
 const categoryState = usePageData(
-  () => listProductCategories({ isActive: true, pageSize: 100 }),
+  () => listProductCategories({ pageSize: 100 }),
   [],
 )
+const warehouseState = usePageData(() => listWarehouses({ pageSize: 100 }), [])
+const categoryOptions = computed<SelectFieldOption[]>(() =>
+  categoryState.data.map((category) => ({ value: category.id, label: `${category.name}（${category.code}）` })),
+)
+const activeCategoryOptions = computed<SelectFieldOption[]>(() =>
+  categoryState.data
+    .filter((category) => category.isActive)
+    .map((category) => ({ value: category.id, label: `${category.name}（${category.code}）` })),
+)
+const filterCategoryOptions = computed<SelectFieldOption[]>(() => [
+  { value: '', label: '全部分类' },
+  ...categoryOptions.value,
+])
+const filterWarehouseOptions = computed<SelectFieldOption[]>(() => [
+  { value: '', label: '全部仓库' },
+  ...warehouseState.data.map((warehouse) => ({
+    value: warehouse.id,
+    label: `${warehouse.name}（${warehouse.code}）`,
+  })),
+])
+const filterStatusOptions: SelectFieldOption[] = [
+  { value: '', label: '全部状态' },
+  { value: 'true', label: '启用' },
+  { value: 'false', label: '停用' },
+]
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('product:manage'))
 const showCreateModal = ref(false)
@@ -66,6 +113,14 @@ function resetForm(): void {
   form.unit = 'KG'
   form.shelfLifeDays = 1
   form.safetyStock = 0
+}
+
+function setProductActiveFilter(value: string): void {
+  productList.filters.isActive = value === '' ? undefined : value === 'true'
+}
+
+function productActiveFilterValue(): string {
+  return productList.filters.isActive === undefined ? '' : String(productList.filters.isActive)
 }
 
 function openCreateModal(): void {
@@ -165,8 +220,8 @@ async function handleUpdate(): Promise<void> {
         <div class="field-with-action">
           <select v-model="form.categoryId" name="categoryId" required>
             <option value="" disabled>请选择产品分类</option>
-            <option v-for="category in categoryState.data" :key="category.id" :value="category.id">
-              {{ category.name }}
+            <option v-for="category in activeCategoryOptions" :key="category.value" :value="category.value">
+              {{ category.label }}
             </option>
           </select>
           <RouterLink class="inline-link" :to="{ name: 'product-categories' }">
@@ -224,6 +279,45 @@ async function handleUpdate(): Promise<void> {
       <button type="submit" :disabled="updating">{{ updating ? '保存中…' : '保存' }}</button>
       <button type="button" :disabled="updating" @click="cancelEdit">取消</button>
     </form>
+    <FilterBar @submit="productList.applyFilters" @reset="productList.resetFilters">
+      <label>
+        关键字
+        <input
+          v-model="productList.filters.keyword"
+          name="productKeywordFilter"
+          placeholder="产品编码或名称"
+          maxlength="100"
+        />
+      </label>
+      <label>
+        产品分类
+        <SelectField
+          v-model="productList.filters.categoryId"
+          :options="filterCategoryOptions"
+          name="productCategoryFilter"
+        />
+      </label>
+      <label>
+        启用状态
+        <SelectField
+          :model-value="productActiveFilterValue()"
+          :options="filterStatusOptions"
+          name="productStatusFilter"
+          @update:model-value="setProductActiveFilter"
+        />
+      </label>
+      <label>
+        仓库
+        <SelectField
+          v-model="productList.filters.warehouseId"
+          :options="filterWarehouseOptions"
+          name="productWarehouseFilter"
+        />
+      </label>
+    </FilterBar>
+    <p v-if="categoryState.error || warehouseState.error" class="product-filter-error" role="alert">
+      {{ categoryState.error || warehouseState.error }}
+    </p>
     <PageState
       :loading="productList.loading"
       :error="productList.error"
@@ -395,6 +489,12 @@ async function handleUpdate(): Promise<void> {
 .create-status {
   margin: 0;
   color: var(--color-success);
+  font-size: var(--font-size-sm);
+}
+
+.product-filter-error {
+  margin: calc(var(--space-5) * -0.5) 0 0;
+  color: var(--color-danger);
   font-size: var(--font-size-sm);
 }
 </style>

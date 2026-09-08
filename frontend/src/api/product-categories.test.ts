@@ -18,10 +18,10 @@ describe('product categories api', () => {
   })
 
   it('requests the first page with category filters', async () => {
-    await listProductCategories({ keyword: '蔬菜', isActive: true })
+    await listProductCategories({ keyword: '  蔬菜  ', isActive: false })
 
     expect(http.get).toHaveBeenCalledWith('/product-categories', {
-      params: { page: 1, pageSize: 100, keyword: '蔬菜', isActive: true },
+      params: { page: 1, pageSize: 100, keyword: '蔬菜', isActive: false },
     })
   })
 
