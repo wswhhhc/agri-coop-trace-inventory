@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
-import { listPermissions, listRoles, updateRolePermissions } from '@/api/roles'
+import { listPermissions, listRolesPage, updateRolePermissions } from '@/api/roles'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
-import { usePageData } from '@/composables/usePageData'
+import PaginationBar from '@/components/common/PaginationBar.vue'
+import { usePageData, usePaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.role === 'SYSTEM_ADMIN')
-const roleState = usePageData(listRoles, [])
+const roleList = usePaginatedList(listRolesPage)
 const permissionState = usePageData(listPermissions, [])
 const editingRoleId = ref<string | null>(null)
 const selectedPermissionCodes = ref<string[]>([])
@@ -19,7 +20,7 @@ const submitting = ref(false)
 const formError = ref('')
 const successMessage = ref('')
 
-function beginEdit(role: (typeof roleState.data.value)[number]): void {
+function beginEdit(role: (typeof roleList.items)[number]): void {
   editingRoleId.value = role.id
   selectedPermissionCodes.value = role.permissions.map((permission) => permission.code)
   formError.value = ''
@@ -40,7 +41,7 @@ async function handleUpdate(): Promise<void> {
     await updateRolePermissions(editingRoleId.value, selectedPermissionCodes.value)
     cancelEdit()
     successMessage.value = '角色权限更新成功。'
-    await roleState.loadData()
+    await roleList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -49,7 +50,7 @@ async function handleUpdate(): Promise<void> {
 }
 
 async function loadData(): Promise<void> {
-  await Promise.all([roleState.loadData(), permissionState.loadData()])
+  await Promise.all([roleList.loadData(), permissionState.loadData()])
 }
 </script>
 
@@ -58,9 +59,9 @@ async function loadData(): Promise<void> {
     <PageHeader eyebrow="权限治理" title="角色与权限" description="查看角色权限并维护系统角色授权。" />
     <PageContext />
     <PageState
-      :loading="roleState.loading || permissionState.loading"
-      :error="roleState.error || permissionState.error"
-      :empty="roleState.data.length === 0"
+      :loading="roleList.loading || permissionState.loading"
+      :error="roleList.error || permissionState.error"
+      :empty="roleList.items.length === 0"
       empty-message="暂无角色数据"
       @retry="loadData"
     >
@@ -79,7 +80,7 @@ async function loadData(): Promise<void> {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="role in roleState.data" :key="role.id">
+          <tr v-for="role in roleList.items" :key="role.id">
             <td>{{ role.code }}</td>
             <td>{{ role.name }}</td>
             <td>{{ role.description || '—' }}</td>
@@ -91,6 +92,14 @@ async function loadData(): Promise<void> {
         </tbody>
       </table>
     </PageState>
+    <PaginationBar
+      :page="roleList.pagination.page"
+      :total-pages="roleList.pagination.totalPages"
+      :total-items="roleList.pagination.totalItems"
+      :page-size="roleList.pagination.pageSize"
+      @change="roleList.goToPage"
+      @page-size-change="roleList.setPageSize"
+    />
 
     <form v-if="canManage && editingRoleId" class="role-permission-edit-form" @submit.prevent="handleUpdate">
       <h2>编辑角色权限</h2>

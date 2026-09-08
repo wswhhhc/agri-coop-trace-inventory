@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 
-import { getAuditLog, listAuditLogs } from '@/api/audit-logs'
+import { getAuditLog, listAuditLogsPage } from '@/api/audit-logs'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
-import { useListPage } from '@/composables/usePageData'
+import { usePaginatedList } from '@/composables/usePageData'
 import type { AuditLogSummary } from '@/types/resources'
 import { getApiErrorMessage } from '@/utils/api-error'
 
@@ -18,8 +19,9 @@ const filters = reactive({
   startDate: '',
   endDate: '',
 })
-const { items, loading, error, loadData } = useListPage(() =>
-  listAuditLogs({
+const auditLogList = usePaginatedList((pagination) =>
+  listAuditLogsPage({
+    ...pagination,
     ...(filters.action ? { action: filters.action.trim() } : {}),
     ...(filters.resourceType ? { resourceType: filters.resourceType.trim() } : {}),
     ...(filters.resourceId ? { resourceId: filters.resourceId.trim() } : {}),
@@ -49,7 +51,7 @@ function resetFilters(): void {
   filters.result = ''
   filters.startDate = ''
   filters.endDate = ''
-  void loadData()
+  void auditLogList.loadData(1)
 }
 
 async function loadDetail(auditLogId: string): Promise<void> {
@@ -69,7 +71,7 @@ async function loadDetail(auditLogId: string): Promise<void> {
   <section class="audit-log-list-page">
     <PageHeader eyebrow="审计追踪" title="操作日志" description="按操作、资源、结果和时间范围查询审计记录。" />
     <PageContext />
-    <form class="audit-log-filters" @submit.prevent="loadData">
+    <form class="audit-log-filters" @submit.prevent="() => auditLogList.loadData(1)">
       <label>操作 <input v-model="filters.action" placeholder="如 CREATE_BATCH" /></label>
       <label>资源类型 <input v-model="filters.resourceType" placeholder="如 BATCH" /></label>
       <label>资源 ID <input v-model="filters.resourceId" /></label>
@@ -86,12 +88,17 @@ async function loadDetail(auditLogId: string): Promise<void> {
       <button type="submit">查询</button>
       <button type="button" @click="resetFilters">重置</button>
     </form>
-    <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
+    <PageState
+      :loading="auditLogList.loading"
+      :error="auditLogList.error"
+      :empty="auditLogList.items.length === 0"
+      @retry="auditLogList.loadData"
+    >
       <table>
         <caption>审计日志列表</caption>
         <thead><tr><th scope="col">时间</th><th scope="col">操作</th><th scope="col">模块</th><th scope="col">资源</th><th scope="col">结果</th><th scope="col">操作</th></tr></thead>
         <tbody>
-          <tr v-for="item in items" :key="item.id">
+          <tr v-for="item in auditLogList.items" :key="item.id">
             <td>{{ item.createdAt }}</td>
             <td>{{ item.action }}</td>
             <td>{{ item.module }}</td>
@@ -102,6 +109,14 @@ async function loadDetail(auditLogId: string): Promise<void> {
         </tbody>
       </table>
     </PageState>
+    <PaginationBar
+      :page="auditLogList.pagination.page"
+      :total-pages="auditLogList.pagination.totalPages"
+      :total-items="auditLogList.pagination.totalItems"
+      :page-size="auditLogList.pagination.pageSize"
+      @change="auditLogList.goToPage"
+      @page-size-change="auditLogList.setPageSize"
+    />
     <aside v-if="detailLoading || detailError || selectedLog" class="audit-log-detail">
       <h2>日志详情</h2>
       <p v-if="detailLoading">详情加载中…</p>

@@ -4,8 +4,8 @@ import { computed, reactive, ref } from 'vue'
 import {
   getAlert,
   getTask,
-  listAlertRules,
-  listAlerts,
+  listAlertRulesPage,
+  listAlertsPage,
   submitAlertScanTask,
   updateAlert,
   updateAlertRule,
@@ -14,10 +14,10 @@ import type { AlertRuleUpdatePayload } from '@/api/alerts'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import TaskProgress from '@/components/common/TaskProgress.vue'
-import { useListPage } from '@/composables/usePageData'
-import { usePageData } from '@/composables/usePageData'
+import { usePaginatedList } from '@/composables/usePageData'
 import type { AlertDetailSummary, TaskSummary } from '@/types/resources'
 import { useAuthStore } from '@/stores/auth'
 import { canManageAlertRules } from '@/utils/alerting-permission'
@@ -27,10 +27,8 @@ const authStore = useAuthStore()
 const canEditRules = computed(
   () => canManageAlertRules(authStore.role, authStore.permissions),
 )
-const { items, loading, error, loadData } = useListPage(() =>
-  canEditRules.value ? listAlertRules() : Promise.resolve([]),
-)
-const alertState = usePageData(listAlerts, [])
+const ruleList = usePaginatedList(listAlertRulesPage)
+const alertList = usePaginatedList(listAlertsPage)
 const canHandleAlerts = computed(() => authStore.hasPermission('alert:handle'))
 const editingRuleId = ref<string | null>(null)
 const submitting = ref(false)
@@ -94,7 +92,7 @@ async function handleAlert(): Promise<void> {
     })
     handlingForm.handlingNote = ''
     successMessage.value = '预警处理成功。'
-    await alertState.loadData()
+    await alertList.loadData()
   } catch (reason) {
     handlingError.value = getApiErrorMessage(reason, '预警处理失败')
   } finally {
@@ -102,7 +100,7 @@ async function handleAlert(): Promise<void> {
   }
 }
 
-function beginEdit(rule: (typeof items.value)[number]): void {
+function beginEdit(rule: (typeof ruleList.items)[number]): void {
   editingRuleId.value = rule.id
   editForm.thresholdQuantity = rule.thresholdQuantity === null ? '' : String(rule.thresholdQuantity)
   editForm.thresholdDays = rule.thresholdDays === null ? '' : String(rule.thresholdDays)
@@ -138,7 +136,7 @@ async function handleUpdate(): Promise<void> {
     await updateAlertRule(editingRuleId.value, payload)
     cancelEdit()
     successMessage.value = '预警规则更新成功。'
-    await loadData()
+    await ruleList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -161,7 +159,7 @@ async function runAlertScan(): Promise<void> {
       await wait(1000)
       scanTask.value = await getTask(scanTask.value.id)
     }
-    await alertState.loadData()
+    await alertList.loadData()
   } catch (reason) {
     scanError.value = getApiErrorMessage(reason, '预警扫描任务失败')
   } finally {
@@ -183,7 +181,12 @@ async function runAlertScan(): Promise<void> {
     <p v-if="formError" role="alert">{{ formError }}</p>
     <p v-if="successMessage" role="status">{{ successMessage }}</p>
     <section v-if="canEditRules" class="alert-rule-list">
-      <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
+      <PageState
+        :loading="ruleList.loading"
+        :error="ruleList.error"
+        :empty="ruleList.items.length === 0"
+        @retry="ruleList.loadData"
+      >
         <table>
           <caption>预警规则列表</caption>
           <thead>
@@ -200,7 +203,7 @@ async function runAlertScan(): Promise<void> {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="rule in items" :key="rule.id">
+            <tr v-for="rule in ruleList.items" :key="rule.id">
               <td>{{ rule.alertType }}</td>
               <td>{{ rule.warehouseId || '全局' }}</td>
               <td>{{ rule.productId || '全局' }}</td>
@@ -214,6 +217,14 @@ async function runAlertScan(): Promise<void> {
           </tbody>
         </table>
       </PageState>
+      <PaginationBar
+        :page="ruleList.pagination.page"
+        :total-pages="ruleList.pagination.totalPages"
+        :total-items="ruleList.pagination.totalItems"
+        :page-size="ruleList.pagination.pageSize"
+        @change="ruleList.goToPage"
+        @page-size-change="ruleList.setPageSize"
+      />
     </section>
     <p v-else class="permission-hint" role="status">
       当前账号可查看和处理预警实例，暂无预警规则管理权限。
@@ -222,11 +233,11 @@ async function runAlertScan(): Promise<void> {
     <section class="alert-instance-list">
       <h2>预警实例</h2>
       <PageState
-        :loading="alertState.loading"
-        :error="alertState.error"
-        :empty="alertState.data.length === 0"
+        :loading="alertList.loading"
+        :error="alertList.error"
+        :empty="alertList.items.length === 0"
         empty-message="暂无预警实例"
-        @retry="alertState.loadData"
+        @retry="alertList.loadData"
       >
         <table>
           <caption>预警实例列表</caption>
@@ -241,7 +252,7 @@ async function runAlertScan(): Promise<void> {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="alert in alertState.data" :key="alert.id">
+            <tr v-for="alert in alertList.items" :key="alert.id">
               <td>{{ alert.title }}</td>
               <td>{{ alert.alertType }}</td>
               <td><StatusBadge :label="alert.severity" :tone="severityTone(alert.severity)" /></td>
@@ -252,6 +263,14 @@ async function runAlertScan(): Promise<void> {
           </tbody>
         </table>
       </PageState>
+      <PaginationBar
+        :page="alertList.pagination.page"
+        :total-pages="alertList.pagination.totalPages"
+        :total-items="alertList.pagination.totalItems"
+        :page-size="alertList.pagination.pageSize"
+        @change="alertList.goToPage"
+        @page-size-change="alertList.setPageSize"
+      />
     </section>
 
     <aside v-if="alertDetailLoading || alertDetailError || selectedAlert" class="alert-detail">
