@@ -49,11 +49,14 @@ def _quality_inspection_data(
     *,
     fallback_inspector_name: str | None = None,
 ) -> QualityInspectionData:
-    inspector_name = (
-        inspection.inspector.real_name
-        if inspection.inspector is not None
-        else fallback_inspector_name or ""
-    )
+    # 新增记录返回时只设置了 inspector_id，关系对象尚未预加载；
+    # 优先使用当前认证上下文中的姓名，避免异步请求外触发懒加载。
+    if fallback_inspector_name is not None:
+        inspector_name = fallback_inspector_name
+    else:
+        inspector_name = (
+            inspection.inspector.real_name if inspection.inspector is not None else ""
+        )
     return QualityInspectionData(
         id=inspection.id,
         cooperative_id=inspection.cooperative_id,

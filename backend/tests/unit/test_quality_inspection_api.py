@@ -8,6 +8,7 @@ from app.api.files import router as files_router
 from app.api.quality_inspections import _quality_inspection_data, router
 from app.main import create_app
 from app.models import InspectionConclusion
+from sqlalchemy.exc import MissingGreenlet
 
 
 def test_quality_router_owns_only_quality_inspection_endpoints() -> None:
@@ -78,3 +79,29 @@ def test_quality_response_maps_nested_records_without_leaking_storage_paths() ->
     assert data.items[0].name == "水分"
     assert data.attachment_file_ids == [file_id]
     assert "storage" not in data.model_dump_json()
+
+
+def test_quality_response_uses_fallback_name_without_lazy_loading_inspector() -> None:
+    class InspectionWithUnloadedInspector:
+        @property
+        def inspector(self):
+            raise MissingGreenlet("inspector relationship was not eagerly loaded")
+
+    inspection = InspectionWithUnloadedInspector()
+    inspection.id = uuid4()
+    inspection.cooperative_id = uuid4()
+    inspection.batch_id = uuid4()
+    inspection.inspection_no = "QC-20260905-UNLOADED"
+    inspection.inspected_at = datetime(2026, 9, 5, tzinfo=UTC)
+    inspection.inspector_id = uuid4()
+    inspection.conclusion = InspectionConclusion.PASSED
+    inspection.remarks = None
+    inspection.original_inspection_id = None
+    inspection.items = []
+    inspection.file_links = []
+    inspection.created_at = datetime(2026, 9, 5, tzinfo=UTC)
+    inspection.updated_at = datetime(2026, 9, 5, tzinfo=UTC)
+
+    data = _quality_inspection_data(inspection, fallback_inspector_name="当前检验人")
+
+    assert data.inspector_name == "当前检验人"
