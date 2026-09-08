@@ -11,6 +11,7 @@ import {
   updateUser,
 } from '@/api/users'
 import type { UserStatus } from '@/api/users'
+import CreateFormModal from '@/components/common/CreateFormModal.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -32,6 +33,7 @@ const cooperativeState = usePageData(
   [],
 )
 const warehouseState = usePageData(listWarehouses, [])
+const showCreateModal = ref(false)
 const submitting = ref(false)
 const updating = ref(false)
 const authorizing = ref(false)
@@ -71,6 +73,20 @@ function resetForm(): void {
   form.role = availableRoles.value[0] ?? 'WAREHOUSE_STAFF'
   form.cooperativeId = ''
   form.phone = ''
+}
+
+function openCreateModal(): void {
+  resetForm()
+  formError.value = ''
+  successMessage.value = ''
+  createdCredentials.value = ''
+  showCreateModal.value = true
+}
+
+function closeCreateModal(): void {
+  if (submitting.value) return
+  showCreateModal.value = false
+  formError.value = ''
 }
 
 async function handleSubmit(): Promise<void> {
@@ -180,8 +196,16 @@ async function handleResetPassword(): Promise<void> {
 
 <template>
   <section class="user-list-page">
-    <form v-if="canManage" class="user-create-form" @submit.prevent="handleSubmit">
-      <h2>新增用户</h2>
+    <button v-if="canManage" type="button" @click="openCreateModal">创建用户</button>
+
+    <CreateFormModal
+      :open="showCreateModal"
+      title="创建用户"
+      :submitting="submitting"
+      :error="formError"
+      @close="closeCreateModal"
+      @submit="handleSubmit"
+    >
       <label>
         用户名
         <input
@@ -222,11 +246,11 @@ async function handleResetPassword(): Promise<void> {
           maxlength="11"
         />
       </label>
-      <button type="submit" :disabled="submitting">{{ submitting ? '提交中…' : '创建' }}</button>
-      <p v-if="formError" role="alert">{{ formError }}</p>
-      <p v-if="successMessage" role="status">{{ successMessage }}</p>
-      <p v-if="createdCredentials" role="status">{{ createdCredentials }}</p>
-    </form>
+      <template #status>
+        <p v-if="successMessage" class="user-create-status" role="status">{{ successMessage }}</p>
+        <p v-if="createdCredentials" class="user-create-status" role="status">{{ createdCredentials }}</p>
+      </template>
+    </CreateFormModal>
 
     <form v-if="canManage && editingUserId" class="user-edit-form" @submit.prevent="handleUpdate">
       <h2>编辑用户</h2>
@@ -340,7 +364,6 @@ async function handleResetPassword(): Promise<void> {
   min-width: 64rem;
 }
 
-.user-create-form,
 .user-edit-form {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -352,14 +375,12 @@ async function handleResetPassword(): Promise<void> {
   box-shadow: var(--shadow-sm);
 }
 
-.user-create-form h2,
 .user-edit-form h2 {
   grid-column: 1 / -1;
   margin-bottom: 0;
   font-size: var(--font-size-lg);
 }
 
-.user-create-form > label,
 .user-edit-form > label {
   display: grid;
   gap: var(--space-1);
@@ -368,45 +389,43 @@ async function handleResetPassword(): Promise<void> {
   font-weight: 600;
 }
 
-.user-create-form > p,
 .user-edit-form > p {
   grid-column: 1 / -1;
   margin: 0;
   font-size: var(--font-size-sm);
 }
 
-.user-create-form > p[role='alert'],
 .user-edit-form > p[role='alert'] {
   color: var(--color-danger);
 }
 
-.user-create-form > p[role='status'],
 .user-edit-form > p[role='status'] {
   color: var(--color-success);
 }
 
-.user-create-form > button,
 .user-edit-form > button {
   justify-self: start;
 }
 
 @media (max-width: 48rem) {
-  .user-create-form,
   .user-edit-form {
     grid-template-columns: 1fr;
     padding: var(--space-4);
   }
 
-  .user-create-form h2,
   .user-edit-form h2,
-  .user-create-form > p,
   .user-edit-form > p {
     grid-column: auto;
   }
 
-  .user-create-form > button,
   .user-edit-form > button {
     justify-self: stretch;
   }
+}
+
+.user-create-status {
+  margin: 0;
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
 }
 </style>

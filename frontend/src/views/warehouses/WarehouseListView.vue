@@ -8,6 +8,7 @@ import {
   updateWarehouse,
 } from '@/api/warehouses'
 import type { WarehouseStatus } from '@/api/warehouses'
+import CreateFormModal from '@/components/common/CreateFormModal.vue'
 import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
@@ -24,6 +25,7 @@ const cooperativeState = usePageData(
   () => (showCooperativeSelector.value ? listCooperatives() : Promise.resolve([])),
   [],
 )
+const showCreateModal = ref(false)
 const submitting = ref(false)
 const updating = ref(false)
 const formError = ref('')
@@ -52,6 +54,19 @@ function resetForm(): void {
   form.name = ''
   form.address = ''
   form.managerName = ''
+}
+
+function openCreateModal(): void {
+  resetForm()
+  formError.value = ''
+  successMessage.value = ''
+  showCreateModal.value = true
+}
+
+function closeCreateModal(): void {
+  if (submitting.value) return
+  showCreateModal.value = false
+  formError.value = ''
 }
 
 async function handleSubmit(): Promise<void> {
@@ -115,8 +130,17 @@ async function handleUpdate(): Promise<void> {
 
 <template>
   <section class="warehouse-list-page">
-    <form v-if="canManage" class="warehouse-create-form" @submit.prevent="handleSubmit">
-      <h2>新增仓库</h2>
+    <button v-if="canManage" type="button" @click="openCreateModal">创建仓库</button>
+    <p v-if="successMessage" class="warehouse-create-status" role="status">{{ successMessage }}</p>
+
+    <CreateFormModal
+      :open="showCreateModal"
+      title="创建仓库"
+      :submitting="submitting"
+      :error="formError"
+      @close="closeCreateModal"
+      @submit="handleSubmit"
+    >
       <label v-if="showCooperativeSelector">
         合作社
         <select v-model="form.cooperativeId" required>
@@ -139,10 +163,7 @@ async function handleUpdate(): Promise<void> {
         负责人
         <input v-model="form.managerName" name="managerName" maxlength="50" />
       </label>
-      <button type="submit" :disabled="submitting">{{ submitting ? '提交中…' : '创建' }}</button>
-      <p v-if="formError" role="alert">{{ formError }}</p>
-      <p v-if="successMessage" role="status">{{ successMessage }}</p>
-    </form>
+    </CreateFormModal>
 
     <form v-if="canManage && editingWarehouseId" class="warehouse-edit-form" @submit.prevent="handleUpdate">
       <h2>编辑仓库</h2>
@@ -226,7 +247,6 @@ async function handleUpdate(): Promise<void> {
   min-width: 50rem;
 }
 
-.warehouse-create-form,
 .warehouse-edit-form {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -238,14 +258,12 @@ async function handleUpdate(): Promise<void> {
   box-shadow: var(--shadow-sm);
 }
 
-.warehouse-create-form h2,
 .warehouse-edit-form h2 {
   grid-column: 1 / -1;
   margin-bottom: 0;
   font-size: var(--font-size-lg);
 }
 
-.warehouse-create-form > label,
 .warehouse-edit-form > label {
   display: grid;
   gap: var(--space-1);
@@ -254,45 +272,43 @@ async function handleUpdate(): Promise<void> {
   font-weight: 600;
 }
 
-.warehouse-create-form > p,
 .warehouse-edit-form > p {
   grid-column: 1 / -1;
   margin: 0;
   font-size: var(--font-size-sm);
 }
 
-.warehouse-create-form > p[role='alert'],
 .warehouse-edit-form > p[role='alert'] {
   color: var(--color-danger);
 }
 
-.warehouse-create-form > p[role='status'],
 .warehouse-edit-form > p[role='status'] {
   color: var(--color-success);
 }
 
-.warehouse-create-form > button,
 .warehouse-edit-form > button {
   justify-self: start;
 }
 
 @media (max-width: 48rem) {
-  .warehouse-create-form,
   .warehouse-edit-form {
     grid-template-columns: 1fr;
     padding: var(--space-4);
   }
 
-  .warehouse-create-form h2,
   .warehouse-edit-form h2,
-  .warehouse-create-form > p,
   .warehouse-edit-form > p {
     grid-column: auto;
   }
 
-  .warehouse-create-form > button,
   .warehouse-edit-form > button {
     justify-self: stretch;
   }
+}
+
+.warehouse-create-status {
+  margin: 0;
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
 }
 </style>
