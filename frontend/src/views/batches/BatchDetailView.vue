@@ -95,7 +95,7 @@ async function handleUpdate(): Promise<void> {
           <div class="batch-hero__intro">
             <div class="batch-hero__stamp" aria-hidden="true">批</div>
             <div>
-              <p class="batch-hero__kicker">TRACEABLE PRODUCE / 批次档案</p>
+              <p class="batch-hero__kicker">批次档案</p>
               <h2 id="batch-hero-title">{{ data?.batchNo }}</h2>
               <p>从产地到库存，每一条流转信息都在这里留档。</p>
             </div>
@@ -110,7 +110,7 @@ async function handleUpdate(): Promise<void> {
           <section class="batch-card batch-info-card" aria-labelledby="batch-info-title">
             <div class="batch-card__heading">
               <div>
-                <p class="batch-card__eyebrow">01 / ARCHIVE</p>
+                <p class="batch-card__eyebrow">批次资料</p>
                 <h2 id="batch-info-title">基础信息</h2>
               </div>
               <span class="batch-card__mark" aria-hidden="true">01</span>
@@ -125,7 +125,7 @@ async function handleUpdate(): Promise<void> {
                 <dd class="batch-code">{{ data?.traceCode }}</dd>
               </div>
               <div class="batch-info-grid__item">
-                <dt>产品 ID</dt>
+                <dt>产品编号</dt>
                 <dd class="batch-code">{{ data?.productId }}</dd>
               </div>
               <div class="batch-info-grid__item">
@@ -150,10 +150,10 @@ async function handleUpdate(): Promise<void> {
           <section class="batch-card batch-qr-card" aria-labelledby="batch-qr-title">
             <div class="batch-card__heading">
               <div>
-                <p class="batch-card__eyebrow">02 / PUBLIC TRACE</p>
+                <p class="batch-card__eyebrow">公开追溯</p>
                 <h2 id="batch-qr-title">扫码查批次</h2>
               </div>
-              <span class="batch-card__mark batch-card__mark--accent" aria-hidden="true">QR</span>
+              <span class="batch-card__mark batch-card__mark--accent" aria-hidden="true">码</span>
             </div>
             <div class="batch-qr-card__body">
               <div class="batch-qr-card__image-wrap">
@@ -179,7 +179,7 @@ async function handleUpdate(): Promise<void> {
         <form v-if="canManage && data" class="batch-card batch-edit-form" @submit.prevent="handleUpdate">
           <div class="batch-card__heading">
             <div>
-              <p class="batch-card__eyebrow">03 / CONTROL</p>
+              <p class="batch-card__eyebrow">批次维护</p>
               <h2>编辑批次</h2>
             </div>
             <span class="batch-card__hint">仅管理员可修改</span>
@@ -210,12 +210,22 @@ async function handleUpdate(): Promise<void> {
             <button type="submit" :disabled="updating">{{ updating ? '保存中…' : '保存修改' }}</button>
           </div>
         </form>
+
+        <section v-if="data" class="batch-history" aria-labelledby="batch-history-title">
+          <div class="batch-history__heading">
+            <div>
+              <p class="batch-card__eyebrow">全过程留痕</p>
+              <h2 id="batch-history-title">批次追溯记录</h2>
+            </div>
+            <p>查询条件只影响当前记录列表，页面结构和浏览位置保持稳定。</p>
+          </div>
+          <div class="batch-lower-grid">
+            <TraceEventTimeline class="batch-module" :batch-id="batchId" />
+            <QualityInspectionPanel class="batch-module" :batch-id="batchId" :can-manage="canManage" />
+          </div>
+        </section>
       </div>
     </PageState>
-    <div v-if="data" class="batch-lower-grid">
-      <QualityInspectionPanel class="batch-module" :batch-id="batchId" :can-manage="canManage" />
-      <TraceEventTimeline class="batch-module" :batch-id="batchId" />
-    </div>
   </section>
 </template>
 
@@ -321,9 +331,12 @@ async function handleUpdate(): Promise<void> {
 .batch-overview-grid,
 .batch-lower-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(20rem, 0.85fr);
   gap: var(--space-5);
-  align-items: stretch;
+  align-items: start;
+}
+
+.batch-overview-grid {
+  grid-template-columns: minmax(0, 1.55fr) minmax(18rem, 0.85fr);
 }
 
 .batch-card__heading {
@@ -505,11 +518,37 @@ async function handleUpdate(): Promise<void> {
 }
 
 .batch-lower-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .batch-module {
   min-width: 0;
+}
+
+.batch-history {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.batch-history__heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-inline: var(--space-1);
+}
+
+.batch-history__heading h2 {
+  margin-bottom: 0;
+  font-size: var(--font-size-xl);
+}
+
+.batch-history__heading > p {
+  max-width: 32rem;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-align: right;
 }
 
 @media (max-width: 48rem) {
@@ -526,6 +565,15 @@ async function handleUpdate(): Promise<void> {
   .batch-overview-grid,
   .batch-lower-grid {
     grid-template-columns: 1fr;
+  }
+
+  .batch-history__heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .batch-history__heading > p {
+    text-align: left;
   }
 
   .batch-qr-card__body {

@@ -15,6 +15,7 @@ import SelectField, { type SelectFieldOption } from '@/components/common/SelectF
 import { useFilteredPaginatedList } from '@/composables/usePageData'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { getApiErrorMessage } from '@/utils/api-error'
+import { formatInspectionConclusion } from '@/utils/traceability-format'
 
 const props = defineProps<{
   batchId: string
@@ -110,27 +111,38 @@ async function handleSubmit(): Promise<void> {
 </script>
 
 <template>
-  <section class="quality-inspection-panel">
-    <h2>质检记录</h2>
-    <FilterBar @submit="inspectionList.applyFilters" @reset="inspectionList.resetFilters">
+  <section class="quality-inspection-panel" aria-labelledby="quality-inspection-title">
+    <header class="module-header">
+      <div>
+        <p class="module-kicker">质量把关</p>
+        <h2 id="quality-inspection-title">质检记录</h2>
+        <p class="module-description">查看每次检测结论与指标明细，确保批次质量可核验。</p>
+      </div>
+      <span class="module-count">共 {{ inspectionList.pagination.totalItems }} 条</span>
+    </header>
+    <FilterBar class="inspection-filter" @submit="inspectionList.applyFilters" @reset="inspectionList.resetFilters">
       <label>
         质检结论
         <SelectField v-model="inspectionList.filters.conclusion" :options="conclusionOptions" />
       </label>
     </FilterBar>
-    <section v-if="inspectionList.loading" role="status"><p>质检记录加载中…</p></section>
-    <section v-else-if="inspectionList.error" role="alert">
+    <section v-if="inspectionList.loading && inspectionList.items.length === 0" class="module-state" role="status"><p>质检记录加载中…</p></section>
+    <section v-else-if="inspectionList.error && inspectionList.items.length === 0" class="module-state module-state--error" role="alert">
       <p>{{ inspectionList.error }}</p>
       <button type="button" @click="inspectionList.loadData">重试</button>
     </section>
-    <p v-else-if="inspectionList.items.length === 0">暂无质检记录。</p>
-    <article v-for="inspection in inspectionList.items" :key="inspection.id">
+    <p v-else-if="inspectionList.items.length === 0" class="module-state">暂无质检记录。</p>
+    <div v-else class="inspection-list" :aria-busy="inspectionList.loading">
+      <article v-for="inspection in inspectionList.items" :key="inspection.id" class="inspection-record">
       <h3>
-        {{ inspection.inspectionNo }}：
-        <StatusBadge :label="inspection.conclusion" :tone="conclusionTone(inspection.conclusion)" />
+        <span>{{ inspection.inspectionNo }}</span>
+        <StatusBadge :label="formatInspectionConclusion(inspection.conclusion)" :tone="conclusionTone(inspection.conclusion)" />
       </h3>
-      <p>日期：{{ inspection.inspectionDate }}；检验人：{{ inspection.inspectorName }}</p>
-      <p v-if="inspection.remarks">备注：{{ inspection.remarks }}</p>
+      <dl class="inspection-meta">
+        <div><dt>检测日期</dt><dd>{{ inspection.inspectionDate }}</dd></div>
+        <div><dt>检验人</dt><dd>{{ inspection.inspectorName }}</dd></div>
+      </dl>
+      <p v-if="inspection.remarks" class="inspection-remark"><span>备注</span>{{ inspection.remarks }}</p>
       <table>
         <caption>质检项目</caption>
         <thead>
@@ -145,7 +157,8 @@ async function handleSubmit(): Promise<void> {
           </tr>
         </tbody>
       </table>
-    </article>
+      </article>
+    </div>
     <PaginationBar
       :page="inspectionList.pagination.page"
       :total-pages="inspectionList.pagination.totalPages"
@@ -200,28 +213,77 @@ async function handleSubmit(): Promise<void> {
 <style scoped>
 .quality-inspection-panel {
   display: grid;
+  align-content: start;
   gap: var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-5);
+  padding: var(--space-6);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
 }
 
-.quality-inspection-panel h2 {
+.module-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.module-kicker {
+  margin-bottom: var(--space-1);
+  color: var(--color-accent);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.module-header h2 {
   margin-bottom: 0;
   font-size: var(--font-size-lg);
 }
 
-.quality-inspection-panel > article {
-  display: grid;
-  gap: var(--space-3);
-  overflow-x: auto;
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-4);
+.module-description {
+  max-width: 42rem;
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
 }
 
-.quality-inspection-panel > article h3 {
+.module-count {
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.inspection-filter {
+  grid-template-columns: minmax(15rem, 22rem) auto;
+  justify-content: start;
+  margin: 0;
+  padding: var(--space-3);
+  border-color: var(--color-brand-soft);
+  background: var(--color-surface-muted);
+}
+
+.inspection-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.inspection-record {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  background: var(--color-surface-muted);
+}
+
+.inspection-record h3 {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -230,14 +292,68 @@ async function handleSubmit(): Promise<void> {
   font-size: var(--font-size-md);
 }
 
-.quality-inspection-panel > article p {
+.inspection-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin: 0;
+}
+
+.inspection-meta div {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.inspection-meta dt,
+.inspection-remark span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.inspection-meta dd {
   margin: 0;
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
 }
 
-.quality-inspection-panel > article table {
-  min-width: 38rem;
+.inspection-remark {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.inspection-remark span {
+  display: inline-block;
+  margin-right: var(--space-2);
+}
+
+.inspection-record table {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.module-state {
+  display: grid;
+  min-height: 8rem;
+  place-items: center;
+  margin: 0;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  color: var(--color-text-muted);
+}
+
+.module-state p {
+  margin: 0;
+}
+
+.module-state--error {
+  border-color: var(--color-danger-soft);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
 }
 
 .quality-inspection-create-form {
@@ -311,6 +427,18 @@ async function handleSubmit(): Promise<void> {
 
 @media (max-width: 48rem) {
   .quality-inspection-panel {
+    padding: var(--space-4);
+  }
+
+  .module-header {
+    flex-direction: column;
+  }
+
+  .inspection-filter {
+    grid-template-columns: 1fr;
+  }
+
+  .inspection-record {
     padding: var(--space-4);
   }
 
