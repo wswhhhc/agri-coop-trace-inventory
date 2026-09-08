@@ -146,7 +146,13 @@ class PublicTraceabilityService:
     def _project(batch: Batch) -> PublicTraceData:
         inspections = sorted(
             batch.quality_inspections,
-            key=lambda inspection: (inspection.inspected_at, inspection.id),
+            # 同一天录入的质检时间均为 00:00，需用创建时间判断哪条是
+            # 更正后的最新记录，UUID 仅作为完全相同时的稳定决胜字段。
+            key=lambda inspection: (
+                inspection.inspected_at,
+                inspection.created_at,
+                inspection.id,
+            ),
             reverse=True,
         )
         latest_inspection = (

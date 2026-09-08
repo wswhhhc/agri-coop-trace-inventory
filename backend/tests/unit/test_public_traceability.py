@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from uuid import UUID
 
 import pytest
 from app.core.exceptions import AppException
@@ -13,6 +14,7 @@ from app.models import (
 )
 from app.services.traceability import PublicTraceabilityService, TraceabilityCache
 from redis.exceptions import RedisError
+from sqlalchemy import select
 from tests.factories import batch_factory
 
 pytestmark = pytest.mark.postgres
@@ -166,3 +168,49 @@ def test_public_trace_cache_key_and_json_are_namespaced() -> None:
     cache = TraceabilityCache(redis, key_prefix="agri:", ttl_seconds=60)
 
     assert cache.key("tr_abc") == "agri:trace:tr_abc"
+
+
+@pytest.mark.asyncio
+async def test_public_trace_uses_newer_same_day_inspection_as_latest(
+    postgres_session,
+) -> None:
+    batch = await _create_trace_fixture(postgres_session)
+    original = await postgres_session.scalar(
+        select(QualityInspection).where(QualityInspection.batch_id == batch.id)
+    )
+    assert original is not None
+
+    correction = QualityInspection(
+        id=UUID("00000000-0000-0000-0000-000000000001"),
+        cooperative_id=batch.cooperative_id,
+        batch_id=batch.id,
+        inspection_no="QC-PUBLIC-CORRECTION",
+        inspected_at=original.inspected_at,
+        inspector_id=batch.created_by,
+        conclusion=InspectionConclusion.FAILED,
+        remarks="更正后的结论",
+        items=[
+            QualityInspectionItem(
+                item_name="水分含量",
+                result_value="18.0",
+                unit="%",
+                standard_value="≤14.0%",
+                is_qualified=False,
+                sort_order=0,
+            )
+        ],
+    )
+    postgres_session.add(correction)
+    await postgres_session.flush()
+    correction.created_at = original.created_at + timedelta(seconds=1)
+    await postgres_session.commit()
+
+    service = PublicTraceabilityService(
+        postgres_session,
+        TraceabilityCache(MemoryRedis(), key_prefix="test:", ttl_seconds=600),
+    )
+
+    result = await service.get_public(batch.trace_code)
+
+    assert result.latest_inspection is not None
+    assert result.latest_inspection.conclusion is InspectionConclusion.FAILED
