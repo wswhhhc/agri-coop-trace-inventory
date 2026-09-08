@@ -116,6 +116,7 @@ describe('usePageData', () => {
 
     app.mount(document.createElement('div'))
     await vi.waitFor(() => expect(loader).toHaveBeenCalledWith({ page: 1, pageSize: 10 }))
+    await vi.waitFor(() => expect(state?.items).toEqual([{ id: 'product-1' }]))
 
     state!.filters.keyword = '  番茄  '
     state!.filters.isActive = false

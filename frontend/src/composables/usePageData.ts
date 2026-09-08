@@ -163,5 +163,16 @@ export function useFilteredPaginatedList<
     await list.loadData(1)
   }
 
-  return { ...list, filters, applyFilters, resetFilters }
+  return reactive({
+    items: toRef(list, 'items'),
+    pagination: toRef(list, 'pagination'),
+    loading: toRef(list, 'loading'),
+    error: toRef(list, 'error'),
+    loadData: list.loadData,
+    goToPage: list.goToPage,
+    setPageSize: list.setPageSize,
+    filters,
+    applyFilters,
+    resetFilters,
+  }) as FilteredPaginatedListState<T, F>
 }
