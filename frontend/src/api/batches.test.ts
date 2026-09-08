@@ -29,6 +29,32 @@ describe('batches api', () => {
     })
   })
 
+  it('sends supported batch filters and removes empty filters', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: [] } })
+
+    await listBatches({
+      keyword: '苹果',
+      productId: 'product-1',
+      warehouseId: 'warehouse-1',
+      status: 'IN_STOCK',
+      productionDateFrom: '2026-01-01',
+      productionDateTo: '2026-01-31',
+    })
+
+    expect(http.get).toHaveBeenCalledWith('/batches', {
+      params: {
+        page: 1,
+        pageSize: 10,
+        keyword: '苹果',
+        productId: 'product-1',
+        warehouseId: 'warehouse-1',
+        status: 'IN_STOCK',
+        productionDateFrom: '2026-01-01',
+        productionDateTo: '2026-01-31',
+      },
+    })
+  })
+
   it('loads all batches for option selectors by default', async () => {
     vi.mocked(http.get).mockResolvedValueOnce({ data: { data: [], pagination: { page: 1, pageSize: 100, totalItems: 0, totalPages: 0 } } })
 

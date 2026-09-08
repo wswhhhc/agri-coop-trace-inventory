@@ -1,22 +1,41 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
+import FilterBar from '@/components/common/FilterBar.vue'
 import {
   createCooperative,
   listCooperativesPage,
   updateCooperative,
 } from '@/api/cooperatives'
-import type { CooperativeStatus } from '@/api/cooperatives'
+import type { CooperativeListParams, CooperativeStatus } from '@/api/cooperatives'
 import CreateFormModal from '@/components/common/CreateFormModal.vue'
 import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
-import { usePaginatedList } from '@/composables/usePageData'
+import SelectField, { type SelectFieldOption } from '@/components/common/SelectField.vue'
+import { useFilteredPaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const cooperativeList = usePaginatedList(listCooperativesPage)
+type CooperativeFilterState = Pick<CooperativeListParams, 'keyword' | 'status'> & {
+  keyword: string
+  status: CooperativeStatus | ''
+}
+
+const cooperativeList = useFilteredPaginatedList(
+  (params) => listCooperativesPage({
+    ...params,
+    keyword: params.keyword || undefined,
+    status: params.status || undefined,
+  }),
+  { keyword: '', status: '' } satisfies CooperativeFilterState,
+)
+const cooperativeStatusOptions: SelectFieldOption[] = [
+  { value: '', label: '全部状态' },
+  { value: 'ACTIVE', label: '启用' },
+  { value: 'INACTIVE', label: '停用' },
+]
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('cooperative:manage'))
 const showCreateModal = ref(false)
@@ -132,6 +151,16 @@ async function handleUpdate(): Promise<void> {
     <div class="page-toolbar">
       <button v-if="canManage" class="create-button" type="button" @click="openCreateModal">创建合作社</button>
     </div>
+    <FilterBar @submit="cooperativeList.applyFilters" @reset="cooperativeList.resetFilters">
+      <label>
+        关键字
+        <input v-model="cooperativeList.filters.keyword" placeholder="合作社编码或名称" />
+      </label>
+      <label>
+        状态
+        <SelectField v-model="cooperativeList.filters.status" :options="cooperativeStatusOptions" />
+      </label>
+    </FilterBar>
     <p v-if="successMessage" class="create-status" role="status">{{ successMessage }}</p>
 
     <CreateFormModal

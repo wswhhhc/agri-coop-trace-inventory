@@ -1,23 +1,42 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
+import FilterBar from '@/components/common/FilterBar.vue'
 import { listCooperatives } from '@/api/cooperatives'
 import {
   createWarehouse,
   listWarehousesPage,
   updateWarehouse,
 } from '@/api/warehouses'
-import type { WarehouseStatus } from '@/api/warehouses'
+import type { WarehouseListParams, WarehouseStatus } from '@/api/warehouses'
 import CreateFormModal from '@/components/common/CreateFormModal.vue'
 import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
-import { usePageData, usePaginatedList } from '@/composables/usePageData'
+import SelectField, { type SelectFieldOption } from '@/components/common/SelectField.vue'
+import { useFilteredPaginatedList, usePageData } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const warehouseList = usePaginatedList(listWarehousesPage)
+type WarehouseFilterState = Pick<WarehouseListParams, 'keyword' | 'status'> & {
+  keyword: string
+  status: WarehouseStatus | ''
+}
+
+const warehouseList = useFilteredPaginatedList(
+  (params) => listWarehousesPage({
+    ...params,
+    keyword: params.keyword || undefined,
+    status: params.status || undefined,
+  }),
+  { keyword: '', status: '' } satisfies WarehouseFilterState,
+)
+const warehouseStatusOptions: SelectFieldOption[] = [
+  { value: '', label: '全部状态' },
+  { value: 'ACTIVE', label: '启用' },
+  { value: 'INACTIVE', label: '停用' },
+]
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('warehouse:manage'))
 const showCooperativeSelector = computed(() => authStore.role === 'SYSTEM_ADMIN')
@@ -134,6 +153,16 @@ async function handleUpdate(): Promise<void> {
     <div class="page-toolbar">
       <button v-if="canManage" class="create-button" type="button" @click="openCreateModal">创建仓库</button>
     </div>
+    <FilterBar @submit="warehouseList.applyFilters" @reset="warehouseList.resetFilters">
+      <label>
+        关键字
+        <input v-model="warehouseList.filters.keyword" placeholder="仓库编码、名称或负责人" />
+      </label>
+      <label>
+        状态
+        <SelectField v-model="warehouseList.filters.status" :options="warehouseStatusOptions" />
+      </label>
+    </FilterBar>
     <p v-if="successMessage" class="warehouse-create-status" role="status">{{ successMessage }}</p>
 
     <CreateFormModal

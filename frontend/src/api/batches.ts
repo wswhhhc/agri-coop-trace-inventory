@@ -1,5 +1,6 @@
 import type { ApiResponse, ListResponse } from '@/types/api'
 import type { BatchSummary } from '@/types/resources'
+import { cleanQueryParams } from '@/composables/usePageData'
 
 import http from './http'
 
@@ -23,11 +24,27 @@ export interface BatchUpdatePayload {
 export interface BatchListParams {
   page?: number
   pageSize?: number
+  keyword?: string
+  productId?: string
+  warehouseId?: string
+  status?: BatchStatus
+  productionDateFrom?: string
+  productionDateTo?: string
 }
 
 export async function listBatches(options: BatchListParams = {}): Promise<ListResponse<BatchSummary>> {
+  const params = cleanQueryParams({
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? 10,
+    keyword: options.keyword,
+    productId: options.productId,
+    warehouseId: options.warehouseId,
+    status: options.status,
+    productionDateFrom: options.productionDateFrom,
+    productionDateTo: options.productionDateTo,
+  })
   const response = await http.get<ListResponse<BatchSummary>>('/batches', {
-    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
+    params,
   })
   return response.data
 }

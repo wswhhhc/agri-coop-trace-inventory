@@ -1,5 +1,6 @@
 import type { ApiResponse, ListResponse } from '@/types/api'
 import type { UserSummary } from '@/types/resources'
+import { cleanQueryParams } from '@/composables/usePageData'
 
 import http from './http'
 
@@ -36,13 +37,23 @@ export interface PasswordResetResult {
 export interface UserListParams {
   page?: number
   pageSize?: number
+  keyword?: string
+  role?: string
+  status?: UserStatus
 }
 
 export async function listUsersPage(
   options: UserListParams = {},
 ): Promise<ListResponse<UserSummary>> {
+  const params = cleanQueryParams({
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? 10,
+    keyword: options.keyword,
+    role: options.role,
+    status: options.status,
+  })
   const response = await http.get<ListResponse<UserSummary>>('/users', {
-    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
+    params,
   })
   return response.data
 }

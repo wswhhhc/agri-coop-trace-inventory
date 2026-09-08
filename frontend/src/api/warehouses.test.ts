@@ -21,6 +21,16 @@ describe('warehouses api', () => {
     })
   })
 
+  it('sends warehouse keyword and status filters', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: [] } })
+
+    await listWarehouses({ keyword: '中心', status: 'ACTIVE' })
+
+    expect(http.get).toHaveBeenCalledWith('/warehouses', {
+      params: { page: 1, pageSize: 100, keyword: '中心', status: 'ACTIVE' },
+    })
+  })
+
   it('creates a warehouse', async () => {
     const payload = {
       cooperativeId: 'cooperative-1',

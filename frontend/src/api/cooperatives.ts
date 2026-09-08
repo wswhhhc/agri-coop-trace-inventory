@@ -1,5 +1,6 @@
 import type { ApiResponse, ListResponse } from '@/types/api'
 import type { CooperativeSummary } from '@/types/resources'
+import { cleanQueryParams } from '@/composables/usePageData'
 
 import http from './http'
 
@@ -23,13 +24,21 @@ export interface CooperativeUpdatePayload {
 export interface CooperativeListParams {
   page?: number
   pageSize?: number
+  keyword?: string
+  status?: CooperativeStatus
 }
 
 export async function listCooperativesPage(
   options: CooperativeListParams = {},
 ): Promise<ListResponse<CooperativeSummary>> {
+  const params = cleanQueryParams({
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? 10,
+    keyword: options.keyword,
+    status: options.status,
+  })
   const response = await http.get<ListResponse<CooperativeSummary>>('/cooperatives', {
-    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
+    params,
   })
   return response.data
 }

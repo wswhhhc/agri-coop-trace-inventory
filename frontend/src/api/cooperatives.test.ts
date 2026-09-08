@@ -21,6 +21,16 @@ describe('cooperatives api', () => {
     })
   })
 
+  it('sends cooperative keyword and status filters', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: [] } })
+
+    await listCooperatives({ keyword: '示范', status: 'ACTIVE' })
+
+    expect(http.get).toHaveBeenCalledWith('/cooperatives', {
+      params: { page: 1, pageSize: 100, keyword: '示范', status: 'ACTIVE' },
+    })
+  })
+
   it('creates a cooperative', async () => {
     const payload = {
       name: '示范合作社',

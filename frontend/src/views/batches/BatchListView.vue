@@ -1,19 +1,52 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
+import FilterBar from '@/components/common/FilterBar.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
 import CreateFormModal from '@/components/common/CreateFormModal.vue'
-import { createBatch, listBatches, type BatchCreatePayload } from '@/api/batches'
+import SelectField, { type SelectFieldOption } from '@/components/common/SelectField.vue'
+import { createBatch, listBatches, type BatchCreatePayload, type BatchListParams, type BatchStatus } from '@/api/batches'
 import { listProductOptions } from '@/api/products'
-import { getPagePlaceholderCount, usePageData, usePaginatedList } from '@/composables/usePageData'
+import { listWarehouses } from '@/api/warehouses'
+import { getPagePlaceholderCount, useFilteredPaginatedList, usePageData } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { formatBatchStatus } from '@/utils/batch-format'
 
-const batchList = usePaginatedList(listBatches)
+type BatchFilterState = Pick<
+  BatchListParams,
+  'keyword' | 'productId' | 'warehouseId' | 'status' | 'productionDateFrom' | 'productionDateTo'
+> & {
+  keyword: string
+  productId: string
+  warehouseId: string
+  status: BatchStatus | ''
+  productionDateFrom: string
+  productionDateTo: string
+}
+
+const batchList = useFilteredPaginatedList(
+  (params) => listBatches({
+    ...params,
+    keyword: params.keyword || undefined,
+    productId: params.productId || undefined,
+    warehouseId: params.warehouseId || undefined,
+    status: params.status || undefined,
+    productionDateFrom: params.productionDateFrom || undefined,
+    productionDateTo: params.productionDateTo || undefined,
+  }),
+  {
+    keyword: '',
+    productId: '',
+    warehouseId: '',
+    status: '',
+    productionDateFrom: '',
+    productionDateTo: '',
+  } satisfies BatchFilterState,
+)
 const placeholderCount = computed(() =>
   getPagePlaceholderCount(batchList.pagination.pageSize, batchList.items.length),
 )
@@ -21,6 +54,29 @@ const productState = usePageData(
   () => listProductOptions({ isActive: true, pageSize: 100 }),
   [],
 )
+const warehouseState = usePageData(() => listWarehouses({ pageSize: 100 }), [])
+const productFilterOptions = computed<SelectFieldOption[]>(() => [
+  { value: '', label: '全部产品' },
+  ...productState.data.map((product) => ({
+    value: product.id,
+    label: `${product.name}（${product.code}）`,
+  })),
+])
+const warehouseFilterOptions = computed<SelectFieldOption[]>(() => [
+  { value: '', label: '全部仓库' },
+  ...warehouseState.data.map((warehouse) => ({
+    value: warehouse.id,
+    label: `${warehouse.name}（${warehouse.code}）`,
+  })),
+])
+const batchStatusOptions: SelectFieldOption[] = [
+  { value: '', label: '全部状态' },
+  { value: 'CREATED', label: '已创建' },
+  { value: 'IN_STOCK', label: '库存中' },
+  { value: 'DEPLETED', label: '已耗尽' },
+  { value: 'BLOCKED', label: '已冻结' },
+  { value: 'EXPIRED', label: '已过期' },
+]
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('batch:manage'))
 const canManageProducts = computed(() => authStore.hasPermission('product:manage'))
@@ -97,6 +153,32 @@ async function handleSubmit(): Promise<void> {
     <div class="page-toolbar">
       <button v-if="canManage" class="create-button" type="button" @click="openCreateModal">创建批次</button>
     </div>
+    <FilterBar @submit="batchList.applyFilters" @reset="batchList.resetFilters">
+      <label>
+        关键字
+        <input v-model="batchList.filters.keyword" placeholder="批次编号、追溯码或产地" />
+      </label>
+      <label>
+        产品
+        <SelectField v-model="batchList.filters.productId" :options="productFilterOptions" />
+      </label>
+      <label>
+        仓库
+        <SelectField v-model="batchList.filters.warehouseId" :options="warehouseFilterOptions" />
+      </label>
+      <label>
+        状态
+        <SelectField v-model="batchList.filters.status" :options="batchStatusOptions" />
+      </label>
+      <label>
+        生产日期起
+        <input v-model="batchList.filters.productionDateFrom" type="date" />
+      </label>
+      <label>
+        生产日期止
+        <input v-model="batchList.filters.productionDateTo" type="date" />
+      </label>
+    </FilterBar>
     <p v-if="successMessage" class="create-status" role="status">{{ successMessage }}</p>
 
     <CreateFormModal

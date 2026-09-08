@@ -27,6 +27,16 @@ describe('users api', () => {
     })
   })
 
+  it('sends user keyword, role and status filters', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: [] } })
+
+    await listUsers({ keyword: 'staff', role: 'WAREHOUSE_STAFF', status: 'ACTIVE' })
+
+    expect(http.get).toHaveBeenCalledWith('/users', {
+      params: { page: 1, pageSize: 100, keyword: 'staff', role: 'WAREHOUSE_STAFF', status: 'ACTIVE' },
+    })
+  })
+
   it('creates a user and returns the initial password', async () => {
     const payload = {
       username: 'staff01',

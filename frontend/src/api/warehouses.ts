@@ -1,5 +1,6 @@
 import type { ApiResponse, ListResponse } from '@/types/api'
 import type { WarehouseSummary } from '@/types/resources'
+import { cleanQueryParams } from '@/composables/usePageData'
 
 import http from './http'
 
@@ -22,13 +23,21 @@ export interface WarehouseUpdatePayload {
 export interface WarehouseListParams {
   page?: number
   pageSize?: number
+  keyword?: string
+  status?: WarehouseStatus
 }
 
 export async function listWarehousesPage(
   options: WarehouseListParams = {},
 ): Promise<ListResponse<WarehouseSummary>> {
+  const params = cleanQueryParams({
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? 10,
+    keyword: options.keyword,
+    status: options.status,
+  })
   const response = await http.get<ListResponse<WarehouseSummary>>('/warehouses', {
-    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
+    params,
   })
   return response.data
 }

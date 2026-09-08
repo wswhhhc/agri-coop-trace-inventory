@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
+import FilterBar from '@/components/common/FilterBar.vue'
 import { listCooperatives } from '@/api/cooperatives'
 import { listWarehouses } from '@/api/warehouses'
 import {
@@ -10,16 +11,31 @@ import {
   resetUserPassword,
   updateUser,
 } from '@/api/users'
-import type { UserStatus } from '@/api/users'
+import type { UserListParams, UserStatus } from '@/api/users'
 import CreateFormModal from '@/components/common/CreateFormModal.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
-import { usePageData, usePaginatedList } from '@/composables/usePageData'
+import SelectField, { type SelectFieldOption } from '@/components/common/SelectField.vue'
+import { useFilteredPaginatedList, usePageData } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const userList = usePaginatedList(listUsersPage)
+type UserFilterState = Pick<UserListParams, 'keyword' | 'role' | 'status'> & {
+  keyword: string
+  role: string
+  status: UserStatus | ''
+}
+
+const userList = useFilteredPaginatedList(
+  (params) => listUsersPage({
+    ...params,
+    keyword: params.keyword || undefined,
+    role: params.role || undefined,
+    status: params.status || undefined,
+  }),
+  { keyword: '', role: '', status: '' } satisfies UserFilterState,
+)
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('user:manage'))
 const showCooperativeSelector = computed(() => authStore.role === 'SYSTEM_ADMIN')
@@ -28,6 +44,16 @@ const availableRoles = computed(() =>
     ? ['WAREHOUSE_STAFF']
     : ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
 )
+const filterRoleOptions = computed<SelectFieldOption[]>(() => [
+  { value: '', label: '全部角色' },
+  ...availableRoles.value.map((role) => ({ value: role, label: role })),
+])
+const userStatusOptions: SelectFieldOption[] = [
+  { value: '', label: '全部状态' },
+  { value: 'ACTIVE', label: '启用' },
+  { value: 'LOCKED', label: '锁定' },
+  { value: 'INACTIVE', label: '停用' },
+]
 const cooperativeState = usePageData(
   () => (showCooperativeSelector.value ? listCooperatives() : Promise.resolve([])),
   [],
@@ -199,6 +225,20 @@ async function handleResetPassword(): Promise<void> {
     <div class="page-toolbar">
       <button v-if="canManage" class="create-button" type="button" @click="openCreateModal">创建用户</button>
     </div>
+    <FilterBar @submit="userList.applyFilters" @reset="userList.resetFilters">
+      <label>
+        关键字
+        <input v-model="userList.filters.keyword" placeholder="用户名或姓名" />
+      </label>
+      <label>
+        角色
+        <SelectField v-model="userList.filters.role" :options="filterRoleOptions" />
+      </label>
+      <label>
+        状态
+        <SelectField v-model="userList.filters.status" :options="userStatusOptions" />
+      </label>
+    </FilterBar>
 
     <CreateFormModal
       :open="showCreateModal"
