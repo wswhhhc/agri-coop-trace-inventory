@@ -119,11 +119,12 @@ onMounted(loadWarehouses)
   grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
   align-items: end;
   gap: var(--space-4);
-  margin-bottom: var(--space-6);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  background: var(--color-surface-muted);
+  margin-bottom: 0;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, var(--color-brand));
+  border-radius: 1rem;
+  padding: var(--space-5);
+  background: color-mix(in srgb, var(--color-surface) 90%, var(--color-brand-soft));
+  box-shadow: var(--shadow-sm);
 }
 
 .dashboard-filters__field {
@@ -134,7 +135,7 @@ onMounted(loadWarehouses)
 .dashboard-filters__field label {
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .dashboard-filters__field small,

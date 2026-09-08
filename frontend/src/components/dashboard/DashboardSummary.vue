@@ -40,11 +40,11 @@ defineProps<{
 <style scoped>
 .dashboard-summary {
   min-width: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, var(--color-brand));
+  border-radius: 1rem;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
 }
 
 .dashboard-section__header {
@@ -58,7 +58,8 @@ defineProps<{
 .dashboard-section__header h2,
 .dashboard-section__header h3 {
   margin-bottom: var(--space-1);
-  font-size: var(--font-size-lg);
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  letter-spacing: -0.02em;
 }
 
 .dashboard-section__header p {
@@ -75,8 +76,8 @@ defineProps<{
 }
 
 .dashboard-inventory-overview {
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-4);
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 75%, var(--color-brand));
+  padding-top: var(--space-5);
 }
 
 .dashboard-inventory-overview h3 {
@@ -98,9 +99,10 @@ defineProps<{
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-3);
-  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+  border-radius: 0.65rem;
   padding: var(--space-2) var(--space-3);
-  background: var(--color-surface-muted);
+  background: color-mix(in srgb, var(--color-surface-muted) 74%, var(--color-surface));
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
 }

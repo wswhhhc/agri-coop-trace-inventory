@@ -21,10 +21,17 @@ defineProps<{
   display: grid;
   gap: var(--space-2);
   min-width: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, var(--color-brand));
+  border-radius: 0.8rem;
   padding: var(--space-4);
   background: var(--color-surface-raised);
+  box-shadow: 0 4px 12px rgb(15 51 38 / 4%);
+  transition: transform var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .metric-card::before {
@@ -52,7 +59,7 @@ defineProps<{
 
 .metric-card__value {
   color: var(--color-text);
-  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-size: clamp(1.65rem, 3vw, 2.15rem);
   font-variant-numeric: tabular-nums;
   font-weight: 750;
   line-height: var(--line-height-tight);
