@@ -126,8 +126,7 @@ function formatDateTime(value: string): string {
           </section>
 
           <div class="trace-layout">
-            <div class="trace-layout__primary">
-              <section class="trace-card" aria-labelledby="batch-info-title">
+              <section class="trace-card trace-card--batch" aria-labelledby="batch-info-title">
                 <div class="trace-card__heading">
                   <div>
                     <p class="section-eyebrow">BATCH DETAILS</p>
@@ -162,7 +161,7 @@ function formatDateTime(value: string): string {
                 </p>
               </section>
 
-              <section v-if="data.latestInspection" class="trace-card" aria-labelledby="inspection-title">
+              <section v-if="data.latestInspection" class="trace-card trace-card--wide" aria-labelledby="inspection-title">
                 <div class="trace-card__heading">
                   <div>
                     <p class="section-eyebrow">QUALITY CHECK</p>
@@ -195,7 +194,7 @@ function formatDateTime(value: string): string {
                 </div>
               </section>
 
-              <section class="trace-card" aria-labelledby="timeline-title">
+              <section class="trace-card trace-card--wide" aria-labelledby="timeline-title">
                 <div class="trace-card__heading">
                   <div>
                     <p class="section-eyebrow">TRACE JOURNEY</p>
@@ -214,7 +213,6 @@ function formatDateTime(value: string): string {
                   </li>
                 </ol>
               </section>
-            </div>
 
             <aside class="trace-layout__aside">
               <section class="trust-card" aria-labelledby="trust-title">
@@ -483,21 +481,27 @@ function formatDateTime(value: string): string {
 .trace-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(20rem, 1fr);
-  align-items: stretch;
+  align-items: start;
   gap: 1.5rem;
 }
 
-.trace-layout__primary {
-  display: grid;
-  gap: 1.5rem;
-  min-width: 0;
+.trace-card--batch {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.trace-card--wide {
+  grid-column: 1 / -1;
+  width: 100%;
 }
 
 .trace-layout__aside {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 1rem;
   min-width: 0;
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
 }
 
 .trace-card,
@@ -706,7 +710,6 @@ function formatDateTime(value: string): string {
 .trust-card {
   position: relative;
   overflow: hidden;
-  flex: 1 1 auto;
   min-height: 0;
   padding: 1.5rem;
   background: var(--trace-ink);
@@ -832,11 +835,18 @@ function formatDateTime(value: string): string {
   }
 
   .trace-layout__aside {
-    grid-row: 1;
+    grid-column: 1;
+    grid-row: auto;
   }
 
   .trust-card {
     min-height: 0;
+  }
+
+  .trace-card--batch,
+  .trace-card--wide {
+    grid-column: 1;
+    grid-row: auto;
   }
 
   .trust-card__seal {
@@ -927,8 +937,8 @@ function formatDateTime(value: string): string {
 
   .trace-hero { animation-delay: 60ms; }
   .trace-overview { animation-delay: 120ms; }
-  .trace-layout__primary .trace-card:nth-child(2) { animation-delay: 180ms; }
-  .trace-layout__primary .trace-card:nth-child(3) { animation-delay: 240ms; }
+  .trace-card:nth-of-type(2) { animation-delay: 180ms; }
+  .trace-card:nth-of-type(3) { animation-delay: 240ms; }
   .trace-layout__aside { animation-delay: 180ms; }
 }
 
