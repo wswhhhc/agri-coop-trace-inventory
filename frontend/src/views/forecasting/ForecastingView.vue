@@ -6,7 +6,7 @@ import {
   getForecastResult,
   getForecastingTask,
   getModelVersion,
-  listForecastResults,
+  listForecastResultsPage,
   listModelVersions,
   submitForecastTask,
   submitModelTrainingTask,
@@ -17,10 +17,10 @@ import ForecastRangeChart from '@/components/forecasting/ForecastRangeChart.vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import TaskProgress from '@/components/common/TaskProgress.vue'
-import { useListPage } from '@/composables/usePageData'
-import { usePageData } from '@/composables/usePageData'
+import { useListPage, usePageData, usePaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import type {
   ForecastResultDetailSummary,
@@ -30,7 +30,7 @@ import type {
 import { getApiErrorMessage } from '@/utils/api-error'
 
 const { items, loading, error, loadData } = useListPage(listModelVersions)
-const forecastResults = useListPage(listForecastResults)
+const forecastResultList = usePaginatedList(listForecastResultsPage)
 const authStore = useAuthStore()
 const canActivate = computed(
   () => authStore.role === 'COOPERATIVE_ADMIN' && authStore.hasPermission('model:manage'),
@@ -284,11 +284,11 @@ async function handleForecastSubmit(): Promise<void> {
     </aside>
     <section class="forecast-results">
       <PageState
-        :loading="forecastResults.loading"
-        :error="forecastResults.error"
-        :empty="forecastResults.items.length === 0"
+        :loading="forecastResultList.loading"
+        :error="forecastResultList.error"
+        :empty="forecastResultList.items.length === 0"
         empty-message="暂无预测结果"
-        @retry="forecastResults.loadData"
+        @retry="forecastResultList.loadData"
       >
         <table>
           <caption>需求预测结果</caption>
@@ -303,7 +303,7 @@ async function handleForecastSubmit(): Promise<void> {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="result in forecastResults.items" :key="result.id">
+            <tr v-for="result in forecastResultList.items" :key="result.id">
               <td>{{ result.forecastStartDate }} ～ {{ result.forecastEndDate }}</td>
               <td>{{ result.predictedDemand }}</td>
               <td>{{ result.currentStock }}</td>
@@ -314,6 +314,14 @@ async function handleForecastSubmit(): Promise<void> {
           </tbody>
         </table>
       </PageState>
+      <PaginationBar
+        :page="forecastResultList.pagination.page"
+        :total-pages="forecastResultList.pagination.totalPages"
+        :total-items="forecastResultList.pagination.totalItems"
+        :page-size="forecastResultList.pagination.pageSize"
+        @change="forecastResultList.goToPage"
+        @page-size-change="forecastResultList.setPageSize"
+      />
       <aside v-if="forecastDetailLoading || forecastDetailError || selectedForecast" class="forecast-result-detail">
         <h2>预测结果详情</h2>
         <p v-if="forecastDetailLoading">详情加载中…</p>
