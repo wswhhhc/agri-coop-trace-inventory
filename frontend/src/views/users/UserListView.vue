@@ -20,6 +20,7 @@ import SelectField, { type SelectFieldOption } from '@/components/common/SelectF
 import { useFilteredPaginatedList, usePageData } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
+import { formatUserStatus } from '@/utils/user-format'
 
 type UserFilterState = Pick<UserListParams, 'keyword' | 'role' | 'status'> & {
   keyword: string
@@ -373,7 +374,7 @@ async function handleResetPassword(): Promise<void> {
             <td>{{ user.displayName }}</td>
             <td>{{ user.role }}</td>
             <td>{{ user.phone || '—' }}</td>
-            <td><StatusBadge :label="user.status" :tone="user.status === 'ACTIVE' ? 'success' : user.status === 'LOCKED' ? 'danger' : 'neutral'" /></td>
+            <td><StatusBadge :label="formatUserStatus(user.status)" :tone="user.status === 'ACTIVE' ? 'success' : user.status === 'LOCKED' ? 'danger' : 'neutral'" /></td>
             <td v-if="canManage">
               <button type="button" @click="beginEdit(user)">编辑</button>
             </td>
