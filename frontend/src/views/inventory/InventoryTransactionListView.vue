@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { reactive, ref, toRefs } from 'vue'
+import { reactive, ref } from 'vue'
 
-import { getInventoryTransaction, listInventoryTransactions } from '@/api/inventory'
+import { getInventoryTransaction, listInventoryTransactionsPage } from '@/api/inventory'
 import { listBatchOptions } from '@/api/batches'
 import { listWarehouses } from '@/api/warehouses'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
-import { usePageData } from '@/composables/usePageData'
+import PaginationBar from '@/components/common/PaginationBar.vue'
+import { usePageData, usePaginatedList } from '@/composables/usePageData'
 import type { InventoryTransactionDetail } from '@/types/resources'
 
 const filters = reactive({
@@ -16,12 +17,9 @@ const filters = reactive({
   transactionType: '',
 })
 
-const transactionState = usePageData(
-  () => listInventoryTransactions(filters),
-  [],
+const transactionList = usePaginatedList((pagination) =>
+  listInventoryTransactionsPage({ ...pagination, ...filters }),
 )
-const { data: items, loading, error } = toRefs(transactionState)
-const { loadData } = transactionState
 const warehouseState = usePageData(listWarehouses, [])
 const batchState = usePageData(listBatchOptions, [])
 const selectedDetail = ref<InventoryTransactionDetail | null>(null)
@@ -53,7 +51,7 @@ function resetFilters(): void {
   filters.warehouseId = ''
   filters.batchId = ''
   filters.transactionType = ''
-  void loadData()
+  void transactionList.loadData(1)
 }
 </script>
 
@@ -62,7 +60,7 @@ function resetFilters(): void {
     <PageHeader eyebrow="库存审计" title="库存流水" description="按仓库、批次和流水类型查询不可变库存流水。" />
     <PageContext />
 
-    <form class="filter-bar inventory-transaction-list-page__filters" @submit.prevent="loadData">
+    <form class="filter-bar inventory-transaction-list-page__filters" @submit.prevent="() => transactionList.loadData(1)">
       <label>
         仓库
         <select v-model="filters.warehouseId">
@@ -94,7 +92,12 @@ function resetFilters(): void {
       </div>
     </form>
 
-    <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
+    <PageState
+      :loading="transactionList.loading"
+      :error="transactionList.error"
+      :empty="transactionList.items.length === 0"
+      @retry="transactionList.loadData"
+    >
       <table class="data-table">
         <thead>
           <tr>
@@ -107,7 +110,7 @@ function resetFilters(): void {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in items" :key="item.id">
+          <tr v-for="item in transactionList.items" :key="item.id">
             <td>{{ item.transactionNo }}</td>
             <td>{{ item.operationNo }}</td>
             <td>{{ item.transactionType }}</td>
@@ -120,6 +123,14 @@ function resetFilters(): void {
         </tbody>
       </table>
     </PageState>
+    <PaginationBar
+      :page="transactionList.pagination.page"
+      :total-pages="transactionList.pagination.totalPages"
+      :total-items="transactionList.pagination.totalItems"
+      :page-size="transactionList.pagination.pageSize"
+      @change="transactionList.goToPage"
+      @page-size-change="transactionList.setPageSize"
+    />
 
     <aside v-if="detailLoading || detailError || selectedDetail" class="inventory-transaction-list-page__detail">
       <h2>库存流水详情</h2>

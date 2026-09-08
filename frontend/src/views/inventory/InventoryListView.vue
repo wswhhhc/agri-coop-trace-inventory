@@ -4,6 +4,7 @@ import { computed, reactive, ref } from 'vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import {
   createInventoryIssue,
@@ -11,7 +12,7 @@ import {
   createInventoryReceipt,
   createStocktake,
   createStockTransfer,
-  listInventory,
+  listInventoryPage,
   type InventoryIssueCreatePayload,
   type InventoryLossCreatePayload,
   type InventoryReceiptCreatePayload,
@@ -20,11 +21,11 @@ import {
 } from '@/api/inventory'
 import { listBatchOptions } from '@/api/batches'
 import { listWarehouses } from '@/api/warehouses'
-import { useListPage, usePageData } from '@/composables/usePageData'
+import { usePageData, usePaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const { items, loading, error, loadData } = useListPage(listInventory)
+const inventoryList = usePaginatedList(listInventoryPage)
 const warehouseState = usePageData(listWarehouses, [])
 const batchState = usePageData(listBatchOptions, [])
 const authStore = useAuthStore()
@@ -114,7 +115,7 @@ async function handleReceipt(): Promise<void> {
     )
     resetForm()
     successMessage.value = `入库成功，库存结余为 ${result.quantityAfter}。`
-    await loadData()
+    await inventoryList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -153,7 +154,7 @@ async function handleIssue(): Promise<void> {
     )
     resetIssueForm()
     successMessage.value = `出库成功，库存结余为 ${result.quantityAfter}。`
-    await loadData()
+    await inventoryList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -190,7 +191,7 @@ async function handleStocktake(): Promise<void> {
     )
     resetStocktakeForm()
     successMessage.value = `盘点完成，差异数量为 ${result.differenceQuantity}。`
-    await loadData()
+    await inventoryList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -227,7 +228,7 @@ async function handleLoss(): Promise<void> {
     )
     resetLossForm()
     successMessage.value = `报损成功，库存结余为 ${result.quantityAfter}。`
-    await loadData()
+    await inventoryList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -267,7 +268,7 @@ async function handleTransfer(): Promise<void> {
     )
     resetTransferForm()
     successMessage.value = `调拨成功，调拨单号为 ${result.transferId}。`
-    await loadData()
+    await inventoryList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason, '调拨失败，请检查调拨信息')
   } finally {
@@ -502,14 +503,19 @@ async function handleTransfer(): Promise<void> {
       <p v-if="formError" role="alert">{{ formError }}</p>
       <p v-if="successMessage" role="status">{{ successMessage }}</p>
     </form>
-    <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
+    <PageState
+      :loading="inventoryList.loading"
+      :error="inventoryList.error"
+      :empty="inventoryList.items.length === 0"
+      @retry="inventoryList.loadData"
+    >
       <table>
         <caption>当前库存</caption>
         <thead>
           <tr><th scope="col">仓库</th><th scope="col">产品</th><th scope="col">批次</th><th scope="col">库存</th><th scope="col">可用库存</th><th scope="col">风险</th></tr>
         </thead>
         <tbody>
-          <tr v-for="inventory in items" :key="inventory.id">
+          <tr v-for="inventory in inventoryList.items" :key="inventory.id">
             <td>{{ inventory.warehouse.name }}</td>
             <td>{{ inventory.product.name }}</td>
             <td>{{ inventory.batch.batchNo }}</td>
@@ -525,6 +531,14 @@ async function handleTransfer(): Promise<void> {
         </tbody>
       </table>
     </PageState>
+    <PaginationBar
+      :page="inventoryList.pagination.page"
+      :total-pages="inventoryList.pagination.totalPages"
+      :total-items="inventoryList.pagination.totalItems"
+      :page-size="inventoryList.pagination.pageSize"
+      @change="inventoryList.goToPage"
+      @page-size-change="inventoryList.setPageSize"
+    />
   </section>
 </template>
 
