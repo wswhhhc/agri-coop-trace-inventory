@@ -10,6 +10,7 @@ import { listProductOptions } from '@/api/products'
 import { getPagePlaceholderCount, usePageData, usePaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
+import { formatBatchStatus } from '@/utils/batch-format'
 
 const batchList = usePaginatedList(listBatches)
 const placeholderCount = computed(() =>
@@ -149,7 +150,7 @@ async function handleSubmit(): Promise<void> {
             <td>{{ batch.origin }}</td>
             <td>{{ batch.productionDate }}</td>
             <td>{{ batch.expiryDate }}</td>
-            <td><StatusBadge :label="batch.status" :tone="batchStatusTone(batch.status)" /></td>
+            <td><StatusBadge :label="formatBatchStatus(batch.status)" :tone="batchStatusTone(batch.status)" /></td>
             <td><RouterLink :to="{ name: 'batch-detail', params: { batchId: batch.id } }">查看</RouterLink></td>
           </tr>
           <tr
