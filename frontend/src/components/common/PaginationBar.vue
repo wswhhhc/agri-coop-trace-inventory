@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue'
 const PAGE_PICKER_SIZE = 10
 
 type PageToken = number | 'ellipsis-start' | 'ellipsis-end'
+type EllipsisToken = 'ellipsis-start' | 'ellipsis-end'
 
 const props = withDefaults(
   defineProps<{
@@ -24,6 +25,7 @@ const emit = defineEmits<{
 }>()
 
 const pagePickerOpen = ref(false)
+const activeEllipsis = ref<EllipsisToken | null>(null)
 const pagePickerPage = ref(1)
 const pagePickerPageCount = computed(() => Math.ceil(props.totalPages / PAGE_PICKER_SIZE))
 const pagePickerStart = computed(() => (pagePickerPage.value - 1) * PAGE_PICKER_SIZE + 1)
@@ -58,20 +60,32 @@ function pickerPageFor(page: number): number {
   return Math.min(pagePickerPageCount.value, Math.max(1, Math.ceil(page / PAGE_PICKER_SIZE)))
 }
 
-function openPagePicker(): void {
+function togglePagePicker(token: EllipsisToken): void {
+  if (pagePickerOpen.value && activeEllipsis.value === token) {
+    pagePickerOpen.value = false
+    activeEllipsis.value = null
+    return
+  }
+
   pagePickerPage.value = pickerPageFor(props.page)
+  activeEllipsis.value = token
   pagePickerOpen.value = true
 }
 
-function goToPage(page: number): void {
+function closePagePicker(): void {
   pagePickerOpen.value = false
+  activeEllipsis.value = null
+}
+
+function goToPage(page: number): void {
+  closePagePicker()
   emit('change', page)
 }
 
 function handlePageSizeChange(event: Event): void {
   const value = Number((event.target as HTMLSelectElement).value)
   if (Number.isInteger(value) && value > 0) {
-    pagePickerOpen.value = false
+    closePagePicker()
     emit('page-size-change', value)
   }
 }
@@ -114,55 +128,64 @@ watch(
         >
           {{ token }}
         </button>
-        <button
-          v-else
-          type="button"
-          class="pagination-bar__ellipsis"
-          aria-label="打开页码选择器"
-          :aria-expanded="pagePickerOpen"
-          @click="openPagePicker"
-        >
-          …
-        </button>
+        <span v-else class="pagination-bar__ellipsis-anchor">
+          <button
+            type="button"
+            class="pagination-bar__ellipsis"
+            aria-label="打开页码选择器"
+            :aria-expanded="pagePickerOpen && activeEllipsis === token"
+            @click="togglePagePicker(token)"
+          >
+            …
+          </button>
+          <section
+            v-if="pagePickerOpen && activeEllipsis === token"
+            class="pagination-bar__picker"
+            :class="{
+              'pagination-bar__picker--start': token === 'ellipsis-start',
+              'pagination-bar__picker--end': token === 'ellipsis-end',
+            }"
+            aria-label="页码选择器"
+          >
+            <div class="pagination-bar__picker-header">
+              <button
+                type="button"
+                :disabled="pagePickerPage <= 1"
+                aria-label="上一组页码"
+                @click="pagePickerPage -= 1"
+              >
+                上一组
+              </button>
+              <span aria-live="polite">第 {{ pagePickerStart }}-{{ pagePickerEnd }} 页，共 {{ totalPages }} 页</span>
+              <button
+                type="button"
+                :disabled="pagePickerPage >= pagePickerPageCount"
+                aria-label="下一组页码"
+                @click="pagePickerPage += 1"
+              >
+                下一组
+              </button>
+            </div>
+            <div class="pagination-bar__picker-grid pagination-bar__picker-grid--five-columns">
+              <button
+                v-for="pageNumber in pagePickerNumbers"
+                :key="pageNumber"
+                type="button"
+                class="pagination-bar__picker-page"
+                :class="{ 'pagination-bar__page--active': pageNumber === page }"
+                :aria-current="pageNumber === page ? 'page' : undefined"
+                @click="goToPage(pageNumber)"
+              >
+                {{ pageNumber }}
+              </button>
+            </div>
+          </section>
+        </span>
       </template>
       <button type="button" :disabled="page >= totalPages || totalPages === 0" @click="goToPage(page + 1)">
         下一页
       </button>
     </div>
-    <section v-if="pagePickerOpen" class="pagination-bar__picker" aria-label="页码选择器">
-      <div class="pagination-bar__picker-header">
-        <button
-          type="button"
-          :disabled="pagePickerPage <= 1"
-          aria-label="上一组页码"
-          @click="pagePickerPage -= 1"
-        >
-          上一组
-        </button>
-        <span aria-live="polite">第 {{ pagePickerStart }}-{{ pagePickerEnd }} 页，共 {{ totalPages }} 页</span>
-        <button
-          type="button"
-          :disabled="pagePickerPage >= pagePickerPageCount"
-          aria-label="下一组页码"
-          @click="pagePickerPage += 1"
-        >
-          下一组
-        </button>
-      </div>
-      <div class="pagination-bar__picker-grid pagination-bar__picker-grid--five-columns">
-        <button
-          v-for="pageNumber in pagePickerNumbers"
-          :key="pageNumber"
-          type="button"
-          class="pagination-bar__picker-page"
-          :class="{ 'pagination-bar__page--active': pageNumber === page }"
-          :aria-current="pageNumber === page ? 'page' : undefined"
-          @click="goToPage(pageNumber)"
-        >
-          {{ pageNumber }}
-        </button>
-      </div>
-    </section>
   </nav>
 </template>
 
@@ -194,6 +217,7 @@ watch(
 .pagination-bar__controls {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-1);
 }
 
@@ -208,12 +232,51 @@ watch(
   color: var(--color-text-secondary);
 }
 
+.pagination-bar__ellipsis-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
 .pagination-bar__picker {
-  flex-basis: 100%;
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  z-index: 20;
   display: grid;
   gap: var(--space-3);
+  width: min(24rem, calc(100vw - 2rem));
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-md);
+}
+
+.pagination-bar__picker--start {
+  left: 0;
+}
+
+.pagination-bar__picker--end {
+  right: 0;
+}
+
+.pagination-bar__picker::before {
+  content: '';
+  position: absolute;
+  top: -0.4rem;
+  width: 0.75rem;
+  height: 0.75rem;
   border-top: 1px solid var(--color-border);
-  padding-top: var(--space-3);
+  border-left: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  transform: rotate(45deg);
+}
+
+.pagination-bar__picker--start::before {
+  left: 1rem;
+}
+
+.pagination-bar__picker--end::before {
+  right: 1rem;
 }
 
 .pagination-bar__picker-header {

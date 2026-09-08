@@ -98,4 +98,24 @@ describe('PaginationBar', () => {
 
     app.unmount()
   })
+
+  it('closes the picker when the active ellipsis is clicked again', async () => {
+    const { app, root } = mountPagination({
+      page: 1,
+      totalPages: 99,
+      totalItems: 990,
+      pageSize: 10,
+    })
+
+    const ellipsis = root.querySelector('.pagination-bar__ellipsis')
+    click(ellipsis)
+    await nextTick()
+    expect(root.querySelector('.pagination-bar__picker')).not.toBeNull()
+
+    click(ellipsis)
+    await nextTick()
+    expect(root.querySelector('.pagination-bar__picker')).toBeNull()
+
+    app.unmount()
+  })
 })
