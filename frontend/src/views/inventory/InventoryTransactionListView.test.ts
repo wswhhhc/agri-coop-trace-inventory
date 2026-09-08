@@ -57,7 +57,17 @@ describe('InventoryTransactionListView', () => {
       pagination: { page: 1, pageSize: 10, totalItems: 1, totalPages: 1 },
     })
     vi.mocked(listBatchOptions).mockResolvedValue([])
-    vi.mocked(listWarehouses).mockResolvedValue([])
+    vi.mocked(listWarehouses).mockResolvedValue([
+      {
+        id: 'warehouse-1',
+        cooperativeId: 'cooperative-1',
+        name: '东区仓库',
+        code: 'WH-001',
+        address: null,
+        managerName: null,
+        status: 'ACTIVE',
+      },
+    ])
     vi.mocked(getInventoryTransaction).mockResolvedValue(transactionDetail)
   })
 
@@ -77,6 +87,8 @@ describe('InventoryTransactionListView', () => {
       (button) => button.textContent?.trim() === '查看详情',
     )
     expect(detailButton).not.toBeUndefined()
+    expect(root.textContent).toContain('入库')
+    expect(root.textContent).not.toContain('INBOUND')
 
     detailButton?.click()
     await flushPromises()
@@ -84,6 +96,10 @@ describe('InventoryTransactionListView', () => {
     const dialog = document.body.querySelector('[role="dialog"]')
     expect(dialog).not.toBeNull()
     expect(dialog?.textContent).toContain('库存流水详情')
+    expect(dialog?.textContent).toContain('入库')
+    expect(dialog?.textContent).toContain('东区仓库')
+    expect(dialog?.textContent).not.toContain('INBOUND')
+    expect(dialog?.textContent).not.toContain('warehouse-1')
     expect(root.querySelector('[role="dialog"]')).toBeNull()
     expect(root.querySelector('.inventory-transaction-list-page__detail')).toBeNull()
 

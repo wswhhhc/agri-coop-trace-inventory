@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 
 import { getInventoryTransaction, listInventoryTransactionsPage } from '@/api/inventory'
 import { listBatchOptions } from '@/api/batches'
@@ -34,6 +34,27 @@ const transactionTypes = [
   'TRANSFER_OUT',
   'TRANSFER_IN',
 ]
+
+const transactionTypeLabels: Record<string, string> = {
+  INBOUND: '入库',
+  OUTBOUND: '出库',
+  ADJUSTMENT: '库存调整',
+  DAMAGE: '损耗报损',
+  TRANSFER_OUT: '调拨出库',
+  TRANSFER_IN: '调拨入库',
+}
+
+const warehouseNameById = computed(
+  () => new Map(warehouseState.data.map((warehouse) => [warehouse.id, warehouse.name])),
+)
+
+function formatTransactionType(value: string): string {
+  return transactionTypeLabels[value] ?? '其他类型'
+}
+
+function formatWarehouseName(id: string): string {
+  return warehouseNameById.value.get(id) ?? '未知仓库'
+}
 
 async function loadDetail(transactionId: string): Promise<void> {
   const requestId = ++detailRequestId
@@ -91,7 +112,9 @@ function resetFilters(): void {
         流水类型
         <select v-model="filters.transactionType">
           <option value="">全部类型</option>
-          <option v-for="type in transactionTypes" :key="type" :value="type">{{ type }}</option>
+          <option v-for="type in transactionTypes" :key="type" :value="type">
+            {{ formatTransactionType(type) }}
+          </option>
         </select>
       </label>
       <div class="inventory-transaction-list-page__filter-actions">
@@ -121,7 +144,7 @@ function resetFilters(): void {
           <tr v-for="item in transactionList.items" :key="item.id">
             <td>{{ item.transactionNo }}</td>
             <td>{{ item.operationNo }}</td>
-            <td>{{ item.transactionType }}</td>
+            <td>{{ formatTransactionType(item.transactionType) }}</td>
             <td>{{ item.quantityDelta }}</td>
             <td>{{ item.occurredAt }}</td>
             <td>
@@ -151,11 +174,11 @@ function resetFilters(): void {
       <dl v-else-if="selectedDetail">
         <div><dt>流水号</dt><dd>{{ selectedDetail.transactionNo }}</dd></div>
         <div><dt>操作单号</dt><dd>{{ selectedDetail.operationNo }}</dd></div>
-        <div><dt>流水类型</dt><dd>{{ selectedDetail.transactionType }}</dd></div>
+        <div><dt>流水类型</dt><dd>{{ formatTransactionType(selectedDetail.transactionType) }}</dd></div>
         <div><dt>变更前</dt><dd>{{ selectedDetail.quantityBefore }}</dd></div>
         <div><dt>变更数量</dt><dd>{{ selectedDetail.quantity }}</dd></div>
         <div><dt>变更后</dt><dd>{{ selectedDetail.quantityAfter }}</dd></div>
-        <div><dt>仓库</dt><dd>{{ selectedDetail.warehouseId }}</dd></div>
+        <div><dt>仓库</dt><dd>{{ formatWarehouseName(selectedDetail.warehouseId) }}</dd></div>
         <div><dt>批次</dt><dd>{{ selectedDetail.batchId }}</dd></div>
         <div><dt>发生时间</dt><dd>{{ selectedDetail.occurredAt }}</dd></div>
       </dl>
