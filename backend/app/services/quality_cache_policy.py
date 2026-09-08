@@ -5,7 +5,7 @@ from __future__ import annotations
 from app.models.enums import SortDirection
 from app.schemas.quality_inspection import QualityInspectionListParams
 
-_CACHEABLE_PAGE_SIZES = frozenset({20, 100})
+_CACHEABLE_PAGE_SIZES = frozenset({10, 20, 100})
 
 
 def is_cacheable_quality_list(params: QualityInspectionListParams) -> bool:

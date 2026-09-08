@@ -5,7 +5,7 @@ from __future__ import annotations
 from app.models.enums import SortDirection
 from app.schemas.forecasting import ModelVersionListParams
 
-_CACHEABLE_PAGE_SIZES = frozenset({20, 100})
+_CACHEABLE_PAGE_SIZES = frozenset({10, 20, 100})
 
 
 def is_cacheable_active_model_list(params: ModelVersionListParams) -> bool:
