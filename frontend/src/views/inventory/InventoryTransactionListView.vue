@@ -5,6 +5,7 @@ import { getInventoryTransaction, listInventoryTransactionsPage } from '@/api/in
 import { listBatchOptions } from '@/api/batches'
 import { listWarehouses } from '@/api/warehouses'
 import PageState from '@/components/common/PageState.vue'
+import ModalShell from '@/components/common/ModalShell.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import { usePageData, usePaginatedList } from '@/composables/usePageData'
 import type { InventoryTransactionDetail } from '@/types/resources'
@@ -23,6 +24,7 @@ const batchState = usePageData(listBatchOptions, [])
 const selectedDetail = ref<InventoryTransactionDetail | null>(null)
 const detailLoading = ref(false)
 const detailError = ref('')
+let detailRequestId = 0
 
 const transactionTypes = [
   'INBOUND',
@@ -34,15 +36,26 @@ const transactionTypes = [
 ]
 
 async function loadDetail(transactionId: string): Promise<void> {
+  const requestId = ++detailRequestId
   detailLoading.value = true
   detailError.value = ''
   try {
-    selectedDetail.value = await getInventoryTransaction(transactionId)
+    const detail = await getInventoryTransaction(transactionId)
+    if (requestId !== detailRequestId) return
+    selectedDetail.value = detail
   } catch (reason) {
+    if (requestId !== detailRequestId) return
     detailError.value = reason instanceof Error ? reason.message : '流水详情加载失败'
   } finally {
-    detailLoading.value = false
+    if (requestId === detailRequestId) detailLoading.value = false
   }
+}
+
+function closeDetail(): void {
+  detailRequestId += 1
+  selectedDetail.value = null
+  detailLoading.value = false
+  detailError.value = ''
 }
 
 function resetFilters(): void {
@@ -127,8 +140,12 @@ function resetFilters(): void {
       @page-size-change="transactionList.setPageSize"
     />
 
-    <aside v-if="detailLoading || detailError || selectedDetail" class="inventory-transaction-list-page__detail">
-      <h2>库存流水详情</h2>
+    <ModalShell
+      :open="detailLoading || Boolean(detailError) || Boolean(selectedDetail)"
+      title="库存流水详情"
+      @close="closeDetail"
+    >
+      <div class="inventory-transaction-detail">
       <p v-if="detailLoading">详情加载中…</p>
       <p v-else-if="detailError" role="alert">{{ detailError }}</p>
       <dl v-else-if="selectedDetail">
@@ -142,7 +159,8 @@ function resetFilters(): void {
         <div><dt>批次</dt><dd>{{ selectedDetail.batchId }}</dd></div>
         <div><dt>发生时间</dt><dd>{{ selectedDetail.occurredAt }}</dd></div>
       </dl>
-    </aside>
+      </div>
+    </ModalShell>
   </section>
 </template>
 
@@ -172,28 +190,18 @@ function resetFilters(): void {
   color: var(--color-text-secondary);
 }
 
-.inventory-transaction-list-page__detail {
+.inventory-transaction-detail {
   display: grid;
   gap: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
 }
 
-.inventory-transaction-list-page__detail h2 {
-  margin-bottom: var(--space-4);
-  font-size: var(--font-size-lg);
-}
-
-.inventory-transaction-list-page__detail dl {
+.inventory-transaction-detail dl {
   display: grid;
   gap: var(--space-2);
   margin: 0;
 }
 
-.inventory-transaction-list-page__detail dl > div {
+.inventory-transaction-detail dl > div {
   display: grid;
   grid-template-columns: minmax(6rem, 0.35fr) minmax(0, 1fr);
   gap: var(--space-4);
@@ -201,12 +209,12 @@ function resetFilters(): void {
   padding-bottom: var(--space-2);
 }
 
-.inventory-transaction-list-page__detail dt {
+.inventory-transaction-detail dt {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
 
-.inventory-transaction-list-page__detail dd {
+.inventory-transaction-detail dd {
   min-width: 0;
   margin: 0;
   color: var(--color-text-secondary);
@@ -214,7 +222,7 @@ function resetFilters(): void {
 }
 
 @media (max-width: 48rem) {
-  .inventory-transaction-list-page__detail dl > div {
+  .inventory-transaction-detail dl > div {
     grid-template-columns: 1fr;
     gap: var(--space-1);
   }
