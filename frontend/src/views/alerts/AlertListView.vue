@@ -11,8 +11,6 @@ import {
   updateAlertRule,
 } from '@/api/alerts'
 import type { AlertRuleUpdatePayload } from '@/api/alerts'
-import PageContext from '@/components/common/PageContext.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import ModalShell from '@/components/common/ModalShell.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
@@ -186,8 +184,6 @@ async function runAlertScan(): Promise<void> {
 
 <template>
   <section class="alert-list-page">
-    <PageHeader eyebrow="风险中心" title="预警规则" description="查看库存、临期和质量预警规则。" />
-    <PageContext />
     <button v-if="canScan" type="button" :disabled="scanSubmitting" @click="runAlertScan">
       {{ scanSubmitting ? '扫描中…' : '立即扫描预警' }}
     </button>

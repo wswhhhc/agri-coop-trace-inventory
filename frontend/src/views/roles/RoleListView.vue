@@ -2,8 +2,6 @@
 import { computed, ref } from 'vue'
 
 import { listPermissions, listRolesPage, updateRolePermissions } from '@/api/roles'
-import PageContext from '@/components/common/PageContext.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import { usePageData, usePaginatedList } from '@/composables/usePageData'
@@ -56,8 +54,6 @@ async function loadData(): Promise<void> {
 
 <template>
   <section class="role-list-page">
-    <PageHeader eyebrow="权限治理" title="角色与权限" description="查看角色权限并维护系统角色授权。" />
-    <PageContext />
     <PageState
       :loading="roleList.loading || permissionState.loading"
       :error="roleList.error || permissionState.error"

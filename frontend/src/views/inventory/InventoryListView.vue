@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
-import PageContext from '@/components/common/PageContext.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -279,8 +277,6 @@ async function handleTransfer(): Promise<void> {
 
 <template>
   <section class="inventory-list-page">
-    <PageHeader eyebrow="库存运营" title="库存管理" description="查看库存并办理入库业务。" />
-    <PageContext />
     <form v-if="canWrite" class="inventory-receipt-form" @submit.prevent="handleReceipt">
       <h2>入库</h2>
       <label>

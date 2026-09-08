@@ -8,8 +8,6 @@ import DashboardSummary from '@/components/dashboard/DashboardSummary.vue'
 import ForecastComparisonPanel from '@/components/dashboard/ForecastComparisonPanel.vue'
 import InventoryTrendPanel from '@/components/dashboard/InventoryTrendPanel.vue'
 import ProductRankingPanel from '@/components/dashboard/ProductRankingPanel.vue'
-import PageContext from '@/components/common/PageContext.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import { useDashboard } from '@/composables/useDashboard'
 import { usePaginatedList } from '@/composables/usePageData'
@@ -44,9 +42,6 @@ function handleSearch(params: DashboardQueryParams): void {
 
 <template>
   <section class="dashboard-page">
-    <PageHeader eyebrow="运营总览" title="数据看板" description="显示当前账号可访问范围内的库存与预警概览。" />
-    <PageContext />
-
     <DashboardFilters :loading="loading" @search="handleSearch" />
 
     <section class="dashboard-page__modules">

@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
-import PageContext from '@/components/common/PageContext.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
@@ -96,8 +94,6 @@ async function handleUpdate(): Promise<void> {
 
 <template>
   <section class="product-category-list-page">
-    <PageHeader eyebrow="基础资料" title="产品分类" description="查看当前合作社的产品分类。" />
-    <PageContext />
     <form v-if="canManage" class="product-category-create-form" @submit.prevent="handleSubmit">
       <h2>新增产品分类</h2>
       <GeneratedCodeField label="编码" format="CAT-XXXXXX" />

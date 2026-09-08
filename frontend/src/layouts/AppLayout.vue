@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-import AppBreadcrumb from '@/components/common/AppBreadcrumb.vue'
 import PageContainer from '@/components/common/PageContainer.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
@@ -22,7 +21,6 @@ function closeSidebar(): void {
     <AppSidebar :open="sidebarOpen" @close="closeSidebar" />
     <div class="app-layout__main">
       <AppHeader @toggle-sidebar="toggleSidebar" />
-      <AppBreadcrumb />
       <PageContainer>
         <RouterView />
       </PageContainer>

@@ -6,8 +6,6 @@ import { getBatch, updateBatch, type BatchStatus } from '@/api/batches'
 import { getPublicQrCodeUrl } from '@/api/public-traceability'
 import QualityInspectionPanel from '@/components/batches/QualityInspectionPanel.vue'
 import TraceEventTimeline from '@/components/batches/TraceEventTimeline.vue'
-import PageContext from '@/components/common/PageContext.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { usePageData } from '@/composables/usePageData'
@@ -85,8 +83,6 @@ async function handleUpdate(): Promise<void> {
 
 <template>
   <section class="batch-detail-page">
-    <PageHeader eyebrow="批次档案" title="批次详情" description="查看批次基础信息和服务端生成的追溯码。" />
-    <PageContext />
     <PageState
       :loading="loading"
       :error="error"

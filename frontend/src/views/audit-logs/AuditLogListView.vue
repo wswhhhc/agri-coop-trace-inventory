@@ -2,8 +2,6 @@
 import { reactive, ref } from 'vue'
 
 import { getAuditLog, listAuditLogsPage } from '@/api/audit-logs'
-import PageContext from '@/components/common/PageContext.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -69,8 +67,6 @@ async function loadDetail(auditLogId: string): Promise<void> {
 
 <template>
   <section class="audit-log-list-page">
-    <PageHeader eyebrow="审计追踪" title="操作日志" description="按操作、资源、结果和时间范围查询审计记录。" />
-    <PageContext />
     <form class="audit-log-filters" @submit.prevent="() => auditLogList.loadData(1)">
       <label>操作 <input v-model="filters.action" placeholder="如 CREATE_BATCH" /></label>
       <label>资源类型 <input v-model="filters.resourceType" placeholder="如 BATCH" /></label>

@@ -8,8 +8,6 @@ import {
 } from '@/api/cooperatives'
 import type { CooperativeStatus } from '@/api/cooperatives'
 import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
-import PageContext from '@/components/common/PageContext.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -115,8 +113,6 @@ async function handleUpdate(): Promise<void> {
 
 <template>
   <section class="cooperative-list-page">
-    <PageHeader eyebrow="组织管理" title="合作社管理" description="维护平台合作社信息和启停状态。" />
-    <PageContext />
     <form v-if="canManage" class="cooperative-create-form" @submit.prevent="handleSubmit">
       <h2>新增合作社</h2>
       <GeneratedCodeField label="编码" format="COOP-XXXXXX" />

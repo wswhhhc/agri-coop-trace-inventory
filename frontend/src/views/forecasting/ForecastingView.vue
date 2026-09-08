@@ -14,9 +14,7 @@ import {
 import { listProductOptions } from '@/api/products'
 import { listWarehouses } from '@/api/warehouses'
 import ForecastRangeChart from '@/components/forecasting/ForecastRangeChart.vue'
-import PageContext from '@/components/common/PageContext.vue'
 import ModalShell from '@/components/common/ModalShell.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -189,8 +187,6 @@ async function handleForecastSubmit(): Promise<void> {
 
 <template>
   <section class="forecasting-page">
-    <PageHeader eyebrow="智能决策" title="AI 预测" description="查看模型版本、训练范围和评估指标。" />
-    <PageContext />
     <form v-if="canTrain" class="model-training-form" @submit.prevent="handleTrainingSubmit">
       <h2>提交模型训练</h2>
       <label>

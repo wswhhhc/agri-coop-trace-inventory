@@ -9,8 +9,6 @@ import {
 } from '@/api/warehouses'
 import type { WarehouseStatus } from '@/api/warehouses'
 import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
-import PageContext from '@/components/common/PageContext.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -117,8 +115,6 @@ async function handleUpdate(): Promise<void> {
 
 <template>
   <section class="warehouse-list-page">
-    <PageHeader eyebrow="组织管理" title="仓库管理" description="维护仓库基础信息和启停状态。" />
-    <PageContext />
     <form v-if="canManage" class="warehouse-create-form" @submit.prevent="handleSubmit">
       <h2>新增仓库</h2>
       <label v-if="showCooperativeSelector">

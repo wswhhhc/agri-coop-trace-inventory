@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
-import PageContext from '@/components/common/PageContext.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -132,8 +130,6 @@ async function handleUpdate(): Promise<void> {
 
 <template>
   <section class="product-list-page">
-    <PageHeader eyebrow="基础资料" title="产品管理" description="维护合作社产品和库存基础信息。" />
-    <PageContext />
     <form v-if="canManage" class="product-create-form" @submit.prevent="handleSubmit">
       <h2>新增产品</h2>
       <label>

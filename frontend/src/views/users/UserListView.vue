@@ -11,8 +11,6 @@ import {
   updateUser,
 } from '@/api/users'
 import type { UserStatus } from '@/api/users'
-import PageContext from '@/components/common/PageContext.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -182,8 +180,6 @@ async function handleResetPassword(): Promise<void> {
 
 <template>
   <section class="user-list-page">
-    <PageHeader eyebrow="组织管理" title="用户管理" description="维护用户基本信息、角色和账号状态。" />
-    <PageContext />
     <form v-if="canManage" class="user-create-form" @submit.prevent="handleSubmit">
       <h2>新增用户</h2>
       <label>

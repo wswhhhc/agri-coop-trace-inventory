@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
-import PageContext from '@/components/common/PageContext.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -79,8 +77,6 @@ async function handleSubmit(): Promise<void> {
 
 <template>
   <section class="batch-list-page">
-    <PageHeader eyebrow="全程追溯" title="批次管理" description="创建和查看农产品生产批次。" />
-    <PageContext />
     <form v-if="canManage" class="batch-create-form" @submit.prevent="handleSubmit">
       <h2>新增批次</h2>
       <label>

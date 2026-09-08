@@ -4,8 +4,6 @@ import { reactive, ref } from 'vue'
 import { getInventoryTransaction, listInventoryTransactionsPage } from '@/api/inventory'
 import { listBatchOptions } from '@/api/batches'
 import { listWarehouses } from '@/api/warehouses'
-import PageContext from '@/components/common/PageContext.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import { usePageData, usePaginatedList } from '@/composables/usePageData'
@@ -57,9 +55,6 @@ function resetFilters(): void {
 
 <template>
   <section class="inventory-transaction-list-page">
-    <PageHeader eyebrow="库存审计" title="库存流水" description="按仓库、批次和流水类型查询不可变库存流水。" />
-    <PageContext />
-
     <form class="filter-bar inventory-transaction-list-page__filters" @submit.prevent="() => transactionList.loadData(1)">
       <label>
         仓库
