@@ -22,6 +22,7 @@ import { listWarehouses } from '@/api/warehouses'
 import { usePageData, usePaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
+import { formatInventoryRiskFlags } from '@/utils/inventory-format'
 
 const inventoryList = usePaginatedList(listInventoryPage)
 const warehouseState = usePageData(listWarehouses, [])
@@ -519,7 +520,7 @@ async function handleTransfer(): Promise<void> {
             <td>{{ inventory.availableQuantity }} {{ inventory.product.unit }}</td>
             <td>
               <StatusBadge
-                :label="inventory.riskFlags.join('、') || '正常'"
+                :label="formatInventoryRiskFlags(inventory.riskFlags)"
                 :tone="inventory.riskFlags.length ? 'warning' : 'success'"
               />
             </td>

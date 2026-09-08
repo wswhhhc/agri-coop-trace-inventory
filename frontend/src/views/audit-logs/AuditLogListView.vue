@@ -8,6 +8,7 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 import { usePaginatedList } from '@/composables/usePageData'
 import type { AuditLogSummary } from '@/types/resources'
 import { getApiErrorMessage } from '@/utils/api-error'
+import { formatAuditResult } from '@/utils/audit-format'
 
 const filters = reactive({
   action: '',
@@ -99,7 +100,7 @@ async function loadDetail(auditLogId: string): Promise<void> {
             <td>{{ item.action }}</td>
             <td>{{ item.module }}</td>
             <td>{{ item.resourceType }} / {{ item.resourceId || '—' }}</td>
-            <td><StatusBadge :label="item.result" :tone="resultTone(item.result)" /></td>
+            <td><StatusBadge :label="formatAuditResult(item.result)" :tone="resultTone(item.result)" /></td>
             <td><button type="button" @click="loadDetail(item.id)">查看详情</button></td>
           </tr>
         </tbody>
