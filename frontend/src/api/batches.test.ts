@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { createBatch, getBatch, listBatches, updateBatch } from './batches'
+import { createBatch, getBatch, listBatchOptions, listBatches, updateBatch } from './batches'
 
 vi.mock('./http', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
@@ -26,6 +26,15 @@ describe('batches api', () => {
     })
     expect(http.get).toHaveBeenCalledWith('/batches', {
       params: { page: 2, pageSize: 10 },
+    })
+  })
+
+  it('loads all batches for option selectors by default', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: [], pagination: { page: 1, pageSize: 100, totalItems: 0, totalPages: 0 } } })
+
+    await expect(listBatchOptions()).resolves.toEqual([])
+    expect(http.get).toHaveBeenCalledWith('/batches', {
+      params: { page: 1, pageSize: 100 },
     })
   })
 

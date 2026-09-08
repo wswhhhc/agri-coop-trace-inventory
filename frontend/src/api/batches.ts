@@ -33,7 +33,7 @@ export async function listBatches(options: BatchListParams = {}): Promise<ListRe
 }
 
 export async function listBatchOptions(options: BatchListParams = {}): Promise<BatchSummary[]> {
-  const response = await listBatches(options)
+  const response = await listBatches({ pageSize: options.pageSize ?? 100, ...options })
   return response.data
 }
 
