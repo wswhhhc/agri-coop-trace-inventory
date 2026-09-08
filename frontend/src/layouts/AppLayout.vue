@@ -39,7 +39,7 @@ function closeSidebar(): void {
 .app-layout {
   display: flex;
   min-height: 100dvh;
-  background: var(--color-bg);
+  background: transparent;
 }
 
 .app-layout__main {

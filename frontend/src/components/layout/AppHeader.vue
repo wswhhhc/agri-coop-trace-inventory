@@ -58,13 +58,23 @@ async function handleLogout(): Promise<void> {
   top: 0;
   z-index: 10;
   display: flex;
-  min-height: 4.5rem;
+  min-height: 5rem;
   align-items: center;
   gap: var(--space-4);
-  border-bottom: 1px solid var(--color-border);
-  padding: var(--space-3) var(--space-8);
-  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 84%, var(--color-brand));
+  padding: var(--space-3) clamp(1.25rem, 4vw, 4rem);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
   backdrop-filter: blur(12px);
+}
+
+.app-header::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-brand), var(--color-grain-500), transparent 72%);
+  content: '';
 }
 
 .app-header__menu-button {
@@ -101,7 +111,8 @@ async function handleLogout(): Promise<void> {
 }
 
 .app-header__context span {
-  color: var(--color-text-muted);
+  color: var(--color-brand);
+  font-weight: 650;
   font-size: var(--font-size-xs);
 }
 
@@ -116,6 +127,8 @@ async function handleLogout(): Promise<void> {
 .app-header__user {
   display: grid;
   gap: var(--space-1);
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--color-border);
   text-align: right;
 }
 

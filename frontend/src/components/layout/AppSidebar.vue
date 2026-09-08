@@ -63,8 +63,8 @@ const visibleMenuItems = computed(() => {
   flex-direction: column;
   width: 16rem;
   height: 100dvh;
-  border-right: 1px solid var(--color-border);
-  background: var(--color-surface);
+  border-right: 1px solid var(--color-sidebar-border);
+  background: var(--color-sidebar-bg);
   transition:
     background-color var(--duration-normal) var(--ease-standard),
     border-color var(--duration-normal) var(--ease-standard),
@@ -75,22 +75,25 @@ const visibleMenuItems = computed(() => {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 5rem;
-  border-bottom: 1px solid var(--color-border);
-  padding: var(--space-5);
+  min-height: 6rem;
+  border-bottom: 1px solid var(--color-sidebar-border);
+  padding: var(--space-5) var(--space-5) var(--space-4);
 }
 
 .app-sidebar__brand-mark {
   display: grid;
-  width: 2.5rem;
-  height: 2.5rem;
-  flex: 0 0 2.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 2.75rem;
   place-items: center;
-  border-radius: var(--radius-md);
-  background: var(--color-brand);
-  color: var(--color-text-on-brand);
-  font-size: var(--font-size-lg);
+  border: 1px solid rgb(248 237 207 / 48%);
+  border-radius: 0.85rem 0.85rem 0.85rem 0.25rem;
+  background: var(--color-grain-500);
+  color: var(--color-brand-950);
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-xl);
   font-weight: 700;
+  box-shadow: 0 6px 16px rgb(0 0 0 / 16%);
 }
 
 .app-sidebar__brand span:last-child {
@@ -99,19 +102,19 @@ const visibleMenuItems = computed(() => {
 }
 
 .app-sidebar__brand strong {
-  color: var(--color-text);
+  color: var(--color-sidebar-text);
   font-size: var(--font-size-md);
 }
 
 .app-sidebar__brand small {
-  color: var(--color-text-muted);
+  color: var(--color-sidebar-muted);
   font-size: var(--font-size-xs);
 }
 
 .app-sidebar__nav {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-4) var(--space-3);
+  padding: var(--space-5) var(--space-3);
 }
 
 .app-sidebar__menu,
@@ -131,9 +134,10 @@ const visibleMenuItems = computed(() => {
   display: flex;
   min-height: 2.75rem;
   align-items: center;
-  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  border-radius: 0.7rem;
   padding: var(--space-2) var(--space-3);
-  color: var(--color-text-secondary);
+  color: var(--color-sidebar-muted);
   font-size: var(--font-size-sm);
   font-weight: 600;
   text-decoration: none;
@@ -145,8 +149,19 @@ const visibleMenuItems = computed(() => {
 .app-sidebar__link:hover,
 .app-sidebar__link.router-link-active,
 .app-sidebar__link.router-link-exact-active {
-  background: var(--color-brand-soft);
-  color: var(--color-brand);
+  border-color: var(--color-sidebar-border);
+  background: var(--color-sidebar-surface);
+  color: var(--color-sidebar-text);
+}
+
+.app-sidebar__link.router-link-active::before,
+.app-sidebar__link.router-link-exact-active::before {
+  width: 0.3rem;
+  height: 1.3rem;
+  margin-right: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-grain-500);
+  content: '';
 }
 
 @media (max-width: 48rem) {

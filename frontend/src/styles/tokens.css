@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
 
-  /* Brand primitives: modern agriculture, not rustic decoration. */
+  /* 视觉方向：田间账本 × 冷链中控。深墨绿承载导航，谷物金只用于提醒和关键动作。 */
   --color-brand-950: #0f3326;
   --color-brand-900: #0f4c3a;
   --color-brand-800: #176b4d;
@@ -27,9 +27,14 @@
   --color-danger-100: #fbe1df;
   --color-info-700: #2d6680;
   --color-info-100: #deeff5;
+  --color-sidebar-bg: #102f24;
+  --color-sidebar-surface: #194536;
+  --color-sidebar-text: #d9ede1;
+  --color-sidebar-muted: #91b6a1;
+  --color-sidebar-border: rgb(217 237 225 / 14%);
 
   /* Semantic light theme. Components should only use these tokens. */
-  --color-bg: var(--color-slate-50);
+  --color-bg: #f3f7f2;
   --color-surface: var(--color-white);
   --color-surface-raised: var(--color-white);
   --color-surface-muted: var(--color-brand-50);
@@ -67,7 +72,8 @@
   --space-12: 3rem;
   --space-16: 4rem;
 
-  --font-family-sans: Inter, "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-family-sans: Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-family-display: "Noto Serif SC", "Songti SC", "STSong", serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-md: 1rem;
@@ -84,6 +90,7 @@
   --radius-pill: 999px;
   --shadow-sm: 0 1px 2px rgb(15 51 38 / 6%);
   --shadow-md: 0 8px 24px rgb(15 51 38 / 9%);
+  --shadow-lg: 0 20px 50px rgb(15 51 38 / 13%);
   --shadow-focus: 0 0 0 3px rgb(45 127 240 / 28%);
   --duration-fast: 150ms;
   --duration-normal: 220ms;
@@ -120,6 +127,12 @@
   --color-overlay: rgb(0 0 0 / 62%);
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 20%);
   --shadow-md: 0 8px 24px rgb(0 0 0 / 28%);
+  --shadow-lg: 0 20px 50px rgb(0 0 0 / 40%);
+  --color-sidebar-bg: #091d15;
+  --color-sidebar-surface: #173c2d;
+  --color-sidebar-text: #e7f2eb;
+  --color-sidebar-muted: #94b9a2;
+  --color-sidebar-border: rgb(231 242 235 / 14%);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -152,5 +165,11 @@
     --color-overlay: rgb(0 0 0 / 62%);
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 20%);
     --shadow-md: 0 8px 24px rgb(0 0 0 / 28%);
+    --shadow-lg: 0 20px 50px rgb(0 0 0 / 40%);
+    --color-sidebar-bg: #091d15;
+    --color-sidebar-surface: #173c2d;
+    --color-sidebar-text: #e7f2eb;
+    --color-sidebar-muted: #94b9a2;
+    --color-sidebar-border: rgb(231 242 235 / 14%);
   }
 }

@@ -6,9 +6,9 @@
 
 <style scoped>
 .page-container {
-  width: min(100%, 96rem);
+  width: min(100%, 98rem);
   margin: 0 auto;
-  padding: var(--space-6) var(--space-8) var(--space-12);
+  padding: var(--space-8) clamp(1.25rem, 4vw, 4rem) var(--space-16);
 }
 
 @media (max-width: 64rem) {

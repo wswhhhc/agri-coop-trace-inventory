@@ -17,7 +17,10 @@ body {
   min-width: 320px;
   min-height: 100dvh;
   margin: 0;
-  background: var(--color-bg);
+  background:
+    radial-gradient(circle at 80% -10%, rgb(201 154 61 / 10%), transparent 28rem),
+    linear-gradient(135deg, rgb(220 239 229 / 28%), transparent 35%),
+    var(--color-bg);
   color: var(--color-text);
   transition:
     background-color var(--duration-normal) var(--ease-standard),
@@ -53,6 +56,7 @@ button {
   background: var(--color-brand);
   color: var(--color-text-on-brand);
   font-weight: 600;
+  letter-spacing: 0.01em;
   line-height: var(--line-height-tight);
   transition:
     background-color var(--duration-fast) var(--ease-standard),
@@ -154,6 +158,7 @@ table {
   background: var(--color-surface);
   color: var(--color-text);
   font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
 }
 
 caption {
