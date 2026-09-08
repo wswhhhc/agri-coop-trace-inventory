@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+
+const PAGE_PICKER_SIZE = 10
+
+type PageToken = number | 'ellipsis-start' | 'ellipsis-end'
 
 const props = withDefaults(
   defineProps<{
@@ -19,16 +23,68 @@ const emit = defineEmits<{
   'page-size-change': [pageSize: number]
 }>()
 
-const pageNumbers = computed(() =>
-  Array.from({ length: props.totalPages }, (_, index) => index + 1),
+const pagePickerOpen = ref(false)
+const pagePickerPage = ref(1)
+const pagePickerPageCount = computed(() => Math.ceil(props.totalPages / PAGE_PICKER_SIZE))
+const pagePickerStart = computed(() => (pagePickerPage.value - 1) * PAGE_PICKER_SIZE + 1)
+const pagePickerEnd = computed(() =>
+  Math.min(props.totalPages, pagePickerStart.value + PAGE_PICKER_SIZE - 1),
 )
+const pagePickerNumbers = computed(() =>
+  Array.from(
+    { length: Math.max(0, pagePickerEnd.value - pagePickerStart.value + 1) },
+    (_, index) => pagePickerStart.value + index,
+  ),
+)
+
+const pageTokens = computed<PageToken[]>(() => {
+  if (props.totalPages <= 5) {
+    return Array.from({ length: props.totalPages }, (_, index) => index + 1)
+  }
+
+  if (props.page <= 3) {
+    return [1, 2, 3, 'ellipsis-end', props.totalPages]
+  }
+
+  if (props.page >= props.totalPages - 2) {
+    return [1, 'ellipsis-start', props.totalPages - 2, props.totalPages - 1, props.totalPages]
+  }
+
+  return [1, 'ellipsis-start', props.page, 'ellipsis-end', props.totalPages]
+})
+
+function pickerPageFor(page: number): number {
+  if (pagePickerPageCount.value === 0) return 1
+  return Math.min(pagePickerPageCount.value, Math.max(1, Math.ceil(page / PAGE_PICKER_SIZE)))
+}
+
+function openPagePicker(): void {
+  pagePickerPage.value = pickerPageFor(props.page)
+  pagePickerOpen.value = true
+}
+
+function goToPage(page: number): void {
+  pagePickerOpen.value = false
+  emit('change', page)
+}
 
 function handlePageSizeChange(event: Event): void {
   const value = Number((event.target as HTMLSelectElement).value)
   if (Number.isInteger(value) && value > 0) {
+    pagePickerOpen.value = false
     emit('page-size-change', value)
   }
 }
+
+watch(
+  () => [props.page, props.totalPages] as const,
+  ([page]) => {
+    if (!pagePickerOpen.value) {
+      pagePickerPage.value = pickerPageFor(page)
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -44,23 +100,69 @@ function handlePageSizeChange(event: Event): void {
       条
     </label>
     <div class="pagination-bar__controls">
-      <button type="button" :disabled="page <= 1" @click="emit('change', page - 1)">
+      <button type="button" :disabled="page <= 1" @click="goToPage(page - 1)">
         上一页
       </button>
-      <button
-        v-for="pageNumber in pageNumbers"
-        :key="pageNumber"
-        type="button"
-        :class="{ 'pagination-bar__page--active': pageNumber === page }"
-        :aria-current="pageNumber === page ? 'page' : undefined"
-        @click="emit('change', pageNumber)"
-      >
-        {{ pageNumber }}
-      </button>
-      <button type="button" :disabled="page >= totalPages || totalPages === 0" @click="emit('change', page + 1)">
+      <template v-for="token in pageTokens" :key="token">
+        <button
+          v-if="typeof token === 'number'"
+          type="button"
+          class="pagination-bar__page"
+          :class="{ 'pagination-bar__page--active': token === page }"
+          :aria-current="token === page ? 'page' : undefined"
+          @click="goToPage(token)"
+        >
+          {{ token }}
+        </button>
+        <button
+          v-else
+          type="button"
+          class="pagination-bar__ellipsis"
+          aria-label="打开页码选择器"
+          :aria-expanded="pagePickerOpen"
+          @click="openPagePicker"
+        >
+          …
+        </button>
+      </template>
+      <button type="button" :disabled="page >= totalPages || totalPages === 0" @click="goToPage(page + 1)">
         下一页
       </button>
     </div>
+    <section v-if="pagePickerOpen" class="pagination-bar__picker" aria-label="页码选择器">
+      <div class="pagination-bar__picker-header">
+        <button
+          type="button"
+          :disabled="pagePickerPage <= 1"
+          aria-label="上一组页码"
+          @click="pagePickerPage -= 1"
+        >
+          上一组
+        </button>
+        <span aria-live="polite">第 {{ pagePickerStart }}-{{ pagePickerEnd }} 页，共 {{ totalPages }} 页</span>
+        <button
+          type="button"
+          :disabled="pagePickerPage >= pagePickerPageCount"
+          aria-label="下一组页码"
+          @click="pagePickerPage += 1"
+        >
+          下一组
+        </button>
+      </div>
+      <div class="pagination-bar__picker-grid pagination-bar__picker-grid--five-columns">
+        <button
+          v-for="pageNumber in pagePickerNumbers"
+          :key="pageNumber"
+          type="button"
+          class="pagination-bar__picker-page"
+          :class="{ 'pagination-bar__page--active': pageNumber === page }"
+          :aria-current="pageNumber === page ? 'page' : undefined"
+          @click="goToPage(pageNumber)"
+        >
+          {{ pageNumber }}
+        </button>
+      </div>
+    </section>
   </nav>
 </template>
 
@@ -100,6 +202,43 @@ function handlePageSizeChange(event: Event): void {
   padding: var(--space-1) var(--space-2);
 }
 
+.pagination-bar__ellipsis {
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.pagination-bar__picker {
+  flex-basis: 100%;
+  display: grid;
+  gap: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-3);
+}
+
+.pagination-bar__picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.pagination-bar__picker-grid {
+  display: grid;
+  gap: var(--space-1);
+  max-width: 30rem;
+}
+
+.pagination-bar__picker-grid--five-columns {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.pagination-bar__picker-page {
+  width: 100%;
+}
+
 .pagination-bar__page--active {
   border-color: var(--color-primary);
   background: var(--color-primary);
@@ -114,6 +253,16 @@ function handlePageSizeChange(event: Event): void {
 
   .pagination-bar__controls {
     justify-content: center;
+  }
+
+  .pagination-bar__picker-header {
+    align-items: stretch;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .pagination-bar__picker-grid {
+    width: 100%;
   }
 }
 </style>
