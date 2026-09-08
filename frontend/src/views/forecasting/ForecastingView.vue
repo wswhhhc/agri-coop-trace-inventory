@@ -15,6 +15,7 @@ import { listProductOptions } from '@/api/products'
 import { listWarehouses } from '@/api/warehouses'
 import ForecastRangeChart from '@/components/forecasting/ForecastRangeChart.vue'
 import PageContext from '@/components/common/PageContext.vue'
+import ModalShell from '@/components/common/ModalShell.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
@@ -42,6 +43,8 @@ const warehouseState = usePageData(listWarehouses, [])
 const productState = usePageData(() => listProductOptions({ pageSize: 100 }), [])
 const selectedModel = ref<ModelVersionSummary | null>(null)
 const selectedForecast = ref<ForecastResultDetailSummary | null>(null)
+let modelDetailRequestId = 0
+let forecastDetailRequestId = 0
 const forecastDetailLoading = ref(false)
 const forecastDetailError = ref('')
 const detailLoading = ref(false)
@@ -74,10 +77,13 @@ function modelStatusTone(active: boolean): 'success' | 'neutral' {
 }
 
 async function loadDetail(modelVersionId: string): Promise<void> {
+  const requestId = ++modelDetailRequestId
   detailLoading.value = true
   detailError.value = ''
   try {
-    selectedModel.value = await getModelVersion(modelVersionId)
+    const model = await getModelVersion(modelVersionId)
+    if (requestId !== modelDetailRequestId) return
+    selectedModel.value = model
   } catch (reason) {
     detailError.value = getApiErrorMessage(reason, '模型详情加载失败')
   } finally {
@@ -85,16 +91,33 @@ async function loadDetail(modelVersionId: string): Promise<void> {
   }
 }
 
+function closeModelDetail(): void {
+  modelDetailRequestId += 1
+  selectedModel.value = null
+  detailLoading.value = false
+  detailError.value = ''
+}
+
 async function loadForecastDetail(forecastResultId: string): Promise<void> {
+  const requestId = ++forecastDetailRequestId
   forecastDetailLoading.value = true
   forecastDetailError.value = ''
   try {
-    selectedForecast.value = await getForecastResult(forecastResultId)
+    const forecast = await getForecastResult(forecastResultId)
+    if (requestId !== forecastDetailRequestId) return
+    selectedForecast.value = forecast
   } catch (reason) {
     forecastDetailError.value = getApiErrorMessage(reason, '预测结果加载失败')
   } finally {
     forecastDetailLoading.value = false
   }
+}
+
+function closeForecastDetail(): void {
+  forecastDetailRequestId += 1
+  selectedForecast.value = null
+  forecastDetailLoading.value = false
+  forecastDetailError.value = ''
 }
 
 async function handleActivate(modelVersionId: string): Promise<void> {
@@ -268,20 +291,25 @@ async function handleForecastSubmit(): Promise<void> {
         </tbody>
       </table>
     </PageState>
-    <aside v-if="detailLoading || detailError || selectedModel" class="model-version-detail">
-      <h2>模型版本详情</h2>
-      <p v-if="detailLoading">详情加载中…</p>
-      <p v-else-if="detailError" role="alert">{{ detailError }}</p>
-      <dl v-else-if="selectedModel">
-        <div><dt>版本</dt><dd>{{ selectedModel.version }}</dd></div>
-        <div><dt>模型类型</dt><dd>{{ selectedModel.modelType }}</dd></div>
-        <div><dt>仓库</dt><dd>{{ selectedModel.warehouseId }}</dd></div>
-        <div><dt>产品</dt><dd>{{ selectedModel.productId }}</dd></div>
-        <div><dt>随机种子</dt><dd>{{ selectedModel.randomSeed }}</dd></div>
-        <div><dt>参数</dt><dd><pre>{{ JSON.stringify(selectedModel.parameters, null, 2) }}</pre></dd></div>
-        <div><dt>指标</dt><dd><pre>{{ JSON.stringify(selectedModel.metrics, null, 2) }}</pre></dd></div>
-      </dl>
-    </aside>
+    <ModalShell
+      :open="detailLoading || Boolean(detailError) || Boolean(selectedModel)"
+      title="模型版本详情"
+      @close="closeModelDetail"
+    >
+      <div class="model-version-detail">
+        <p v-if="detailLoading">详情加载中…</p>
+        <p v-else-if="detailError" role="alert">{{ detailError }}</p>
+        <dl v-else-if="selectedModel">
+          <div><dt>版本</dt><dd>{{ selectedModel.version }}</dd></div>
+          <div><dt>模型类型</dt><dd>{{ selectedModel.modelType }}</dd></div>
+          <div><dt>仓库</dt><dd>{{ selectedModel.warehouseId }}</dd></div>
+          <div><dt>产品</dt><dd>{{ selectedModel.productId }}</dd></div>
+          <div><dt>随机种子</dt><dd>{{ selectedModel.randomSeed }}</dd></div>
+          <div><dt>参数</dt><dd><pre>{{ JSON.stringify(selectedModel.parameters, null, 2) }}</pre></dd></div>
+          <div><dt>指标</dt><dd><pre>{{ JSON.stringify(selectedModel.metrics, null, 2) }}</pre></dd></div>
+        </dl>
+      </div>
+    </ModalShell>
     <section class="forecast-results">
       <PageState
         :loading="forecastResultList.loading"
@@ -322,28 +350,33 @@ async function handleForecastSubmit(): Promise<void> {
         @change="forecastResultList.goToPage"
         @page-size-change="forecastResultList.setPageSize"
       />
-      <aside v-if="forecastDetailLoading || forecastDetailError || selectedForecast" class="forecast-result-detail">
-        <h2>预测结果详情</h2>
-        <p v-if="forecastDetailLoading">详情加载中…</p>
-        <p v-else-if="forecastDetailError" role="alert">{{ forecastDetailError }}</p>
-        <div v-else-if="selectedForecast">
-          <p>数据类型：{{ selectedForecast.dataType }}</p>
-          <p>重要因素：{{ selectedForecast.importantFactors.join('、') || '暂无' }}</p>
-          <p>限制说明：{{ selectedForecast.limitationNotice }}</p>
-          <ForecastRangeChart :points="selectedForecast.points" />
-          <table>
-            <caption>逐日预测点</caption>
-            <thead><tr><th scope="col">日期</th><th scope="col">预测量</th><th scope="col">区间</th></tr></thead>
-            <tbody>
-              <tr v-for="point in selectedForecast.points" :key="point.id">
-                <td>{{ point.forecastDate }}</td>
-                <td>{{ point.predictedQuantity }}</td>
-                <td>{{ point.lowerBound }} ～ {{ point.upperBound }}</td>
-              </tr>
-            </tbody>
-          </table>
+      <ModalShell
+        :open="forecastDetailLoading || Boolean(forecastDetailError) || Boolean(selectedForecast)"
+        title="预测结果详情"
+        @close="closeForecastDetail"
+      >
+        <div class="forecast-result-detail">
+          <p v-if="forecastDetailLoading">详情加载中…</p>
+          <p v-else-if="forecastDetailError" role="alert">{{ forecastDetailError }}</p>
+          <div v-else-if="selectedForecast">
+            <p>数据类型：{{ selectedForecast.dataType }}</p>
+            <p>重要因素：{{ selectedForecast.importantFactors.join('、') || '暂无' }}</p>
+            <p>限制说明：{{ selectedForecast.limitationNotice }}</p>
+            <ForecastRangeChart :points="selectedForecast.points" />
+            <table>
+              <caption>逐日预测点</caption>
+              <thead><tr><th scope="col">日期</th><th scope="col">预测量</th><th scope="col">区间</th></tr></thead>
+              <tbody>
+                <tr v-for="point in selectedForecast.points" :key="point.id">
+                  <td>{{ point.forecastDate }}</td>
+                  <td>{{ point.predictedQuantity }}</td>
+                  <td>{{ point.lowerBound }} ～ {{ point.upperBound }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </aside>
+      </ModalShell>
     </section>
   </section>
 </template>
@@ -419,17 +452,6 @@ async function handleForecastSubmit(): Promise<void> {
 .forecast-result-detail {
   display: grid;
   gap: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
-}
-
-.forecast-result-detail h2,
-.model-version-detail h2 {
-  margin-bottom: 0;
-  font-size: var(--font-size-lg);
 }
 
 .forecast-result-detail > div {

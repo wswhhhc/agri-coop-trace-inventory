@@ -14,6 +14,7 @@ import type { AlertRuleUpdatePayload } from '@/api/alerts'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import ModalShell from '@/components/common/ModalShell.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import TaskProgress from '@/components/common/TaskProgress.vue'
@@ -35,6 +36,7 @@ const submitting = ref(false)
 const formError = ref('')
 const successMessage = ref('')
 const selectedAlert = ref<AlertDetailSummary | null>(null)
+let alertDetailRequestId = 0
 const alertDetailLoading = ref(false)
 const alertDetailError = ref('')
 const handling = ref(false)
@@ -67,10 +69,13 @@ function statusTone(value: string): 'success' | 'warning' | 'danger' | 'info' {
 }
 
 async function loadAlertDetail(alertId: string): Promise<void> {
+  const requestId = ++alertDetailRequestId
   alertDetailLoading.value = true
   alertDetailError.value = ''
   try {
-    selectedAlert.value = await getAlert(alertId)
+    const alert = await getAlert(alertId)
+    if (requestId !== alertDetailRequestId) return
+    selectedAlert.value = alert
     handlingForm.status = selectedAlert.value.status
     handlingForm.handlingNote = ''
     handlingError.value = ''
@@ -81,15 +86,26 @@ async function loadAlertDetail(alertId: string): Promise<void> {
   }
 }
 
+function closeAlertDetail(): void {
+  alertDetailRequestId += 1
+  selectedAlert.value = null
+  alertDetailLoading.value = false
+  alertDetailError.value = ''
+  handlingError.value = ''
+}
+
 async function handleAlert(): Promise<void> {
   if (!selectedAlert.value) return
+  const requestId = alertDetailRequestId
   handling.value = true
   handlingError.value = ''
   try {
-    selectedAlert.value = await updateAlert(selectedAlert.value.id, {
+    const updatedAlert = await updateAlert(selectedAlert.value.id, {
       status: handlingForm.status,
       handlingNote: handlingForm.handlingNote.trim() || null,
     })
+    if (requestId !== alertDetailRequestId) return
+    selectedAlert.value = updatedAlert
     handlingForm.handlingNote = ''
     successMessage.value = '预警处理成功。'
     await alertList.loadData()
@@ -273,76 +289,88 @@ async function runAlertScan(): Promise<void> {
       />
     </section>
 
-    <aside v-if="alertDetailLoading || alertDetailError || selectedAlert" class="alert-detail">
-      <h2>预警详情</h2>
-      <p v-if="alertDetailLoading">详情加载中…</p>
-      <p v-else-if="alertDetailError" role="alert">{{ alertDetailError }}</p>
-      <dl v-else-if="selectedAlert">
-        <div><dt>标题</dt><dd>{{ selectedAlert.title }}</dd></div>
-        <div><dt>类型</dt><dd>{{ selectedAlert.alertType }}</dd></div>
-        <div><dt>级别</dt><dd><StatusBadge :label="selectedAlert.severity" :tone="severityTone(selectedAlert.severity)" /></dd></div>
-        <div><dt>状态</dt><dd><StatusBadge :label="selectedAlert.status" :tone="statusTone(selectedAlert.status)" /></dd></div>
-        <div><dt>说明</dt><dd>{{ selectedAlert.message }}</dd></div>
-        <div><dt>仓库</dt><dd>{{ selectedAlert.warehouseId || '—' }}</dd></div>
-        <div><dt>产品</dt><dd>{{ selectedAlert.productId || '—' }}</dd></div>
-        <div><dt>批次</dt><dd>{{ selectedAlert.batchId || '—' }}</dd></div>
-        <div><dt>证据</dt><dd><pre>{{ JSON.stringify(selectedAlert.evidence, null, 2) }}</pre></dd></div>
-        <div><dt>检测时间</dt><dd>{{ selectedAlert.detectedAt }}</dd></div>
-        <div v-if="selectedAlert.handlingLogs.length">
-          <dt>处理记录</dt>
-          <dd>
-            <ul>
-              <li v-for="log in selectedAlert.handlingLogs" :key="log.id">
-                {{ log.fromStatus }} → {{ log.toStatus }}：{{ log.comment || '—' }}（{{ log.createdAt }}）
-              </li>
-            </ul>
-          </dd>
-        </div>
-      </dl>
-      <form v-if="canHandleAlerts && selectedAlert" class="alert-handle-form" @submit.prevent="handleAlert">
-        <h3>处理预警</h3>
+    <ModalShell
+      :open="alertDetailLoading || Boolean(alertDetailError) || Boolean(selectedAlert)"
+      title="预警详情"
+      @close="closeAlertDetail"
+    >
+      <div class="alert-detail">
+        <p v-if="alertDetailLoading">详情加载中…</p>
+        <p v-else-if="alertDetailError" role="alert">{{ alertDetailError }}</p>
+        <dl v-else-if="selectedAlert">
+          <div><dt>标题</dt><dd>{{ selectedAlert.title }}</dd></div>
+          <div><dt>类型</dt><dd>{{ selectedAlert.alertType }}</dd></div>
+          <div><dt>级别</dt><dd><StatusBadge :label="selectedAlert.severity" :tone="severityTone(selectedAlert.severity)" /></dd></div>
+          <div><dt>状态</dt><dd><StatusBadge :label="selectedAlert.status" :tone="statusTone(selectedAlert.status)" /></dd></div>
+          <div><dt>说明</dt><dd>{{ selectedAlert.message }}</dd></div>
+          <div><dt>仓库</dt><dd>{{ selectedAlert.warehouseId || '—' }}</dd></div>
+          <div><dt>产品</dt><dd>{{ selectedAlert.productId || '—' }}</dd></div>
+          <div><dt>批次</dt><dd>{{ selectedAlert.batchId || '—' }}</dd></div>
+          <div><dt>证据</dt><dd><pre>{{ JSON.stringify(selectedAlert.evidence, null, 2) }}</pre></dd></div>
+          <div><dt>检测时间</dt><dd>{{ selectedAlert.detectedAt }}</dd></div>
+          <div v-if="selectedAlert.handlingLogs.length">
+            <dt>处理记录</dt>
+            <dd>
+              <ul>
+                <li v-for="log in selectedAlert.handlingLogs" :key="log.id">
+                  {{ log.fromStatus }} → {{ log.toStatus }}：{{ log.comment || '—' }}（{{ log.createdAt }}）
+                </li>
+              </ul>
+            </dd>
+          </div>
+        </dl>
+        <form v-if="canHandleAlerts && selectedAlert" class="alert-handle-form" @submit.prevent="handleAlert">
+          <h3>处理预警</h3>
+          <label>
+            目标状态
+            <select v-model="handlingForm.status">
+              <option v-for="status in alertStatuses" :key="status" :value="status">{{ status }}</option>
+            </select>
+          </label>
+          <label>
+            处理说明
+            <textarea v-model="handlingForm.handlingNote" maxlength="500" />
+          </label>
+          <button type="submit" :disabled="handling">{{ handling ? '提交中…' : '提交处理' }}</button>
+          <p v-if="handlingError" role="alert">{{ handlingError }}</p>
+        </form>
+      </div>
+    </ModalShell>
+
+    <ModalShell
+      :open="canEditRules && Boolean(editingRuleId)"
+      title="编辑预警规则"
+      @close="cancelEdit"
+    >
+      <form class="alert-rule-edit-form" @submit.prevent="handleUpdate">
         <label>
-          目标状态
-          <select v-model="handlingForm.status">
-            <option v-for="status in alertStatuses" :key="status" :value="status">{{ status }}</option>
+          数量阈值
+          <input v-model="editForm.thresholdQuantity" type="number" min="0" step="0.001" />
+        </label>
+        <label>
+          天数阈值
+          <input v-model="editForm.thresholdDays" type="number" min="0" step="1" />
+        </label>
+        <label>
+          周转天数
+          <input v-model="editForm.turnoverDays" type="number" min="0" step="1" />
+        </label>
+        <label>
+          级别
+          <select v-model="editForm.severity">
+            <option v-for="severity in severities" :key="severity" :value="severity">{{ severity }}</option>
           </select>
         </label>
         <label>
-          处理说明
-          <textarea v-model="handlingForm.handlingNote" maxlength="500" />
+          <input v-model="editForm.isEnabled" type="checkbox" />
+          启用
         </label>
-        <button type="submit" :disabled="handling">{{ handling ? '提交中…' : '提交处理' }}</button>
-        <p v-if="handlingError" role="alert">{{ handlingError }}</p>
+        <div class="alert-rule-edit-form__actions">
+          <button type="submit" :disabled="submitting">{{ submitting ? '保存中…' : '保存' }}</button>
+          <button type="button" :disabled="submitting" @click="cancelEdit">取消</button>
+        </div>
       </form>
-    </aside>
-
-    <form v-if="canEditRules && editingRuleId" class="alert-rule-edit-form" @submit.prevent="handleUpdate">
-      <h2>编辑预警规则</h2>
-      <label>
-        数量阈值
-        <input v-model="editForm.thresholdQuantity" type="number" min="0" step="0.001" />
-      </label>
-      <label>
-        天数阈值
-        <input v-model="editForm.thresholdDays" type="number" min="0" step="1" />
-      </label>
-      <label>
-        周转天数
-        <input v-model="editForm.turnoverDays" type="number" min="0" step="1" />
-      </label>
-      <label>
-        级别
-        <select v-model="editForm.severity">
-          <option v-for="severity in severities" :key="severity" :value="severity">{{ severity }}</option>
-        </select>
-      </label>
-      <label>
-        <input v-model="editForm.isEnabled" type="checkbox" />
-        启用
-      </label>
-      <button type="submit" :disabled="submitting">{{ submitting ? '保存中…' : '保存' }}</button>
-      <button type="button" :disabled="submitting" @click="cancelEdit">取消</button>
-    </form>
+    </ModalShell>
   </section>
 </template>
 
@@ -371,23 +399,9 @@ async function runAlertScan(): Promise<void> {
   gap: var(--space-3);
 }
 
-.alert-instance-list h2,
-.alert-detail h2,
-.alert-rule-edit-form h2 {
+.alert-instance-list h2 {
   margin-bottom: 0;
   font-size: var(--font-size-lg);
-}
-
-.alert-detail {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
-}
-
-.alert-detail,
-.alert-rule-edit-form {
-  padding: var(--space-5);
 }
 
 .alert-detail {
@@ -435,8 +449,7 @@ async function runAlertScan(): Promise<void> {
 
 .alert-handle-form h3,
 .alert-handle-form > label:nth-of-type(2),
-.alert-handle-form > p,
-.alert-rule-edit-form h2 {
+.alert-handle-form > p {
   grid-column: 1 / -1;
 }
 
@@ -449,9 +462,14 @@ async function runAlertScan(): Promise<void> {
   font-weight: 600;
 }
 
-.alert-handle-form > button,
-.alert-rule-edit-form > button {
+.alert-handle-form > button {
   justify-self: start;
+}
+
+.alert-rule-edit-form__actions {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: var(--space-2);
 }
 
 .alert-handle-form > p[role='alert'],
@@ -475,13 +493,17 @@ async function runAlertScan(): Promise<void> {
   .alert-handle-form h3,
   .alert-handle-form > label:nth-of-type(2),
   .alert-handle-form > p,
-  .alert-rule-edit-form h2 {
+  .alert-rule-edit-form__actions {
     grid-column: auto;
   }
 
   .alert-handle-form > button,
-  .alert-rule-edit-form > button {
+  .alert-rule-edit-form__actions > button {
     justify-self: stretch;
+  }
+
+  .alert-rule-edit-form__actions {
+    flex-direction: column;
   }
 }
 </style>
