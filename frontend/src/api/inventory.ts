@@ -79,13 +79,27 @@ export interface StockTransferResult {
 export interface InventoryListParams {
   page?: number
   pageSize?: number
+  warehouseId?: string
+  productId?: string
+  batchId?: string
+  stockRisk?: string
+  keyword?: string
 }
 
 export async function listInventoryPage(
   options: InventoryListParams = {},
 ): Promise<ListResponse<InventorySummary>> {
+  const params = {
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? 10,
+    ...(options.warehouseId ? { warehouseId: options.warehouseId } : {}),
+    ...(options.productId ? { productId: options.productId } : {}),
+    ...(options.batchId ? { batchId: options.batchId } : {}),
+    ...(options.stockRisk ? { stockRisk: options.stockRisk } : {}),
+    ...(options.keyword?.trim() ? { keyword: options.keyword.trim() } : {}),
+  }
   const response = await http.get<ListResponse<InventorySummary>>('/inventories', {
-    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
+    params,
   })
   return response.data
 }

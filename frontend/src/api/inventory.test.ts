@@ -8,6 +8,7 @@ import {
   createStocktake,
   createStockTransfer,
   getInventoryTransaction,
+  listInventory,
   listInventoryTransactions,
 } from './inventory'
 
@@ -149,6 +150,31 @@ describe('inventory api', () => {
         warehouseId: 'warehouse-1',
         batchId: 'batch-1',
         transactionType: 'OUTBOUND',
+      },
+    })
+  })
+
+  it('lists current inventory with warehouse, product, batch, risk, and keyword filters', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: [], pagination: { page: 2, pageSize: 20, totalItems: 0, totalPages: 0 } } })
+
+    await expect(listInventory({
+      page: 2,
+      pageSize: 20,
+      warehouseId: 'warehouse-1',
+      productId: 'product-1',
+      batchId: 'batch-1',
+      stockRisk: 'LOW_STOCK',
+      keyword: '  玉米  ',
+    })).resolves.toEqual([])
+    expect(http.get).toHaveBeenCalledWith('/inventories', {
+      params: {
+        page: 2,
+        pageSize: 20,
+        warehouseId: 'warehouse-1',
+        productId: 'product-1',
+        batchId: 'batch-1',
+        stockRisk: 'LOW_STOCK',
+        keyword: '玉米',
       },
     })
   })
