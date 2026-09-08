@@ -8,14 +8,15 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
 import {
   createProductCategory,
-  listProductCategories,
+  listProductCategoriesPage,
   updateProductCategory,
 } from '@/api/product-categories'
-import { useListPage } from '@/composables/usePageData'
+import PaginationBar from '@/components/common/PaginationBar.vue'
+import { usePaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const { items, loading, error, loadData } = useListPage(listProductCategories)
+const categoryList = usePaginatedList(listProductCategoriesPage)
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('product:manage'))
 const submitting = ref(false)
@@ -49,7 +50,7 @@ async function handleSubmit(): Promise<void> {
     })
     resetForm()
     successMessage.value = '产品分类创建成功。'
-    await loadData()
+    await categoryList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -57,7 +58,7 @@ async function handleSubmit(): Promise<void> {
   }
 }
 
-function beginEdit(category: (typeof items.value)[number]): void {
+function beginEdit(category: (typeof categoryList.items)[number]): void {
   editingCategoryId.value = category.id
   editForm.name = category.name
   editForm.description = category.description ?? ''
@@ -84,7 +85,7 @@ async function handleUpdate(): Promise<void> {
     })
     cancelEdit()
     successMessage.value = '产品分类更新成功。'
-    await loadData()
+    await categoryList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -129,7 +130,12 @@ async function handleUpdate(): Promise<void> {
       <button type="submit" :disabled="updating">{{ updating ? '保存中…' : '保存' }}</button>
       <button type="button" :disabled="updating" @click="cancelEdit">取消</button>
     </form>
-    <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
+    <PageState
+      :loading="categoryList.loading"
+      :error="categoryList.error"
+      :empty="categoryList.items.length === 0"
+      @retry="categoryList.loadData"
+    >
       <table>
         <caption>产品分类列表</caption>
         <thead>
@@ -142,7 +148,7 @@ async function handleUpdate(): Promise<void> {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="category in items" :key="category.id">
+          <tr v-for="category in categoryList.items" :key="category.id">
             <td>{{ category.code }}</td>
             <td>{{ category.name }}</td>
             <td>{{ category.description || '—' }}</td>
@@ -154,6 +160,14 @@ async function handleUpdate(): Promise<void> {
         </tbody>
       </table>
     </PageState>
+    <PaginationBar
+      :page="categoryList.pagination.page"
+      :total-pages="categoryList.pagination.totalPages"
+      :total-items="categoryList.pagination.totalItems"
+      :page-size="categoryList.pagination.pageSize"
+      @change="categoryList.goToPage"
+      @page-size-change="categoryList.setPageSize"
+    />
   </section>
 </template>
 

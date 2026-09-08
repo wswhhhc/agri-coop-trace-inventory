@@ -3,7 +3,7 @@ import { computed, reactive, ref } from 'vue'
 
 import {
   createCooperative,
-  listCooperatives,
+  listCooperativesPage,
   updateCooperative,
 } from '@/api/cooperatives'
 import type { CooperativeStatus } from '@/api/cooperatives'
@@ -11,12 +11,13 @@ import GeneratedCodeField from '@/components/common/GeneratedCodeField.vue'
 import PageContext from '@/components/common/PageContext.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageState from '@/components/common/PageState.vue'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
-import { useListPage } from '@/composables/usePageData'
+import { usePaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const { items, loading, error, loadData } = useListPage(listCooperatives)
+const cooperativeList = usePaginatedList(listCooperativesPage)
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasPermission('cooperative:manage'))
 const submitting = ref(false)
@@ -64,7 +65,7 @@ async function handleSubmit(): Promise<void> {
     })
     resetForm()
     successMessage.value = '合作社创建成功。'
-    await loadData()
+    await cooperativeList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -72,7 +73,7 @@ async function handleSubmit(): Promise<void> {
   }
 }
 
-function beginEdit(cooperative: (typeof items.value)[number]): void {
+function beginEdit(cooperative: (typeof cooperativeList.items)[number]): void {
   editingCooperativeId.value = cooperative.id
   editForm.name = cooperative.name
   editForm.address = cooperative.address ?? ''
@@ -103,7 +104,7 @@ async function handleUpdate(): Promise<void> {
     })
     cancelEdit()
     successMessage.value = '合作社更新成功。'
-    await loadData()
+    await cooperativeList.loadData()
   } catch (reason) {
     formError.value = getApiErrorMessage(reason)
   } finally {
@@ -181,7 +182,12 @@ async function handleUpdate(): Promise<void> {
       <button type="button" :disabled="updating" @click="cancelEdit">取消</button>
     </form>
 
-    <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
+    <PageState
+      :loading="cooperativeList.loading"
+      :error="cooperativeList.error"
+      :empty="cooperativeList.items.length === 0"
+      @retry="cooperativeList.loadData"
+    >
       <table>
         <caption>合作社列表</caption>
         <thead>
@@ -196,7 +202,7 @@ async function handleUpdate(): Promise<void> {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="cooperative in items" :key="cooperative.id">
+          <tr v-for="cooperative in cooperativeList.items" :key="cooperative.id">
             <td>{{ cooperative.code }}</td>
             <td>{{ cooperative.name }}</td>
             <td>{{ cooperative.contactName || '—' }}</td>
@@ -210,6 +216,14 @@ async function handleUpdate(): Promise<void> {
         </tbody>
       </table>
     </PageState>
+    <PaginationBar
+      :page="cooperativeList.pagination.page"
+      :total-pages="cooperativeList.pagination.totalPages"
+      :total-items="cooperativeList.pagination.totalItems"
+      :page-size="cooperativeList.pagination.pageSize"
+      @change="cooperativeList.goToPage"
+      @page-size-change="cooperativeList.setPageSize"
+    />
   </section>
 </template>
 
