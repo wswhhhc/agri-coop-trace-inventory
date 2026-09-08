@@ -196,7 +196,9 @@ async function handleResetPassword(): Promise<void> {
 
 <template>
   <section class="user-list-page">
-    <button v-if="canManage" type="button" @click="openCreateModal">创建用户</button>
+    <div class="page-toolbar">
+      <button v-if="canManage" class="create-button" type="button" @click="openCreateModal">创建用户</button>
+    </div>
 
     <CreateFormModal
       :open="showCreateModal"
@@ -354,6 +356,16 @@ async function handleResetPassword(): Promise<void> {
 .user-list-page {
   display: grid;
   gap: var(--space-5);
+}
+
+.page-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.create-button {
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-4);
 }
 
 .user-list-page > .page-state {

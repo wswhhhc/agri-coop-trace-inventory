@@ -130,7 +130,9 @@ async function handleUpdate(): Promise<void> {
 
 <template>
   <section class="warehouse-list-page">
-    <button v-if="canManage" type="button" @click="openCreateModal">创建仓库</button>
+    <div class="page-toolbar">
+      <button v-if="canManage" class="create-button" type="button" @click="openCreateModal">创建仓库</button>
+    </div>
     <p v-if="successMessage" class="warehouse-create-status" role="status">{{ successMessage }}</p>
 
     <CreateFormModal
@@ -237,6 +239,16 @@ async function handleUpdate(): Promise<void> {
 .warehouse-list-page {
   display: grid;
   gap: var(--space-5);
+}
+
+.page-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.create-button {
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-4);
 }
 
 .warehouse-list-page > .page-state {
