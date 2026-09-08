@@ -99,6 +99,19 @@ class ForecastingRepository:
             )
         )
 
+    async def lock_model_activation_scope(
+        self, cooperative_id: UUID, warehouse_id: UUID, product_id: UUID
+    ) -> None:
+        """串行化同一合作社、仓库和产品范围内的模型激活。"""
+        scope_key = f"{cooperative_id}:{warehouse_id}:{product_id}"
+        await self.session.execute(
+            select(
+                func.pg_advisory_xact_lock(
+                    func.hashtextextended(scope_key, 0)
+                )
+            )
+        )
+
     async def list_model_versions(
         self,
         cooperative_id: UUID | None,

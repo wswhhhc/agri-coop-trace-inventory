@@ -124,9 +124,13 @@ class ForecastingService:
             )
             if version is None:
                 raise resource_not_found()
+            await self.repository.lock_model_activation_scope(
+                version.cooperative_id, version.warehouse_id, version.product_id
+            )
             await self.repository.deactivate_scope(
                 version.cooperative_id, version.warehouse_id, version.product_id
             )
+            await self.session.flush()
             version.is_active = True
             await self.session.flush()
             return version

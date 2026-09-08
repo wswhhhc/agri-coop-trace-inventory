@@ -277,7 +277,7 @@ async function handleForecastSubmit(): Promise<void> {
               <button
                 v-if="canActivate && !model.isActive"
                 type="button"
-                :disabled="activatingId === model.id"
+                :disabled="activatingId !== null"
                 @click="handleActivate(model.id)"
               >
                 {{ activatingId === model.id ? '激活中…' : '激活' }}
