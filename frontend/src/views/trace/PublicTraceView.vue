@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { toRefs } from 'vue'
+import { computed, toRefs } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { getPublicTrace } from '@/api/public-traceability'
+import TraceEventList from '@/components/batches/TraceEventList.vue'
 import PageState from '@/components/common/PageState.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { usePageData } from '@/composables/usePageData'
@@ -12,6 +13,15 @@ const traceCode = String(route.params.traceCode)
 const pageState = usePageData(() => getPublicTrace(traceCode), null)
 const { data, loading, error } = toRefs(pageState)
 const { loadData } = pageState
+const traceTimeline = computed(() =>
+  data.value?.timeline.map((event, index) => ({
+    id: `${event.eventType}-${event.occurredAt}-${index}`,
+    eventType: event.eventType,
+    title: event.title,
+    description: event.description,
+    eventTime: event.occurredAt,
+  })) ?? [],
+)
 
 function statusTone(value: string): 'success' | 'warning' | 'danger' | 'info' {
   if (value === 'IN_STOCK' || value === 'PASSED') return 'success'
@@ -197,21 +207,12 @@ function formatDateTime(value: string): string {
               <section class="trace-card trace-card--wide" aria-labelledby="timeline-title">
                 <div class="trace-card__heading">
                   <div>
-                    <p class="section-eyebrow">TRACE JOURNEY</p>
+                    <p class="section-eyebrow">流转记录</p>
                     <h2 id="timeline-title">流转时间线</h2>
                   </div>
-                  <span class="trace-card__index">03</span>
+                  <span class="trace-timeline__count">共 {{ data.timeline.length }} 条</span>
                 </div>
-                <ol class="trace-timeline">
-                  <li v-for="(event, index) in data.timeline" :key="`${event.eventType}-${event.occurredAt}`">
-                    <span class="trace-timeline__dot" aria-hidden="true">{{ String(index + 1).padStart(2, '0') }}</span>
-                    <div class="trace-timeline__body">
-                      <time :datetime="event.occurredAt">{{ formatDateTime(event.occurredAt) }}</time>
-                      <h3>{{ event.title }}</h3>
-                      <p>{{ event.description }}</p>
-                    </div>
-                  </li>
-                </ol>
+                <TraceEventList :events="traceTimeline" />
               </section>
 
             <aside class="trace-layout__aside">
@@ -538,6 +539,16 @@ function formatDateTime(value: string): string {
   font-weight: 700;
 }
 
+.trace-timeline__count {
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  background: #d9f1e2;
+  color: var(--color-success);
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -632,79 +643,6 @@ function formatDateTime(value: string): string {
   color: var(--trace-muted);
   font-size: 0.78rem;
   font-weight: 500;
-}
-
-.trace-timeline {
-  position: relative;
-  display: grid;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.trace-timeline::before {
-  position: absolute;
-  top: 1.75rem;
-  bottom: 1.75rem;
-  left: 1.1rem;
-  width: 1px;
-  background: var(--trace-line);
-  content: '';
-}
-
-.trace-timeline li {
-  position: relative;
-  display: grid;
-  grid-template-columns: 2.2rem 1fr;
-  gap: 1rem;
-  padding: 0 0 1.5rem;
-}
-
-.trace-timeline li:last-child {
-  padding-bottom: 0;
-}
-
-.trace-timeline__dot {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  width: 2.2rem;
-  height: 2.2rem;
-  place-items: center;
-  border: 1px solid #b9d7c2;
-  border-radius: 50%;
-  background: #f7fbf7;
-  color: var(--color-brand);
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 0.62rem;
-  font-weight: 800;
-}
-
-.trace-timeline__body {
-  min-width: 0;
-  padding-top: 0.1rem;
-}
-
-.trace-timeline time {
-  display: block;
-  margin-bottom: 0.35rem;
-  color: var(--trace-muted);
-  font-size: 0.72rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.trace-timeline h3 {
-  margin-bottom: 0.35rem;
-  color: var(--trace-ink);
-  font-size: 0.98rem;
-}
-
-.trace-timeline p {
-  margin: 0;
-  color: var(--trace-muted);
-  font-size: 0.84rem;
-  line-height: 1.65;
 }
 
 .trust-card {

@@ -3,9 +3,8 @@ import FilterBar from '@/components/common/FilterBar.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import SelectField, { type SelectFieldOption } from '@/components/common/SelectField.vue'
 import { listTraceEventsPage, type TraceEventListParams } from '@/api/traceability'
+import TraceEventList from '@/components/batches/TraceEventList.vue'
 import { useFilteredPaginatedList } from '@/composables/usePageData'
-import { formatDateTime } from '@/utils/alerting-format'
-import { formatTraceEventType } from '@/utils/traceability-format'
 
 const props = defineProps<{
   batchId: string
@@ -29,18 +28,6 @@ const eventTypeOptions: SelectFieldOption[] = [
   { value: 'OTHER', label: '其他' },
 ]
 
-const eventIcons: Record<string, string> = {
-  PRODUCTION: '产',
-  INSPECTION: '检',
-  INBOUND: '入',
-  OUTBOUND: '出',
-  TRANSFER: '调',
-  OTHER: '记',
-}
-
-function eventIcon(eventType: string): string {
-  return eventIcons[eventType] ?? '记'
-}
 </script>
 
 <template>
@@ -67,19 +54,7 @@ function eventIcon(eventType: string): string {
       <button type="button" @click="traceList.loadData">重试</button>
     </section>
     <p v-else-if="traceList.items.length === 0" class="module-state">暂无追溯事件。</p>
-    <ol v-else class="timeline-list" :aria-busy="traceList.loading">
-      <li v-for="event in traceList.items" :key="event.id" class="timeline-item">
-        <div class="timeline-marker" aria-hidden="true">{{ eventIcon(event.eventType) }}</div>
-        <div class="timeline-entry">
-          <div class="timeline-entry__meta">
-            <time :datetime="event.eventTime">{{ formatDateTime(event.eventTime) }}</time>
-            <span class="event-type">{{ formatTraceEventType(event.eventType) }}</span>
-          </div>
-          <h3>{{ event.title }}</h3>
-          <p v-if="event.description">{{ event.description }}</p>
-        </div>
-      </li>
-    </ol>
+    <TraceEventList v-else :events="traceList.items" :aria-busy="traceList.loading" />
     <PaginationBar
       :page="traceList.pagination.page"
       :total-pages="traceList.pagination.totalPages"
@@ -174,89 +149,6 @@ function eventIcon(eventType: string): string {
   color: var(--color-danger);
 }
 
-.timeline-list {
-  display: grid;
-  gap: var(--space-4);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.timeline-item {
-  position: relative;
-  display: grid;
-  grid-template-columns: 2.75rem minmax(0, 1fr);
-  gap: var(--space-4);
-  min-width: 0;
-}
-
-.timeline-item:not(:last-child)::before {
-  content: '';
-  position: absolute;
-  top: 2.75rem;
-  bottom: calc(var(--space-4) * -1);
-  left: 1.35rem;
-  width: 1px;
-  background: var(--color-border-strong);
-}
-
-.timeline-marker {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  width: 2.75rem;
-  height: 2.75rem;
-  place-items: center;
-  border: 4px solid var(--color-surface);
-  border-radius: var(--radius-pill);
-  background: var(--color-brand);
-  color: var(--color-text-on-brand);
-  font-weight: 800;
-  box-shadow: 0 0 0 1px var(--color-brand-soft);
-}
-
-.timeline-entry {
-  min-width: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-4) var(--space-5);
-  background: var(--color-surface-muted);
-}
-
-.timeline-entry__meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.timeline-entry time {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  font-variant-numeric: tabular-nums;
-}
-
-.event-type {
-  border-radius: var(--radius-pill);
-  padding: 0.15rem var(--space-2);
-  background: var(--color-accent-soft);
-  color: var(--color-grain-700);
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-}
-
-.timeline-entry h3 {
-  margin: var(--space-2) 0 var(--space-1);
-  font-size: var(--font-size-md);
-}
-
-.timeline-entry p {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-relaxed);
-}
-
 .trace-event-timeline :deep(.pagination-bar) {
   margin-top: var(--space-1);
 }
@@ -274,25 +166,5 @@ function eventIcon(eventType: string): string {
     grid-template-columns: 1fr;
   }
 
-  .timeline-entry {
-    padding-inline: var(--space-4);
-  }
-}
-
-@media (max-width: 30rem) {
-  .timeline-item {
-    grid-template-columns: 2.25rem minmax(0, 1fr);
-    gap: var(--space-3);
-  }
-
-  .timeline-marker {
-    width: 2.25rem;
-    height: 2.25rem;
-  }
-
-  .timeline-item:not(:last-child)::before {
-    top: 2.25rem;
-    left: 1.1rem;
-  }
 }
 </style>
