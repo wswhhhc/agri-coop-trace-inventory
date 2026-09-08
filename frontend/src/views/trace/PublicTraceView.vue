@@ -278,7 +278,7 @@ function formatDateTime(value: string): string {
 .public-trace-page__shell {
   position: relative;
   z-index: 1;
-  width: min(100% - 2rem, 70rem);
+  width: min(100% - 2rem, 76rem);
   margin: 0 auto;
   padding: 1.5rem 0 3rem;
 }
@@ -482,8 +482,8 @@ function formatDateTime(value: string): string {
 
 .trace-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(15rem, 0.75fr);
-  align-items: start;
+  grid-template-columns: minmax(0, 1.45fr) minmax(20rem, 1fr);
+  align-items: stretch;
   gap: 1.5rem;
 }
 
@@ -494,7 +494,8 @@ function formatDateTime(value: string): string {
 }
 
 .trace-layout__aside {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
   min-width: 0;
 }
@@ -705,6 +706,8 @@ function formatDateTime(value: string): string {
 .trust-card {
   position: relative;
   overflow: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 1.5rem;
   background: var(--trace-ink);
   color: #dceee1;
@@ -825,10 +828,15 @@ function formatDateTime(value: string): string {
 
   .trace-layout {
     grid-template-columns: 1fr;
+    align-items: start;
   }
 
   .trace-layout__aside {
     grid-row: 1;
+  }
+
+  .trust-card {
+    min-height: 0;
   }
 
   .trust-card__seal {
