@@ -1,31 +1,64 @@
 <script setup lang="ts">
-import { listTraceEvents } from '@/api/traceability'
-import { useListPage } from '@/composables/usePageData'
+import FilterBar from '@/components/common/FilterBar.vue'
+import PaginationBar from '@/components/common/PaginationBar.vue'
+import SelectField, { type SelectFieldOption } from '@/components/common/SelectField.vue'
+import { listTraceEventsPage, type TraceEventListParams } from '@/api/traceability'
+import { useFilteredPaginatedList } from '@/composables/usePageData'
 
 const props = defineProps<{
   batchId: string
 }>()
 
-const { items, loading, error, loadData } = useListPage(() => listTraceEvents(props.batchId))
+type TraceEventFilterState = Pick<TraceEventListParams, 'eventType'> & { eventType: string }
+const traceList = useFilteredPaginatedList(
+  (params) => listTraceEventsPage(props.batchId, {
+    ...params,
+    eventType: params.eventType || undefined,
+  }),
+  { eventType: '' } satisfies TraceEventFilterState,
+)
+const eventTypeOptions: SelectFieldOption[] = [
+  { value: '', label: '全部事件类型' },
+  { value: 'PRODUCTION', label: '生产' },
+  { value: 'INSPECTION', label: '质检' },
+  { value: 'INBOUND', label: '入库' },
+  { value: 'OUTBOUND', label: '出库' },
+  { value: 'TRANSFER', label: '调拨' },
+  { value: 'OTHER', label: '其他' },
+]
 </script>
 
 <template>
   <section class="trace-event-timeline">
     <h2>追溯时间线</h2>
-    <section v-if="loading" role="status"><p>追溯事件加载中…</p></section>
-    <section v-else-if="error" role="alert">
-      <p>{{ error }}</p>
-      <button type="button" @click="loadData">重试</button>
+    <FilterBar @submit="traceList.applyFilters" @reset="traceList.resetFilters">
+      <label>
+        事件类型
+        <SelectField v-model="traceList.filters.eventType" :options="eventTypeOptions" />
+      </label>
+    </FilterBar>
+    <section v-if="traceList.loading" role="status"><p>追溯事件加载中…</p></section>
+    <section v-else-if="traceList.error" role="alert">
+      <p>{{ traceList.error }}</p>
+      <button type="button" @click="traceList.loadData">重试</button>
     </section>
-    <p v-else-if="items.length === 0">暂无追溯事件。</p>
+    <p v-else-if="traceList.items.length === 0">暂无追溯事件。</p>
     <ol v-else>
-      <li v-for="event in items" :key="event.id">
+      <li v-for="event in traceList.items" :key="event.id">
         <time :datetime="event.eventTime">{{ event.eventTime }}</time>
         <strong>{{ event.title }}</strong>
         <span>（{{ event.eventType }}）</span>
         <p v-if="event.description">{{ event.description }}</p>
       </li>
     </ol>
+    <PaginationBar
+      :page="traceList.pagination.page"
+      :total-pages="traceList.pagination.totalPages"
+      :total-items="traceList.pagination.totalItems"
+      :page-size="traceList.pagination.pageSize"
+      @change="traceList.goToPage"
+      @page-size-change="traceList.setPageSize"
+    />
   </section>
 </template>
 

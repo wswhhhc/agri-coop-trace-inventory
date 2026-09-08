@@ -1,5 +1,6 @@
 import type { ApiResponse, ListResponse } from '@/types/api'
 import type { QualityInspectionSummary } from '@/types/resources'
+import { cleanQueryParams } from '@/composables/usePageData'
 
 import http from './http'
 
@@ -21,14 +22,32 @@ export interface QualityInspectionCreatePayload {
   attachmentFileIds?: string[]
 }
 
+export interface QualityInspectionListParams {
+  page?: number
+  pageSize?: number
+  conclusion?: InspectionConclusion
+}
+
+export async function listQualityInspectionsPage(
+  batchId: string,
+  options: QualityInspectionListParams = {},
+): Promise<ListResponse<QualityInspectionSummary>> {
+  const params = cleanQueryParams({
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? 10,
+    conclusion: options.conclusion,
+  })
+  const response = await http.get<ListResponse<QualityInspectionSummary>>(
+    `/batches/${batchId}/quality-inspections`,
+    { params },
+  )
+  return response.data
+}
+
 export async function listQualityInspections(
   batchId: string,
 ): Promise<QualityInspectionSummary[]> {
-  const response = await http.get<ListResponse<QualityInspectionSummary>>(
-    `/batches/${batchId}/quality-inspections`,
-    { params: { page: 1, pageSize: 10 } },
-  )
-  return response.data.data
+  return (await listQualityInspectionsPage(batchId)).data
 }
 
 export async function createQualityInspection(

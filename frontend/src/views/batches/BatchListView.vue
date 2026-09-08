@@ -54,10 +54,11 @@ const productState = usePageData(
   () => listProductOptions({ isActive: true, pageSize: 100 }),
   [],
 )
+const filterProductState = usePageData(() => listProductOptions({ pageSize: 100 }), [])
 const warehouseState = usePageData(() => listWarehouses({ pageSize: 100 }), [])
 const productFilterOptions = computed<SelectFieldOption[]>(() => [
   { value: '', label: '全部产品' },
-  ...productState.data.map((product) => ({
+  ...filterProductState.data.map((product) => ({
     value: product.id,
     label: `${product.name}（${product.code}）`,
   })),

@@ -1,34 +1,59 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, ref } from 'vue'
 
-import { getAuditLog, listAuditLogsPage } from '@/api/audit-logs'
+import { getAuditLog, listAuditLogsPage, type AuditLogListParams } from '@/api/audit-logs'
+import { listUsers } from '@/api/users'
+import FilterBar from '@/components/common/FilterBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
+import SelectField, { type SelectFieldOption } from '@/components/common/SelectField.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
-import { usePaginatedList } from '@/composables/usePageData'
+import { useFilteredPaginatedList, usePageData } from '@/composables/usePageData'
 import type { AuditLogSummary } from '@/types/resources'
 import { getApiErrorMessage } from '@/utils/api-error'
 import { formatAuditResult } from '@/utils/audit-format'
 
-const filters = reactive({
-  action: '',
-  resourceType: '',
-  resourceId: '',
-  result: '' as '' | 'SUCCESS' | 'FAILURE',
-  startDate: '',
-  endDate: '',
-})
-const auditLogList = usePaginatedList((pagination) =>
-  listAuditLogsPage({
-    ...pagination,
-    ...(filters.action ? { action: filters.action.trim() } : {}),
-    ...(filters.resourceType ? { resourceType: filters.resourceType.trim() } : {}),
-    ...(filters.resourceId ? { resourceId: filters.resourceId.trim() } : {}),
-    ...(filters.result ? { result: filters.result } : {}),
-    ...(filters.startDate ? { startDate: toApiDateTime(filters.startDate) } : {}),
-    ...(filters.endDate ? { endDate: toApiDateTime(filters.endDate) } : {}),
+type AuditLogFilterState = Pick<
+  AuditLogListParams,
+  'userId' | 'action' | 'resourceType' | 'resourceId' | 'result' | 'startDate' | 'endDate'
+> & {
+  userId: string
+  action: string
+  resourceType: string
+  resourceId: string
+  result: '' | 'SUCCESS' | 'FAILURE'
+  startDate: string
+  endDate: string
+}
+const auditLogList = useFilteredPaginatedList(
+  (params) => listAuditLogsPage({
+    ...params,
+    userId: params.userId || undefined,
+    action: params.action || undefined,
+    resourceType: params.resourceType || undefined,
+    resourceId: params.resourceId || undefined,
+    result: params.result || undefined,
+    startDate: params.startDate ? toApiDateTime(params.startDate) : undefined,
+    endDate: params.endDate ? toApiDateTime(params.endDate) : undefined,
   }),
+  {
+    userId: '',
+    action: '',
+    resourceType: '',
+    resourceId: '',
+    result: '',
+    startDate: '',
+    endDate: '',
+  } satisfies AuditLogFilterState,
 )
+const userState = usePageData(() => listUsers({ pageSize: 100 }), [])
+const userOptions = computed<SelectFieldOption[]>(() => [
+  { value: '', label: '全部用户' },
+  ...userState.data.map((user) => ({
+    value: user.id,
+    label: `${user.displayName}（${user.username}）`,
+  })),
+])
 const selectedLog = ref<AuditLogSummary | null>(null)
 const detailLoading = ref(false)
 const detailError = ref('')
@@ -41,16 +66,6 @@ function resultTone(value: string): 'success' | 'danger' | 'info' {
   if (value === 'SUCCESS') return 'success'
   if (value === 'FAILURE') return 'danger'
   return 'info'
-}
-
-function resetFilters(): void {
-  filters.action = ''
-  filters.resourceType = ''
-  filters.resourceId = ''
-  filters.result = ''
-  filters.startDate = ''
-  filters.endDate = ''
-  void auditLogList.loadData(1)
 }
 
 async function loadDetail(auditLogId: string): Promise<void> {
@@ -68,23 +83,25 @@ async function loadDetail(auditLogId: string): Promise<void> {
 
 <template>
   <section class="audit-log-list-page">
-    <form class="audit-log-filters" @submit.prevent="() => auditLogList.loadData(1)">
-      <label>操作 <input v-model="filters.action" placeholder="如 CREATE_BATCH" /></label>
-      <label>资源类型 <input v-model="filters.resourceType" placeholder="如 BATCH" /></label>
-      <label>资源 ID <input v-model="filters.resourceId" /></label>
+    <FilterBar @submit="auditLogList.applyFilters" @reset="auditLogList.resetFilters">
+      <label>
+        用户
+        <SelectField v-model="auditLogList.filters.userId" :options="userOptions" />
+      </label>
+      <label>操作 <input v-model="auditLogList.filters.action" placeholder="如 CREATE_BATCH" /></label>
+      <label>资源类型 <input v-model="auditLogList.filters.resourceType" placeholder="如 BATCH" /></label>
+      <label>资源 ID <input v-model="auditLogList.filters.resourceId" /></label>
       <label>
         结果
-        <select v-model="filters.result">
+        <select v-model="auditLogList.filters.result">
           <option value="">全部</option>
           <option value="SUCCESS">成功</option>
           <option value="FAILURE">失败</option>
         </select>
       </label>
-      <label>开始时间 <input v-model="filters.startDate" type="datetime-local" /></label>
-      <label>结束时间 <input v-model="filters.endDate" type="datetime-local" /></label>
-      <button type="submit">查询</button>
-      <button type="button" @click="resetFilters">重置</button>
-    </form>
+      <label>开始时间 <input v-model="auditLogList.filters.startDate" type="datetime-local" /></label>
+      <label>结束时间 <input v-model="auditLogList.filters.endDate" type="datetime-local" /></label>
+    </FilterBar>
     <PageState
       :loading="auditLogList.loading"
       :error="auditLogList.error"
@@ -133,37 +150,12 @@ async function loadDetail(auditLogId: string): Promise<void> {
   gap: var(--space-5);
 }
 
-.audit-log-filters {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: end;
-  gap: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  background: var(--color-surface-muted);
-}
-
-.audit-log-filters > label {
-  display: grid;
-  gap: var(--space-1);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-}
-
 .audit-log-list-page > .page-state {
   overflow-x: auto;
 }
 
 .audit-log-list-page > .page-state table {
   min-width: 62rem;
-}
-
-.audit-log-filters > button:last-child {
-  border-color: var(--color-border-strong);
-  background: transparent;
-  color: var(--color-text-secondary);
 }
 
 .audit-log-detail {
@@ -213,8 +205,5 @@ async function loadDetail(auditLogId: string): Promise<void> {
     gap: var(--space-1);
   }
 
-  .audit-log-filters {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

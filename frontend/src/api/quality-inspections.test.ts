@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { createQualityInspection, listQualityInspections } from './quality-inspections'
+import { createQualityInspection, listQualityInspections, listQualityInspectionsPage } from './quality-inspections'
 
 vi.mock('./http', () => ({
   default: { get: vi.fn(), post: vi.fn() },
@@ -18,6 +18,16 @@ describe('quality inspections api', () => {
     await expect(listQualityInspections('batch-1')).resolves.toEqual([])
     expect(http.get).toHaveBeenCalledWith('/batches/batch-1/quality-inspections', {
       params: { page: 1, pageSize: 10 },
+    })
+  })
+
+  it('sends a conclusion filter', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: [] } })
+
+    await listQualityInspectionsPage('batch-1', { conclusion: 'FAILED' })
+
+    expect(http.get).toHaveBeenCalledWith('/batches/batch-1/quality-inspections', {
+      params: { page: 1, pageSize: 10, conclusion: 'FAILED' },
     })
   })
 

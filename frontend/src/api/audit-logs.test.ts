@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import http from './http'
-import { getAuditLog, listAuditLogs } from './audit-logs'
+import { getAuditLog, listAuditLogs, listAuditLogsPage } from './audit-logs'
 
 vi.mock('./http', () => ({
   default: { get: vi.fn() },
@@ -25,6 +25,16 @@ describe('audit logs api', () => {
     await listAuditLogs({ action: 'CREATE_BATCH', result: 'FAILURE' })
     expect(http.get).toHaveBeenCalledWith('/audit-logs', {
       params: { page: 1, pageSize: 10, action: 'CREATE_BATCH', result: 'FAILURE' },
+    })
+  })
+
+  it('sends the user filter and removes empty values', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: [] } })
+
+    await listAuditLogsPage({ userId: 'user-1', action: 'UPDATE_BATCH' })
+
+    expect(http.get).toHaveBeenCalledWith('/audit-logs', {
+      params: { page: 1, pageSize: 10, userId: 'user-1', action: 'UPDATE_BATCH' },
     })
   })
 

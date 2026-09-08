@@ -3,12 +3,16 @@ import { reactive, ref } from 'vue'
 
 import {
   createQualityInspection,
-  listQualityInspections,
+  listQualityInspectionsPage,
   type InspectionConclusion,
+  type QualityInspectionListParams,
   type QualityInspectionItemCreatePayload,
 } from '@/api/quality-inspections'
 import { uploadFile } from '@/api/files'
-import { useListPage } from '@/composables/usePageData'
+import FilterBar from '@/components/common/FilterBar.vue'
+import PaginationBar from '@/components/common/PaginationBar.vue'
+import SelectField, { type SelectFieldOption } from '@/components/common/SelectField.vue'
+import { useFilteredPaginatedList } from '@/composables/usePageData'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { getApiErrorMessage } from '@/utils/api-error'
 
@@ -17,7 +21,22 @@ const props = defineProps<{
   canManage: boolean
 }>()
 
-const { items, loading, error, loadData } = useListPage(() => listQualityInspections(props.batchId))
+type QualityInspectionFilterState = Pick<QualityInspectionListParams, 'conclusion'> & {
+  conclusion: InspectionConclusion | ''
+}
+const inspectionList = useFilteredPaginatedList(
+  (params) => listQualityInspectionsPage(props.batchId, {
+    ...params,
+    conclusion: params.conclusion || undefined,
+  }),
+  { conclusion: '' } satisfies QualityInspectionFilterState,
+)
+const conclusionOptions: SelectFieldOption[] = [
+  { value: '', label: '全部结论' },
+  { value: 'PENDING', label: '待定' },
+  { value: 'PASSED', label: '合格' },
+  { value: 'FAILED', label: '不合格' },
+]
 const submitting = ref(false)
 const formError = ref('')
 const successMessage = ref('')
@@ -93,13 +112,19 @@ async function handleSubmit(): Promise<void> {
 <template>
   <section class="quality-inspection-panel">
     <h2>质检记录</h2>
-    <section v-if="loading" role="status"><p>质检记录加载中…</p></section>
-    <section v-else-if="error" role="alert">
-      <p>{{ error }}</p>
-      <button type="button" @click="loadData">重试</button>
+    <FilterBar @submit="inspectionList.applyFilters" @reset="inspectionList.resetFilters">
+      <label>
+        质检结论
+        <SelectField v-model="inspectionList.filters.conclusion" :options="conclusionOptions" />
+      </label>
+    </FilterBar>
+    <section v-if="inspectionList.loading" role="status"><p>质检记录加载中…</p></section>
+    <section v-else-if="inspectionList.error" role="alert">
+      <p>{{ inspectionList.error }}</p>
+      <button type="button" @click="inspectionList.loadData">重试</button>
     </section>
-    <p v-else-if="items.length === 0">暂无质检记录。</p>
-    <article v-for="inspection in items" :key="inspection.id">
+    <p v-else-if="inspectionList.items.length === 0">暂无质检记录。</p>
+    <article v-for="inspection in inspectionList.items" :key="inspection.id">
       <h3>
         {{ inspection.inspectionNo }}：
         <StatusBadge :label="inspection.conclusion" :tone="conclusionTone(inspection.conclusion)" />
@@ -121,6 +146,14 @@ async function handleSubmit(): Promise<void> {
         </tbody>
       </table>
     </article>
+    <PaginationBar
+      :page="inspectionList.pagination.page"
+      :total-pages="inspectionList.pagination.totalPages"
+      :total-items="inspectionList.pagination.totalItems"
+      :page-size="inspectionList.pagination.pageSize"
+      @change="inspectionList.goToPage"
+      @page-size-change="inspectionList.setPageSize"
+    />
 
     <form v-if="canManage" class="quality-inspection-create-form" @submit.prevent="handleSubmit">
       <h3>新增质检记录</h3>
