@@ -11,15 +11,18 @@ import {
   submitForecastTask,
   submitModelTrainingTask,
 } from '@/api/forecasting'
+import type { ForecastResultListParams, ModelVersionListParams } from '@/api/forecasting'
 import { listProductOptions } from '@/api/products'
 import { listWarehouses } from '@/api/warehouses'
 import ForecastRangeChart from '@/components/forecasting/ForecastRangeChart.vue'
 import ModalShell from '@/components/common/ModalShell.vue'
+import FilterBar from '@/components/common/FilterBar.vue'
 import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
+import SelectField, { type SelectFieldOption } from '@/components/common/SelectField.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import TaskProgress from '@/components/common/TaskProgress.vue'
-import { usePageData, usePaginatedList } from '@/composables/usePageData'
+import { useFilteredPaginatedList, usePageData } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import type {
   ForecastResultDetailSummary,
@@ -28,8 +31,32 @@ import type {
 } from '@/types/resources'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const modelVersionList = usePaginatedList(listModelVersionsPage)
-const forecastResultList = usePaginatedList(listForecastResultsPage)
+type ModelVersionFilterState = Pick<ModelVersionListParams, 'warehouseId' | 'productId' | 'isActive'> & {
+  warehouseId: string
+  productId: string
+  isActive: boolean | undefined
+}
+const modelVersionList = useFilteredPaginatedList(
+  (params) => listModelVersionsPage({
+    ...params,
+    warehouseId: params.warehouseId || undefined,
+    productId: params.productId || undefined,
+    isActive: params.isActive,
+  }),
+  { warehouseId: '', productId: '', isActive: undefined as boolean | undefined } satisfies ModelVersionFilterState,
+)
+type ForecastResultFilterState = Pick<ForecastResultListParams, 'warehouseId' | 'productId'> & {
+  warehouseId: string
+  productId: string
+}
+const forecastResultList = useFilteredPaginatedList(
+  (params) => listForecastResultsPage({
+    ...params,
+    warehouseId: params.warehouseId || undefined,
+    productId: params.productId || undefined,
+  }),
+  { warehouseId: '', productId: '' } satisfies ForecastResultFilterState,
+)
 const authStore = useAuthStore()
 const canActivate = computed(
   () => authStore.role === 'COOPERATIVE_ADMIN' && authStore.hasPermission('model:manage'),
@@ -69,6 +96,27 @@ const trainingForm = reactive({
   testRatio: 0.2,
   randomSeed: 42,
 })
+const warehouseFilterOptions = computed<SelectFieldOption[]>(() => [
+  { value: '', label: '全部仓库' },
+  ...warehouseState.data.map((warehouse) => ({ value: warehouse.id, label: warehouse.name })),
+])
+const productFilterOptions = computed<SelectFieldOption[]>(() => [
+  { value: '', label: '全部产品' },
+  ...productState.data.map((product) => ({ value: product.id, label: product.name })),
+])
+const modelActiveOptions: SelectFieldOption[] = [
+  { value: '', label: '全部状态' },
+  { value: 'true', label: '已激活' },
+  { value: 'false', label: '未激活' },
+]
+
+function setModelActiveFilter(value: string): void {
+  modelVersionList.filters.isActive = value === '' ? undefined : value === 'true'
+}
+
+function modelActiveFilterValue(): string {
+  return modelVersionList.filters.isActive === undefined ? '' : String(modelVersionList.filters.isActive)
+}
 
 function modelStatusTone(active: boolean): 'success' | 'neutral' {
   return active ? 'success' : 'neutral'
@@ -252,6 +300,20 @@ async function handleForecastSubmit(): Promise<void> {
     </form>
     <p v-if="actionError" role="alert">{{ actionError }}</p>
     <p v-if="successMessage" role="status">{{ successMessage }}</p>
+    <FilterBar @submit="modelVersionList.applyFilters" @reset="modelVersionList.resetFilters">
+      <label>
+        仓库
+        <SelectField v-model="modelVersionList.filters.warehouseId" :options="warehouseFilterOptions" />
+      </label>
+      <label>
+        产品
+        <SelectField v-model="modelVersionList.filters.productId" :options="productFilterOptions" />
+      </label>
+      <label>
+        是否启用
+        <SelectField :model-value="modelActiveFilterValue()" :options="modelActiveOptions" @update:model-value="setModelActiveFilter" />
+      </label>
+    </FilterBar>
     <PageState
       :loading="modelVersionList.loading"
       :error="modelVersionList.error"
@@ -320,6 +382,16 @@ async function handleForecastSubmit(): Promise<void> {
       </div>
     </ModalShell>
     <section class="forecast-results">
+      <FilterBar @submit="forecastResultList.applyFilters" @reset="forecastResultList.resetFilters">
+        <label>
+          仓库
+          <SelectField v-model="forecastResultList.filters.warehouseId" :options="warehouseFilterOptions" />
+        </label>
+        <label>
+          产品
+          <SelectField v-model="forecastResultList.filters.productId" :options="productFilterOptions" />
+        </label>
+      </FilterBar>
       <PageState
         :loading="forecastResultList.loading"
         :error="forecastResultList.error"

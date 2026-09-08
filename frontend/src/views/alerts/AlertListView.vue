@@ -11,7 +11,7 @@ import {
   updateAlert,
   updateAlertRule,
 } from '@/api/alerts'
-import type { AlertRuleUpdatePayload } from '@/api/alerts'
+import type { AlertListParams, AlertRuleUpdatePayload } from '@/api/alerts'
 import { listProductOptions } from '@/api/products'
 import { listWarehouses } from '@/api/warehouses'
 import PageState from '@/components/common/PageState.vue'
@@ -19,7 +19,9 @@ import ModalShell from '@/components/common/ModalShell.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import TaskProgress from '@/components/common/TaskProgress.vue'
-import { usePageData, usePaginatedList } from '@/composables/usePageData'
+import FilterBar from '@/components/common/FilterBar.vue'
+import SelectField, { type SelectFieldOption } from '@/components/common/SelectField.vue'
+import { useFilteredPaginatedList, usePageData, usePaginatedList } from '@/composables/usePageData'
 import type { AlertDetailSummary, TaskSummary } from '@/types/resources'
 import { useAuthStore } from '@/stores/auth'
 import { canManageAlertRules } from '@/utils/alerting-permission'
@@ -38,7 +40,42 @@ const canEditRules = computed(
   () => canManageAlertRules(authStore.role, authStore.permissions),
 )
 const ruleList = usePaginatedList(listAlertRulesPage)
-const alertList = usePaginatedList(listAlertsPage)
+type AlertFilterState = Pick<
+  AlertListParams,
+  'type' | 'severity' | 'status' | 'warehouseId' | 'productId' | 'batchId' | 'createdAfter' | 'createdBefore'
+> & {
+  type: string
+  severity: string
+  status: string
+  warehouseId: string
+  productId: string
+  batchId: string
+  createdAfter: string
+  createdBefore: string
+}
+const alertList = useFilteredPaginatedList(
+  (params) => listAlertsPage({
+    ...params,
+    type: params.type || undefined,
+    severity: params.severity || undefined,
+    status: params.status || undefined,
+    warehouseId: params.warehouseId || undefined,
+    productId: params.productId || undefined,
+    batchId: params.batchId || undefined,
+    createdAfter: params.createdAfter ? toApiDateTime(params.createdAfter) : undefined,
+    createdBefore: params.createdBefore ? toApiDateTime(params.createdBefore) : undefined,
+  }),
+  {
+    type: '',
+    severity: '',
+    status: '',
+    warehouseId: '',
+    productId: '',
+    batchId: '',
+    createdAfter: '',
+    createdBefore: '',
+  } satisfies AlertFilterState,
+)
 const warehouseState = usePageData(listWarehouses, [])
 const productState = usePageData(() => listProductOptions({ pageSize: 100 }), [])
 const batchState = usePageData(() => listBatchOptions({ pageSize: 100 }), [])
@@ -67,6 +104,37 @@ const editForm = reactive({
   isEnabled: true,
 })
 const severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+const alertTypeOptions: SelectFieldOption[] = [
+  { value: '', label: '全部类型' },
+  { value: 'LOW_STOCK', label: '库存不足' },
+  { value: 'NEAR_EXPIRY', label: '临近过期' },
+  { value: 'OVERSTOCK', label: '库存积压' },
+  { value: 'QUALITY_FAILED', label: '质检异常' },
+]
+const severityOptions: SelectFieldOption[] = [
+  { value: '', label: '全部级别' },
+  ...severities.map((severity) => ({ value: severity, label: formatSeverity(severity) })),
+]
+const alertStatusOptions: SelectFieldOption[] = [
+  { value: '', label: '全部状态' },
+  ...alertStatuses.map((status) => ({ value: status, label: formatAlertStatus(status) })),
+]
+const warehouseFilterOptions = computed<SelectFieldOption[]>(() => [
+  { value: '', label: '全部仓库' },
+  ...warehouseState.data.map((warehouse) => ({ value: warehouse.id, label: warehouse.name })),
+])
+const productFilterOptions = computed<SelectFieldOption[]>(() => [
+  { value: '', label: '全部产品' },
+  ...productState.data.map((product) => ({ value: product.id, label: product.name })),
+])
+const batchFilterOptions = computed<SelectFieldOption[]>(() => [
+  { value: '', label: '全部批次' },
+  ...batchState.data.map((batch) => ({ value: batch.id, label: batch.batchNo })),
+])
+
+function toApiDateTime(value: string): string {
+  return value.length === 16 ? `${value}:00+08:00` : value
+}
 
 const warehouseNameById = computed(
   () => new Map(warehouseState.data.map((warehouse) => [warehouse.id, warehouse.name])),
@@ -283,6 +351,40 @@ async function runAlertScan(): Promise<void> {
 
     <section class="alert-instance-list">
       <h2>预警实例</h2>
+      <FilterBar @submit="alertList.applyFilters" @reset="alertList.resetFilters">
+        <label>
+          类型
+          <SelectField v-model="alertList.filters.type" :options="alertTypeOptions" />
+        </label>
+        <label>
+          级别
+          <SelectField v-model="alertList.filters.severity" :options="severityOptions" />
+        </label>
+        <label>
+          状态
+          <SelectField v-model="alertList.filters.status" :options="alertStatusOptions" />
+        </label>
+        <label>
+          仓库
+          <SelectField v-model="alertList.filters.warehouseId" :options="warehouseFilterOptions" />
+        </label>
+        <label>
+          产品
+          <SelectField v-model="alertList.filters.productId" :options="productFilterOptions" />
+        </label>
+        <label>
+          批次
+          <SelectField v-model="alertList.filters.batchId" :options="batchFilterOptions" />
+        </label>
+        <label>
+          创建时间起
+          <input v-model="alertList.filters.createdAfter" type="datetime-local" />
+        </label>
+        <label>
+          创建时间止
+          <input v-model="alertList.filters.createdBefore" type="datetime-local" />
+        </label>
+      </FilterBar>
       <PageState
         :loading="alertList.loading"
         :error="alertList.error"

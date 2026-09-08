@@ -43,6 +43,16 @@ describe('forecasting api', () => {
     })
   })
 
+  it('sends model version filters', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: [] } })
+
+    await listModelVersionsPage({ warehouseId: 'warehouse-1', productId: 'product-1', isActive: true })
+
+    expect(http.get).toHaveBeenCalledWith('/model-versions', {
+      params: { page: 1, pageSize: 10, warehouseId: 'warehouse-1', productId: 'product-1', isActive: true },
+    })
+  })
+
   it('lists a paginated forecast result page', async () => {
     const page = {
       data: [],
@@ -53,6 +63,16 @@ describe('forecasting api', () => {
     await expect(listForecastResultsPage({ page: 2, pageSize: 10 })).resolves.toEqual(page)
     expect(http.get).toHaveBeenCalledWith('/forecast-results', {
       params: { page: 2, pageSize: 10 },
+    })
+  })
+
+  it('sends forecast result warehouse and product filters', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: [] } })
+
+    await listForecastResultsPage({ warehouseId: 'warehouse-1', productId: 'product-1' })
+
+    expect(http.get).toHaveBeenCalledWith('/forecast-results', {
+      params: { page: 1, pageSize: 10, warehouseId: 'warehouse-1', productId: 'product-1' },
     })
   })
 

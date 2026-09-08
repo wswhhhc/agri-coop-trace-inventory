@@ -4,6 +4,7 @@ import type {
   ModelVersionSummary,
   TaskSummary,
 } from '@/types/resources'
+import { cleanQueryParams } from '@/composables/usePageData'
 
 import http from './http'
 
@@ -26,6 +27,9 @@ export interface ForecastTaskPayload {
 export interface ModelVersionListParams {
   page?: number
   pageSize?: number
+  warehouseId?: string
+  productId?: string
+  isActive?: boolean
 }
 
 export async function listForecastResults(): Promise<ForecastResultDetailSummary[]> {
@@ -36,13 +40,21 @@ export async function listForecastResults(): Promise<ForecastResultDetailSummary
 export interface ForecastResultListParams {
   page?: number
   pageSize?: number
+  warehouseId?: string
+  productId?: string
 }
 
 export async function listForecastResultsPage(
   options: ForecastResultListParams = {},
 ): Promise<ListResponse<ForecastResultDetailSummary>> {
+  const params = cleanQueryParams({
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? 10,
+    warehouseId: options.warehouseId,
+    productId: options.productId,
+  })
   const response = await http.get<ListResponse<ForecastResultDetailSummary>>('/forecast-results', {
-    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
+    params,
   })
   return response.data
 }
@@ -63,8 +75,15 @@ export async function listModelVersions(): Promise<ModelVersionSummary[]> {
 export async function listModelVersionsPage(
   options: ModelVersionListParams = {},
 ): Promise<ListResponse<ModelVersionSummary>> {
+  const params = cleanQueryParams({
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? 10,
+    warehouseId: options.warehouseId,
+    productId: options.productId,
+    isActive: options.isActive,
+  })
   const response = await http.get<ListResponse<ModelVersionSummary>>('/model-versions', {
-    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
+    params,
   })
   return response.data
 }

@@ -5,6 +5,7 @@ import {
   getAlert,
   getTask,
   listAlertRules,
+  listAlertsPage,
   submitAlertScanTask,
   updateAlert,
   updateAlertRule,
@@ -25,6 +26,36 @@ describe('alerts api', () => {
     await expect(listAlertRules()).resolves.toEqual([])
     expect(http.get).toHaveBeenCalledWith('/alert-rules', {
       params: { page: 1, pageSize: 100 },
+    })
+  })
+
+  it('sends alert instance filters', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { data: [] } })
+
+    await listAlertsPage({
+      type: 'LOW_STOCK',
+      severity: 'HIGH',
+      status: 'PENDING',
+      warehouseId: 'warehouse-1',
+      productId: 'product-1',
+      batchId: 'batch-1',
+      createdAfter: '2026-01-01T00:00:00+08:00',
+      createdBefore: '2026-01-31T23:59:59+08:00',
+    })
+
+    expect(http.get).toHaveBeenCalledWith('/alerts', {
+      params: {
+        page: 1,
+        pageSize: 10,
+        type: 'LOW_STOCK',
+        severity: 'HIGH',
+        status: 'PENDING',
+        warehouseId: 'warehouse-1',
+        productId: 'product-1',
+        batchId: 'batch-1',
+        createdAfter: '2026-01-01T00:00:00+08:00',
+        createdBefore: '2026-01-31T23:59:59+08:00',
+      },
     })
   })
 

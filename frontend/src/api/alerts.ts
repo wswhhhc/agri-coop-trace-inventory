@@ -5,6 +5,7 @@ import type {
   AlertSummary,
   TaskSummary,
 } from '@/types/resources'
+import { cleanQueryParams } from '@/composables/usePageData'
 
 import http from './http'
 
@@ -24,13 +25,33 @@ export interface AlertStatusUpdatePayload {
 export interface AlertListParams {
   page?: number
   pageSize?: number
+  type?: string
+  severity?: string
+  status?: string
+  warehouseId?: string
+  productId?: string
+  batchId?: string
+  createdAfter?: string
+  createdBefore?: string
 }
 
 export async function listAlertsPage(
   options: AlertListParams = {},
 ): Promise<ListResponse<AlertSummary>> {
+  const params = cleanQueryParams({
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? 10,
+    type: options.type,
+    severity: options.severity,
+    status: options.status,
+    warehouseId: options.warehouseId,
+    productId: options.productId,
+    batchId: options.batchId,
+    createdAfter: options.createdAfter,
+    createdBefore: options.createdBefore,
+  })
   const response = await http.get<ListResponse<AlertSummary>>('/alerts', {
-    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
+    params,
   })
   return response.data
 }
@@ -42,8 +63,12 @@ export async function listAlerts(options: AlertListParams = {}): Promise<AlertSu
 export async function listAlertRulesPage(
   options: AlertListParams = {},
 ): Promise<ListResponse<AlertRuleSummary>> {
+  const params = cleanQueryParams({
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? 10,
+  })
   const response = await http.get<ListResponse<AlertRuleSummary>>('/alert-rules', {
-    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
+    params,
   })
   return response.data
 }
