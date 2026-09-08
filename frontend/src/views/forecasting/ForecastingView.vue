@@ -7,7 +7,7 @@ import {
   getForecastingTask,
   getModelVersion,
   listForecastResultsPage,
-  listModelVersions,
+  listModelVersionsPage,
   submitForecastTask,
   submitModelTrainingTask,
 } from '@/api/forecasting'
@@ -19,7 +19,7 @@ import PageState from '@/components/common/PageState.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import TaskProgress from '@/components/common/TaskProgress.vue'
-import { useListPage, usePageData, usePaginatedList } from '@/composables/usePageData'
+import { usePageData, usePaginatedList } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import type {
   ForecastResultDetailSummary,
@@ -28,7 +28,7 @@ import type {
 } from '@/types/resources'
 import { getApiErrorMessage } from '@/utils/api-error'
 
-const { items, loading, error, loadData } = useListPage(listModelVersions)
+const modelVersionList = usePaginatedList(listModelVersionsPage)
 const forecastResultList = usePaginatedList(listForecastResultsPage)
 const authStore = useAuthStore()
 const canActivate = computed(
@@ -125,7 +125,7 @@ async function handleActivate(modelVersionId: string): Promise<void> {
   try {
     await activateModel(modelVersionId)
     successMessage.value = '模型激活成功。'
-    await loadData()
+    await modelVersionList.loadData()
     if (selectedModel.value?.id === modelVersionId) {
       selectedModel.value = await getModelVersion(modelVersionId)
     }
@@ -158,7 +158,7 @@ async function handleTrainingSubmit(): Promise<void> {
       await wait(1000)
       trainingTask.value = await getForecastingTask(trainingTask.value.id)
     }
-    await loadData()
+    await modelVersionList.loadData()
   } catch (reason) {
     trainingError.value = getApiErrorMessage(reason, '模型训练任务失败')
   } finally {
@@ -252,7 +252,12 @@ async function handleForecastSubmit(): Promise<void> {
     </form>
     <p v-if="actionError" role="alert">{{ actionError }}</p>
     <p v-if="successMessage" role="status">{{ successMessage }}</p>
-    <PageState :loading="loading" :error="error" :empty="items.length === 0" @retry="loadData">
+    <PageState
+      :loading="modelVersionList.loading"
+      :error="modelVersionList.error"
+      :empty="modelVersionList.items.length === 0"
+      @retry="modelVersionList.loadData"
+    >
       <table>
         <caption>模型版本列表</caption>
         <thead>
@@ -266,7 +271,7 @@ async function handleForecastSubmit(): Promise<void> {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="model in items" :key="model.id">
+          <tr v-for="model in modelVersionList.items" :key="model.id">
             <td>{{ model.version }}</td>
             <td>{{ model.modelType }}</td>
             <td>{{ model.trainingStartDate }} ～ {{ model.trainingEndDate }}</td>
@@ -287,6 +292,14 @@ async function handleForecastSubmit(): Promise<void> {
         </tbody>
       </table>
     </PageState>
+    <PaginationBar
+      :page="modelVersionList.pagination.page"
+      :total-pages="modelVersionList.pagination.totalPages"
+      :total-items="modelVersionList.pagination.totalItems"
+      :page-size="modelVersionList.pagination.pageSize"
+      @change="modelVersionList.goToPage"
+      @page-size-change="modelVersionList.setPageSize"
+    />
     <ModalShell
       :open="detailLoading || Boolean(detailError) || Boolean(selectedModel)"
       title="模型版本详情"

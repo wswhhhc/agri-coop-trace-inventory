@@ -23,6 +23,11 @@ export interface ForecastTaskPayload {
   modelVersionId?: string
 }
 
+export interface ModelVersionListParams {
+  page?: number
+  pageSize?: number
+}
+
 export async function listForecastResults(): Promise<ForecastResultDetailSummary[]> {
   const response = await listForecastResultsPage()
   return response.data.data
@@ -52,10 +57,16 @@ export async function getForecastResult(
 }
 
 export async function listModelVersions(): Promise<ModelVersionSummary[]> {
+  return (await listModelVersionsPage({ page: 1, pageSize: 100 })).data
+}
+
+export async function listModelVersionsPage(
+  options: ModelVersionListParams = {},
+): Promise<ListResponse<ModelVersionSummary>> {
   const response = await http.get<ListResponse<ModelVersionSummary>>('/model-versions', {
-    params: { page: 1, pageSize: 100 },
+    params: { page: options.page ?? 1, pageSize: options.pageSize ?? 10 },
   })
-  return response.data.data
+  return response.data
 }
 
 export async function getModelVersion(modelVersionId: string): Promise<ModelVersionSummary> {
