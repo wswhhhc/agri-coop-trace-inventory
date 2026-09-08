@@ -27,7 +27,12 @@ const emit = defineEmits<{
 const pagePickerOpen = ref(false)
 const activeEllipsis = ref<EllipsisToken | null>(null)
 const pagePickerPage = ref(1)
+const pagePickerInput = ref('')
 const pagePickerPageCount = computed(() => Math.ceil(props.totalPages / PAGE_PICKER_SIZE))
+const pagePickerInputPage = computed(() => {
+  const value = Number(pagePickerInput.value)
+  return Number.isInteger(value) && value >= 1 && value <= props.totalPages ? value : null
+})
 const pagePickerStart = computed(() => (pagePickerPage.value - 1) * PAGE_PICKER_SIZE + 1)
 const pagePickerEnd = computed(() =>
   Math.min(props.totalPages, pagePickerStart.value + PAGE_PICKER_SIZE - 1),
@@ -68,6 +73,7 @@ function togglePagePicker(token: EllipsisToken): void {
   }
 
   pagePickerPage.value = pickerPageFor(props.page)
+  pagePickerInput.value = String(props.page)
   activeEllipsis.value = token
   pagePickerOpen.value = true
 }
@@ -80,6 +86,11 @@ function closePagePicker(): void {
 function goToPage(page: number): void {
   closePagePicker()
   emit('change', page)
+}
+
+function jumpToInputPage(): void {
+  if (pagePickerInputPage.value === null) return
+  goToPage(pagePickerInputPage.value)
 }
 
 function handlePageSizeChange(event: Event): void {
@@ -166,6 +177,27 @@ watch(
                 下一组
               </button>
             </div>
+            <form class="pagination-bar__jump-form" aria-label="输入页码跳转" @submit.prevent="jumpToInputPage">
+              <label for="pagination-page-input">跳转到第</label>
+              <input
+                id="pagination-page-input"
+                v-model="pagePickerInput"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                :max="totalPages"
+                step="1"
+                aria-label="输入页码"
+              />
+              <span>页</span>
+              <button
+                type="submit"
+                :disabled="pagePickerInputPage === null"
+                aria-label="跳转到输入页码"
+              >
+                跳转
+              </button>
+            </form>
             <div class="pagination-bar__picker-grid pagination-bar__picker-grid--five-columns">
               <button
                 v-for="pageNumber in pagePickerNumbers"
@@ -239,7 +271,8 @@ watch(
 
 .pagination-bar__picker {
   position: absolute;
-  top: calc(100% + var(--space-2));
+  top: auto;
+  bottom: calc(100% + var(--space-2));
   z-index: 20;
   display: grid;
   gap: var(--space-3);
@@ -262,11 +295,11 @@ watch(
 .pagination-bar__picker::before {
   content: '';
   position: absolute;
-  top: -0.4rem;
+  bottom: -0.4rem;
   width: 0.75rem;
   height: 0.75rem;
-  border-top: 1px solid var(--color-border);
-  border-left: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
   background: var(--color-surface-raised);
   transform: rotate(45deg);
 }
@@ -286,6 +319,20 @@ watch(
   gap: var(--space-3);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+}
+
+.pagination-bar__jump-form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.pagination-bar__jump-form input {
+  width: 5rem;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
 }
 
 .pagination-bar__picker-grid {

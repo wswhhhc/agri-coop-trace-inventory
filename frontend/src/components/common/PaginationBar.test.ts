@@ -26,6 +26,17 @@ function click(element: Element | null): void {
   element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
 }
 
+function setInputValue(element: HTMLInputElement | null, value: string): void {
+  if (!element) throw new Error('找不到待输入元素')
+  element.value = value
+  element.dispatchEvent(new Event('input', { bubbles: true }))
+}
+
+function submit(element: Element | null): void {
+  if (!element) throw new Error('找不到待提交表单')
+  element.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+}
+
 describe('PaginationBar', () => {
   it('shows all page numbers when there are no more than five pages', () => {
     const { app, root } = mountPagination({
@@ -114,6 +125,28 @@ describe('PaginationBar', () => {
 
     click(ellipsis)
     await nextTick()
+    expect(root.querySelector('.pagination-bar__picker')).toBeNull()
+
+    app.unmount()
+  })
+
+  it('jumps to a valid page from the page input', async () => {
+    const { app, root, changes } = mountPagination({
+      page: 1,
+      totalPages: 99,
+      totalItems: 990,
+      pageSize: 10,
+    })
+
+    click(root.querySelector('.pagination-bar__ellipsis'))
+    await nextTick()
+    setInputValue(root.querySelector('[aria-label="输入页码"]'), '42')
+    await nextTick()
+
+    submit(root.querySelector('.pagination-bar__jump-form'))
+    await nextTick()
+
+    expect(changes.value).toEqual([42])
     expect(root.querySelector('.pagination-bar__picker')).toBeNull()
 
     app.unmount()
