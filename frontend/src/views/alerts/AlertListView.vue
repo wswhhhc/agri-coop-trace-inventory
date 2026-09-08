@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
+import { listBatchOptions } from '@/api/batches'
 import {
   getAlert,
   getTask,
@@ -11,16 +12,26 @@ import {
   updateAlertRule,
 } from '@/api/alerts'
 import type { AlertRuleUpdatePayload } from '@/api/alerts'
+import { listProductOptions } from '@/api/products'
+import { listWarehouses } from '@/api/warehouses'
 import PageState from '@/components/common/PageState.vue'
 import ModalShell from '@/components/common/ModalShell.vue'
 import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import TaskProgress from '@/components/common/TaskProgress.vue'
-import { usePaginatedList } from '@/composables/usePageData'
+import { usePageData, usePaginatedList } from '@/composables/usePageData'
 import type { AlertDetailSummary, TaskSummary } from '@/types/resources'
 import { useAuthStore } from '@/stores/auth'
 import { canManageAlertRules } from '@/utils/alerting-permission'
 import { getApiErrorMessage } from '@/utils/api-error'
+import {
+  formatAlertStatus,
+  formatAlertType,
+  formatDateTime,
+  formatEvidence,
+  formatSeverity,
+  formatTaskStatus,
+} from '@/utils/alerting-format'
 
 const authStore = useAuthStore()
 const canEditRules = computed(
@@ -28,6 +39,9 @@ const canEditRules = computed(
 )
 const ruleList = usePaginatedList(listAlertRulesPage)
 const alertList = usePaginatedList(listAlertsPage)
+const warehouseState = usePageData(listWarehouses, [])
+const productState = usePageData(() => listProductOptions({ pageSize: 100 }), [])
+const batchState = usePageData(() => listBatchOptions({ pageSize: 100 }), [])
 const canHandleAlerts = computed(() => authStore.hasPermission('alert:handle'))
 const editingRuleId = ref<string | null>(null)
 const submitting = ref(false)
@@ -53,6 +67,31 @@ const editForm = reactive({
   isEnabled: true,
 })
 const severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+
+const warehouseNameById = computed(
+  () => new Map(warehouseState.data.map((warehouse) => [warehouse.id, warehouse.name])),
+)
+const productNameById = computed(
+  () => new Map(productState.data.map((product) => [product.id, product.name])),
+)
+const batchNoById = computed(
+  () => new Map(batchState.data.map((batch) => [batch.id, batch.batchNo])),
+)
+
+function formatWarehouseName(id: string | null): string {
+  if (!id) return '全部仓库'
+  return warehouseNameById.value.get(id) ?? '未知仓库'
+}
+
+function formatProductName(id: string | null): string {
+  if (!id) return '全部产品'
+  return productNameById.value.get(id) ?? '未知产品'
+}
+
+function formatBatchNo(id: string | null): string {
+  if (!id) return '无关联批次'
+  return batchNoById.value.get(id) ?? '未知批次'
+}
 
 function severityTone(value: string): 'success' | 'warning' | 'danger' | 'info' {
   if (value === 'CRITICAL' || value === 'HIGH') return 'danger'
@@ -187,7 +226,7 @@ async function runAlertScan(): Promise<void> {
     <button v-if="canScan" type="button" :disabled="scanSubmitting" @click="runAlertScan">
       {{ scanSubmitting ? '扫描中…' : '立即扫描预警' }}
     </button>
-    <TaskProgress v-if="scanTask" label="预警扫描任务" :status="scanTask.status" :progress="scanTask.progress" />
+    <TaskProgress v-if="scanTask" label="预警扫描任务" :status="formatTaskStatus(scanTask.status)" :progress="scanTask.progress" />
     <p v-if="scanTask?.errorMessage" role="alert">{{ scanTask.errorMessage }}</p>
     <p v-if="scanError" role="alert">{{ scanError }}</p>
     <p v-if="formError" role="alert">{{ formError }}</p>
@@ -216,13 +255,13 @@ async function runAlertScan(): Promise<void> {
           </thead>
           <tbody>
             <tr v-for="rule in ruleList.items" :key="rule.id">
-              <td>{{ rule.alertType }}</td>
-              <td>{{ rule.warehouseId || '全局' }}</td>
-              <td>{{ rule.productId || '全局' }}</td>
+              <td>{{ formatAlertType(rule.alertType) }}</td>
+              <td>{{ formatWarehouseName(rule.warehouseId) }}</td>
+              <td>{{ formatProductName(rule.productId) }}</td>
               <td>{{ rule.thresholdQuantity ?? '—' }}</td>
               <td>{{ rule.thresholdDays ?? '—' }}</td>
               <td>{{ rule.turnoverDays ?? '—' }}</td>
-              <td><StatusBadge :label="rule.severity" :tone="severityTone(rule.severity)" /></td>
+              <td><StatusBadge :label="formatSeverity(rule.severity)" :tone="severityTone(rule.severity)" /></td>
               <td><StatusBadge :label="rule.isEnabled ? '启用' : '停用'" :tone="rule.isEnabled ? 'success' : 'neutral'" /></td>
               <td><button type="button" @click="beginEdit(rule)">编辑</button></td>
             </tr>
@@ -266,10 +305,10 @@ async function runAlertScan(): Promise<void> {
           <tbody>
             <tr v-for="alert in alertList.items" :key="alert.id">
               <td>{{ alert.title }}</td>
-              <td>{{ alert.alertType }}</td>
-              <td><StatusBadge :label="alert.severity" :tone="severityTone(alert.severity)" /></td>
-              <td><StatusBadge :label="alert.status" :tone="statusTone(alert.status)" /></td>
-              <td>{{ alert.detectedAt }}</td>
+              <td>{{ formatAlertType(alert.alertType) }}</td>
+              <td><StatusBadge :label="formatSeverity(alert.severity)" :tone="severityTone(alert.severity)" /></td>
+              <td><StatusBadge :label="formatAlertStatus(alert.status)" :tone="statusTone(alert.status)" /></td>
+              <td>{{ formatDateTime(alert.detectedAt) }}</td>
               <td><button type="button" @click="loadAlertDetail(alert.id)">查看详情</button></td>
             </tr>
           </tbody>
@@ -295,21 +334,31 @@ async function runAlertScan(): Promise<void> {
         <p v-else-if="alertDetailError" role="alert">{{ alertDetailError }}</p>
         <dl v-else-if="selectedAlert">
           <div><dt>标题</dt><dd>{{ selectedAlert.title }}</dd></div>
-          <div><dt>类型</dt><dd>{{ selectedAlert.alertType }}</dd></div>
-          <div><dt>级别</dt><dd><StatusBadge :label="selectedAlert.severity" :tone="severityTone(selectedAlert.severity)" /></dd></div>
-          <div><dt>状态</dt><dd><StatusBadge :label="selectedAlert.status" :tone="statusTone(selectedAlert.status)" /></dd></div>
+          <div><dt>类型</dt><dd>{{ formatAlertType(selectedAlert.alertType) }}</dd></div>
+          <div><dt>级别</dt><dd><StatusBadge :label="formatSeverity(selectedAlert.severity)" :tone="severityTone(selectedAlert.severity)" /></dd></div>
+          <div><dt>状态</dt><dd><StatusBadge :label="formatAlertStatus(selectedAlert.status)" :tone="statusTone(selectedAlert.status)" /></dd></div>
           <div><dt>说明</dt><dd>{{ selectedAlert.message }}</dd></div>
-          <div><dt>仓库</dt><dd>{{ selectedAlert.warehouseId || '—' }}</dd></div>
-          <div><dt>产品</dt><dd>{{ selectedAlert.productId || '—' }}</dd></div>
-          <div><dt>批次</dt><dd>{{ selectedAlert.batchId || '—' }}</dd></div>
-          <div><dt>证据</dt><dd><pre>{{ JSON.stringify(selectedAlert.evidence, null, 2) }}</pre></dd></div>
-          <div><dt>检测时间</dt><dd>{{ selectedAlert.detectedAt }}</dd></div>
+          <div><dt>仓库</dt><dd>{{ formatWarehouseName(selectedAlert.warehouseId) }}</dd></div>
+          <div><dt>产品</dt><dd>{{ formatProductName(selectedAlert.productId) }}</dd></div>
+          <div><dt>批次</dt><dd>{{ formatBatchNo(selectedAlert.batchId) }}</dd></div>
+          <div>
+            <dt>判断依据</dt>
+            <dd>
+              <ul v-if="formatEvidence(selectedAlert.evidence).length" class="alert-evidence-list">
+                <li v-for="item in formatEvidence(selectedAlert.evidence)" :key="item.label">
+                  {{ item.label }}：{{ item.value }}
+                </li>
+              </ul>
+              <span v-else>暂无可展示依据</span>
+            </dd>
+          </div>
+          <div><dt>检测时间</dt><dd>{{ formatDateTime(selectedAlert.detectedAt) }}</dd></div>
           <div v-if="selectedAlert.handlingLogs.length">
             <dt>处理记录</dt>
             <dd>
               <ul>
                 <li v-for="log in selectedAlert.handlingLogs" :key="log.id">
-                  {{ log.fromStatus }} → {{ log.toStatus }}：{{ log.comment || '—' }}（{{ log.createdAt }}）
+                  {{ formatAlertStatus(log.fromStatus) }} → {{ formatAlertStatus(log.toStatus) }}：{{ log.comment || '—' }}（{{ formatDateTime(log.createdAt) }}）
                 </li>
               </ul>
             </dd>
@@ -320,7 +369,7 @@ async function runAlertScan(): Promise<void> {
           <label>
             目标状态
             <select v-model="handlingForm.status">
-              <option v-for="status in alertStatuses" :key="status" :value="status">{{ status }}</option>
+              <option v-for="status in alertStatuses" :key="status" :value="status">{{ formatAlertStatus(status) }}</option>
             </select>
           </label>
           <label>
@@ -354,7 +403,7 @@ async function runAlertScan(): Promise<void> {
         <label>
           级别
           <select v-model="editForm.severity">
-            <option v-for="severity in severities" :key="severity" :value="severity">{{ severity }}</option>
+            <option v-for="severity in severities" :key="severity" :value="severity">{{ formatSeverity(severity) }}</option>
           </select>
         </label>
         <label>
