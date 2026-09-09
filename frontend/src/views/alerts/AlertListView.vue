@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 
 import { listBatchOptions } from '@/api/batches'
 import {
@@ -39,7 +39,14 @@ const authStore = useAuthStore()
 const canEditRules = computed(
   () => canManageAlertRules(authStore.role, authStore.permissions),
 )
-const ruleList = usePaginatedList(listAlertRulesPage)
+const ruleList = usePaginatedList(listAlertRulesPage, 10, { autoLoad: false })
+watch(
+  canEditRules,
+  (canManage) => {
+    if (canManage) void ruleList.loadData(1, 10)
+  },
+  { immediate: true },
+)
 type AlertFilterState = Pick<
   AlertListParams,
   'type' | 'severity' | 'status' | 'warehouseId' | 'productId' | 'batchId' | 'createdAfter' | 'createdBefore'
@@ -346,7 +353,7 @@ async function runAlertScan(): Promise<void> {
       />
     </section>
     <p v-else class="permission-hint" role="status">
-      当前账号可查看和处理预警实例，暂无预警规则管理权限。
+      当前账号暂无预警规则管理权限。
     </p>
 
     <section class="alert-instance-list">

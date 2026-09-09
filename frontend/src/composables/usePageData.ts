@@ -25,6 +25,10 @@ export interface PaginatedListState<T> {
   setPageSize: (pageSize: number) => Promise<void>
 }
 
+export interface PaginatedListOptions {
+  autoLoad?: boolean
+}
+
 export type QueryParamValue = string | number | boolean | null | undefined
 
 export interface FilteredPaginatedListState<
@@ -92,6 +96,7 @@ export function useListPage<T>(loader: () => Promise<T[]>) {
 export function usePaginatedList<T>(
   loader: (params: PaginationQuery) => Promise<ListResponse<T>>,
   initialPageSize = 10,
+  options: PaginatedListOptions = {},
 ): PaginatedListState<T> {
   const items = ref<T[]>([])
   const pagination = ref<PaginationMeta>({
@@ -135,7 +140,9 @@ export function usePaginatedList<T>(
     await loadData(1, pageSize)
   }
 
-  onMounted(() => void loadData(1, initialPageSize))
+  if (options.autoLoad ?? true) {
+    onMounted(() => void loadData(1, initialPageSize))
+  }
 
   return reactive({ items, pagination, loading, error, loadData, goToPage, setPageSize }) as PaginatedListState<T>
 }

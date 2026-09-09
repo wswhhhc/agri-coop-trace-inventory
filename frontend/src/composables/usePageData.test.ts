@@ -96,6 +96,31 @@ describe('usePageData', () => {
     app.unmount()
   })
 
+  it('can defer the initial load for permission-gated lists', async () => {
+    const loader = vi.fn().mockResolvedValue({
+      data: [{ id: 'rule-1' }],
+      pagination: { page: 1, pageSize: 10, totalItems: 1, totalPages: 1 },
+    })
+    let state: ReturnType<typeof usePaginatedList> | undefined
+    const app = createApp(
+      defineComponent({
+        setup() {
+          state = usePaginatedList(loader, 10, { autoLoad: false })
+          return () => h('div')
+        },
+      }),
+    )
+
+    app.mount(document.createElement('div'))
+    await Promise.resolve()
+    expect(loader).not.toHaveBeenCalled()
+
+    await state?.loadData()
+    expect(loader).toHaveBeenCalledWith({ page: 1, pageSize: 10 })
+
+    app.unmount()
+  })
+
   it('loads filtered pages from page one and resets the shared filters', async () => {
     const loader = vi.fn().mockResolvedValue({
       data: [{ id: 'product-1' }],
