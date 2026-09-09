@@ -20,7 +20,7 @@ import SelectField, { type SelectFieldOption } from '@/components/common/SelectF
 import { useFilteredPaginatedList, usePageData } from '@/composables/usePageData'
 import { useAuthStore } from '@/stores/auth'
 import { getApiErrorMessage } from '@/utils/api-error'
-import { formatUserStatus } from '@/utils/user-format'
+import { formatUserRole, formatUserStatus } from '@/utils/user-format'
 
 type UserFilterState = Pick<UserListParams, 'keyword' | 'role' | 'status'> & {
   keyword: string
@@ -47,7 +47,7 @@ const availableRoles = computed(() =>
 )
 const filterRoleOptions = computed<SelectFieldOption[]>(() => [
   { value: '', label: '全部角色' },
-  ...availableRoles.value.map((role) => ({ value: role, label: role })),
+  ...availableRoles.value.map((role) => ({ value: role, label: formatUserRole(role) })),
 ])
 const userStatusOptions: SelectFieldOption[] = [
   { value: '', label: '全部状态' },
@@ -267,7 +267,7 @@ async function handleResetPassword(): Promise<void> {
       <label>
         角色
         <select v-model="form.role">
-          <option v-for="role in availableRoles" :key="role" :value="role">{{ role }}</option>
+          <option v-for="role in availableRoles" :key="role" :value="role">{{ formatUserRole(role) }}</option>
         </select>
       </label>
       <label v-if="showCooperativeSelector">
@@ -304,7 +304,7 @@ async function handleResetPassword(): Promise<void> {
       <label>
         角色
         <select v-model="editForm.role">
-          <option v-for="role in availableRoles" :key="role" :value="role">{{ role }}</option>
+          <option v-for="role in availableRoles" :key="role" :value="role">{{ formatUserRole(role) }}</option>
         </select>
       </label>
       <label>
@@ -372,7 +372,7 @@ async function handleResetPassword(): Promise<void> {
           <tr v-for="user in userList.items" :key="user.id">
             <td>{{ user.username }}</td>
             <td>{{ user.displayName }}</td>
-            <td>{{ user.role }}</td>
+            <td>{{ formatUserRole(user.role) }}</td>
             <td>{{ user.phone || '—' }}</td>
             <td><StatusBadge :label="formatUserStatus(user.status)" :tone="user.status === 'ACTIVE' ? 'success' : user.status === 'LOCKED' ? 'danger' : 'neutral'" /></td>
             <td v-if="canManage">
