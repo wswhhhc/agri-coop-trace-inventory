@@ -3,6 +3,7 @@ import { computed, reactive, ref } from 'vue'
 
 import FilterBar from '@/components/common/FilterBar.vue'
 import { listCooperatives } from '@/api/cooperatives'
+import { listUsers } from '@/api/users'
 import {
   createWarehouse,
   listWarehousesPage,
@@ -44,12 +45,17 @@ const cooperativeState = usePageData(
   () => (showCooperativeSelector.value ? listCooperatives() : Promise.resolve([])),
   [],
 )
+const warehouseStaffState = usePageData(
+  () => listUsers({ pageSize: 100, role: 'WAREHOUSE_STAFF', status: 'ACTIVE' }),
+  [],
+)
 const showCreateModal = ref(false)
 const submitting = ref(false)
 const updating = ref(false)
 const formError = ref('')
 const successMessage = ref('')
 const editingWarehouseId = ref<string | null>(null)
+const editingWarehouseCooperativeId = ref<string | null>(null)
 const form = reactive({
   cooperativeId: '',
   name: '',
@@ -66,6 +72,25 @@ const editForm = reactive<{
   address: '',
   managerName: '',
   status: 'ACTIVE',
+})
+
+const managerOptions = computed<SelectFieldOption[]>(() => {
+  const cooperativeId = showCooperativeSelector.value
+    ? editingWarehouseId.value
+      ? editingWarehouseCooperativeId.value
+      : form.cooperativeId
+    : null
+  const options = warehouseStaffState.data
+    .filter((user) => !cooperativeId || user.cooperativeId === cooperativeId)
+    .map((user) => ({
+      value: user.displayName,
+      label: `${user.displayName}（${user.username}）`,
+    }))
+  const currentManager = editingWarehouseId.value ? editForm.managerName : ''
+  if (currentManager && !options.some((option) => option.value === currentManager)) {
+    options.unshift({ value: currentManager, label: `${currentManager}（当前负责人）` })
+  }
+  return options
 })
 
 function resetForm(): void {
@@ -112,6 +137,7 @@ async function handleSubmit(): Promise<void> {
 
 function beginEdit(warehouse: (typeof warehouseList.items)[number]): void {
   editingWarehouseId.value = warehouse.id
+  editingWarehouseCooperativeId.value = warehouse.cooperativeId
   editForm.name = warehouse.name
   editForm.address = warehouse.address ?? ''
   editForm.managerName = warehouse.managerName ?? ''
@@ -122,6 +148,7 @@ function beginEdit(warehouse: (typeof warehouseList.items)[number]): void {
 
 function cancelEdit(): void {
   editingWarehouseId.value = null
+  editingWarehouseCooperativeId.value = null
   formError.value = ''
 }
 
@@ -193,7 +220,13 @@ async function handleUpdate(): Promise<void> {
       </label>
       <label>
         负责人
-        <input v-model="form.managerName" name="managerName" maxlength="50" />
+        <SelectField
+          v-model="form.managerName"
+          name="managerName"
+          :options="managerOptions"
+          :disabled="warehouseStaffState.loading"
+          placeholder="请选择已有仓库工作人员"
+        />
       </label>
     </CreateFormModal>
 
@@ -209,7 +242,13 @@ async function handleUpdate(): Promise<void> {
       </label>
       <label>
         负责人
-        <input v-model="editForm.managerName" name="edit-manager" maxlength="50" />
+        <SelectField
+          v-model="editForm.managerName"
+          name="edit-manager"
+          :options="managerOptions"
+          :disabled="warehouseStaffState.loading"
+          placeholder="请选择已有仓库工作人员"
+        />
       </label>
       <label>
         状态
