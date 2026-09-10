@@ -170,6 +170,19 @@ class Settings(DatabaseSettings):
     public_qr_rate_limit_per_minute: int = Field(default=120, ge=1)
     ai_task_rate_limit_per_minute: int = Field(default=5, ge=1)
 
+    # 自然语言查询助手
+    ai_api_key: SecretStr | None = None
+    ai_base_url: str | None = None
+    ai_model: str = Field(default="gpt-4o-mini", min_length=1, max_length=100)
+    ai_timeout_seconds: int = Field(default=60, ge=5, le=300)
+
+    @field_validator("ai_api_key", "ai_base_url", mode="before")
+    @classmethod
+    def convert_blank_ai_settings_to_none(cls, value: Any) -> Any:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
     # 文件存储
     file_storage_backend: Literal["local", "s3"] = "local"
     file_storage_dir: str = "storage/uploads"

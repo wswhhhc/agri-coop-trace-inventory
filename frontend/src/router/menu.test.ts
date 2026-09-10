@@ -38,4 +38,11 @@ describe('menu configuration', () => {
 
     expect(publicMenu.map((item) => item.path)).not.toContain('/dashboard')
   })
+
+  it('exposes smart query to all authenticated roles', () => {
+    expect(menuItems.find((item) => item.path === '/assistant')).toMatchObject({
+      title: '智能查询',
+      roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
+    })
+  })
 })
