@@ -11,15 +11,15 @@ export interface MenuItem {
 
 export const menuItems: MenuItem[] = [
   {
-    title: '智能查询',
-    path: '/assistant',
-    roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
-  },
-  {
     title: '首页',
     path: '/dashboard',
     roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
     permissions: ['inventory:read'],
+  },
+  {
+    title: '智能查询',
+    path: '/assistant',
+    roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
   },
   {
     title: '合作社管理',
