@@ -3,6 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { filterMenuItems, menuItems } from './menu'
 
 describe('menu configuration', () => {
+  it('places the homepage first and smart query immediately after it', () => {
+    expect(menuItems.slice(0, 2).map((item) => item.path)).toEqual(['/dashboard', '/assistant'])
+  })
+
   it('filters platform and business entries by role and permissions', () => {
     const cooperativeAdminMenu = filterMenuItems(menuItems, {
       role: 'COOPERATIVE_ADMIN',
@@ -37,5 +41,12 @@ describe('menu configuration', () => {
     })
 
     expect(publicMenu.map((item) => item.path)).not.toContain('/dashboard')
+  })
+
+  it('exposes smart query to all authenticated roles', () => {
+    expect(menuItems.find((item) => item.path === '/assistant')).toMatchObject({
+      title: '智能查询',
+      roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
+    })
   })
 })

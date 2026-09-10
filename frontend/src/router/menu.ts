@@ -17,6 +17,11 @@ export const menuItems: MenuItem[] = [
     permissions: ['inventory:read'],
   },
   {
+    title: '智能查询',
+    path: '/assistant',
+    roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
+  },
+  {
     title: '合作社管理',
     path: '/cooperatives',
     roles: ['SYSTEM_ADMIN'],

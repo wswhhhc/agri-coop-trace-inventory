@@ -27,6 +27,16 @@ const router = createRouter({
       redirect: { name: 'dashboard' },
       children: [
         {
+          path: 'assistant',
+          name: 'assistant',
+          component: () => import('@/views/assistant/AssistantView.vue'),
+          meta: {
+            requiresAuth: true,
+            title: '智能查询',
+            roles: ['SYSTEM_ADMIN', 'COOPERATIVE_ADMIN', 'WAREHOUSE_STAFF'],
+          },
+        },
+        {
           path: 'dashboard',
           name: 'dashboard',
           component: () => import('@/views/dashboard/DashboardView.vue'),

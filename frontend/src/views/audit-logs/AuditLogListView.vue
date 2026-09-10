@@ -11,7 +11,7 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useFilteredPaginatedList, usePageData } from '@/composables/usePageData'
 import type { AuditLogSummary } from '@/types/resources'
 import { getApiErrorMessage } from '@/utils/api-error'
-import { formatAuditResult } from '@/utils/audit-format'
+import { formatAuditDateTime, formatAuditResult } from '@/utils/audit-format'
 
 type AuditLogFilterState = Pick<
   AuditLogListParams,
@@ -113,7 +113,7 @@ async function loadDetail(auditLogId: string): Promise<void> {
         <thead><tr><th scope="col">时间</th><th scope="col">操作</th><th scope="col">模块</th><th scope="col">资源</th><th scope="col">结果</th><th scope="col">操作</th></tr></thead>
         <tbody>
           <tr v-for="item in auditLogList.items" :key="item.id">
-            <td>{{ item.createdAt }}</td>
+            <td>{{ formatAuditDateTime(item.createdAt) }}</td>
             <td>{{ item.action }}</td>
             <td>{{ item.module }}</td>
             <td>{{ item.resourceType }} / {{ item.resourceId || '—' }}</td>

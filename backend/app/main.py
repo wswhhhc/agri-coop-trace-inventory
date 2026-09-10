@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.alerting import router as alerting_router
+from app.api.assistant import router as assistant_router
 from app.api.audit_logs import router as audit_logs_router
 from app.api.auth import router as auth_router
 from app.api.batches import router as batches_router
@@ -92,6 +93,7 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
     application.include_router(batches_router, prefix=app_settings.api_v1_prefix)
     application.include_router(inventory_router, prefix=app_settings.api_v1_prefix)
     application.include_router(alerting_router, prefix=app_settings.api_v1_prefix)
+    application.include_router(assistant_router, prefix=app_settings.api_v1_prefix)
     application.include_router(files_router, prefix=app_settings.api_v1_prefix)
     application.include_router(forecasting_router, prefix=app_settings.api_v1_prefix)
     application.include_router(
