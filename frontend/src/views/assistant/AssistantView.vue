@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue'
+import { nextTick, reactive, ref } from 'vue'
 
 import { streamAssistantQuery, type AssistantStreamEvent } from '@/api/assistant'
 
@@ -31,12 +31,13 @@ async function scrollToLatest(): Promise<void> {
   messageList.value?.scrollTo({ top: messageList.value.scrollHeight, behavior: 'smooth' })
 }
 
-function handleEvent(event: AssistantStreamEvent, assistantMessage: Message): void {
+async function handleEvent(event: AssistantStreamEvent, assistantMessage: Message): Promise<void> {
   if (event.event === 'start') {
     maxTurns.value = event.maxTurns
   } else if (event.event === 'token') {
     assistantMessage.content += event.content
-    void scrollToLatest()
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
+    await scrollToLatest()
   } else if (event.event === 'result') {
     assistantMessage.resultCount = event.totalItems
   } else if (event.event === 'done') {
@@ -54,7 +55,11 @@ async function submit(): Promise<void> {
   draft.value = ''
   error.value = ''
   const userMessage: Message = { id: nextMessageId++, role: 'user', content: message }
-  const assistantMessage: Message = { id: nextMessageId++, role: 'assistant', content: '' }
+  const assistantMessage = reactive<Message>({
+    id: nextMessageId++,
+    role: 'assistant',
+    content: '',
+  })
   messages.value.push(userMessage, assistantMessage)
   loading.value = true
   await scrollToLatest()

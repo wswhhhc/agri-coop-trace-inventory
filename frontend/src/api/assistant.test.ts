@@ -47,4 +47,38 @@ describe('assistant api', () => {
       ),
     ).rejects.toThrow('登录状态已失效')
   })
+
+  it('waits for asynchronous event handlers before processing the next event', async () => {
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          new TextEncoder().encode(
+            'event: start\ndata: {"conversationId":"c1","maxTurns":3}\n\n' +
+              'event: token\ndata: {"content":"查询"}\n\n',
+          ),
+        )
+        controller.close()
+      },
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body }))
+    const events: string[] = []
+    let releaseStart!: () => void
+    const startReleased = new Promise<void>((resolve) => {
+      releaseStart = resolve
+    })
+
+    const streamPromise = streamAssistantQuery(
+      { message: '查询库存', conversationId: 'c1' },
+      async (event) => {
+        events.push(event.event)
+        if (event.event === 'start') await startReleased
+      },
+    )
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(events).toEqual(['start'])
+    releaseStart()
+    await streamPromise
+    expect(events).toEqual(['start', 'token'])
+  })
 })

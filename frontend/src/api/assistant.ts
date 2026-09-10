@@ -12,7 +12,7 @@ export type AssistantStreamEvent =
   | { event: 'done'; conversationId: string; turnsUsed: number; maxTurns: number }
   | { event: 'error'; code: string; message: string }
 
-type EventHandler = (event: AssistantStreamEvent) => void
+type EventHandler = (event: AssistantStreamEvent) => void | Promise<void>
 
 function parseEvent(block: string): AssistantStreamEvent | null {
   const lines = block.split(/\r?\n/)
@@ -90,10 +90,10 @@ export async function streamAssistantQuery(
     buffer = blocks.pop() ?? ''
     for (const block of blocks) {
       const event = parseEvent(block)
-      if (event) onEvent(event)
+      if (event) await onEvent(event)
     }
     if (done) break
   }
   const finalEvent = parseEvent(buffer)
-  if (finalEvent) onEvent(finalEvent)
+  if (finalEvent) await onEvent(finalEvent)
 }
