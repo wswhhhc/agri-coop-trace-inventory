@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit.context import AuditContext
 from app.core.audit.service import AuditEvent, AuditLogService
+from app.core.auth.context import AuthContext
 from app.core.auth.rate_limit import LoginRateLimiter, RateLimitExceeded
 from app.core.auth.session import (
     CreatedSession,
@@ -267,6 +268,49 @@ class AuthenticationService:
         """在一个退出业务用例事务中撤销刷新令牌。"""
         async with transaction_scope(self.session):
             await self._logout(refresh_token, audit_context)
+
+    async def change_password(
+        self,
+        context: AuthContext,
+        current_password: str,
+        new_password: str,
+        audit_context: AuditContext | None = None,
+    ) -> None:
+        """修改当前用户密码，并立即撤销当前认证会话。"""
+        async with transaction_scope(self.session):
+            user = await self.user_repository.get_by_id(context.user_id)
+            if user is None:
+                raise _authentication_required()
+            if not verify_password(current_password, user.password_hash):
+                await self._record_auth_event(
+                    context=audit_context,
+                    action="CHANGE_PASSWORD",
+                    object_type="USER",
+                    result="FAILURE",
+                    user_id=user.id,
+                    cooperative_id=user.cooperative_id,
+                    object_id=user.id,
+                    detail={"reason": "invalid_current_password"},
+                )
+                raise _invalid_credentials()
+
+            await self.user_repository.update(
+                user,
+                {"password_hash": hash_password(new_password)},
+            )
+            try:
+                await self.session_store.revoke(context.session_id)
+            except RedisError as exc:
+                raise _dependency_unavailable() from exc
+            await self._record_auth_event(
+                context=audit_context,
+                action="CHANGE_PASSWORD",
+                object_type="USER",
+                result="SUCCESS",
+                user_id=user.id,
+                cooperative_id=user.cooperative_id,
+                object_id=user.id,
+            )
 
     async def _logout(
         self,

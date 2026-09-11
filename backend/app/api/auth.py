@@ -25,6 +25,7 @@ from app.schemas.auth import (
     AuthTokenData,
     AuthTokenResponse,
     AuthUser,
+    ChangePasswordRequest,
     CurrentUserData,
     LoginRequest,
 )
@@ -100,6 +101,29 @@ async def logout(
 ) -> Response:
     refresh_token = request.cookies.get(service.settings.refresh_token_cookie_name)
     await service.logout(refresh_token, AuditContext.from_request(request))
+    response.delete_cookie(
+        key=service.settings.refresh_token_cookie_name,
+        path=service.settings.refresh_token_cookie_path,
+        domain=service.settings.refresh_token_cookie_domain,
+    )
+    response.status_code = 204
+    return response
+
+
+@router.post("/password", status_code=204)
+async def change_password(
+    payload: ChangePasswordRequest,
+    request: Request,
+    response: Response,
+    context: CurrentAuthContext,
+    service: Annotated[AuthenticationService, Depends(get_authentication_service)],
+) -> Response:
+    await service.change_password(
+        context,
+        payload.current_password,
+        payload.new_password,
+        AuditContext.from_request(request),
+    )
     response.delete_cookie(
         key=service.settings.refresh_token_cookie_name,
         path=service.settings.refresh_token_cookie_path,

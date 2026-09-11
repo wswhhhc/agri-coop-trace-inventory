@@ -5,10 +5,11 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from app.core.auth.context import AuthContext
 from app.core.auth.flows import AuthenticationService
 from app.core.auth.session import AuthSession, CreatedSession
 from app.core.exceptions import AppException
-from app.core.security import hash_password
+from app.core.security import hash_password, verify_password
 
 SECRET_KEY = "unit-test-secret-with-at-least-32-bytes"
 
@@ -49,9 +50,18 @@ class _FakeUserRepository:
     async def get_by_username_with_access(self, _username: str):
         return self.user
 
+    async def get_by_id(self, _user_id):
+        return self.user
+
+    async def update(self, user, values):
+        for field, value in values.items():
+            setattr(user, field, value)
+        return user
+
 
 class _FakeSessionStore:
     def __init__(self) -> None:
+        self.revoked: list[str] = []
         self.created = CreatedSession(
             session=AuthSession(
                 session_id="00000000-0000-0000-0000-000000000001",
@@ -67,6 +77,9 @@ class _FakeSessionStore:
 
     async def create(self, _user_id):
         return self.created
+
+    async def revoke(self, session_id: str) -> None:
+        self.revoked.append(session_id)
 
 
 class _FakeTransaction:
@@ -156,3 +169,63 @@ async def test_locked_user_cannot_login() -> None:
 
     assert error.value.code == "ACCOUNT_LOCKED"
     assert error.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_change_password_updates_hash_and_revokes_current_session() -> None:
+    user = _user(password="old-password")
+    session_store = _FakeSessionStore()
+    audit_service = _FakeAuditLogService()
+    service = AuthenticationService(
+        _FakeSession(),
+        _settings(),
+        session_store,
+        audit_log_service=audit_service,
+    )
+    service.user_repository = _FakeUserRepository(user)
+    context = AuthContext(
+        user_id=user.id,
+        username=user.username,
+        real_name=user.real_name,
+        role_code=user.role.code,
+        permission_codes=frozenset(),
+        cooperative_id=user.cooperative_id,
+        warehouse_ids=frozenset(),
+        session_id="current-session",
+        token_id="current-token",
+    )
+
+    await service.change_password(context, "old-password", "new-password-123")
+
+    assert verify_password("new-password-123", user.password_hash)
+    assert not verify_password("old-password", user.password_hash)
+    assert session_store.revoked == ["current-session"]
+    assert audit_service.events[-1].action == "CHANGE_PASSWORD"
+    assert audit_service.events[-1].result == "SUCCESS"
+    assert audit_service.events[-1].detail == {}
+
+
+@pytest.mark.asyncio
+async def test_change_password_rejects_wrong_current_password_without_mutation() -> None:
+    user = _user(password="old-password")
+    session_store = _FakeSessionStore()
+    service = AuthenticationService(_FakeSession(), _settings(), session_store)
+    service.user_repository = _FakeUserRepository(user)
+    context = AuthContext(
+        user_id=user.id,
+        username=user.username,
+        real_name=user.real_name,
+        role_code=user.role.code,
+        permission_codes=frozenset(),
+        cooperative_id=user.cooperative_id,
+        warehouse_ids=frozenset(),
+        session_id="current-session",
+        token_id="current-token",
+    )
+
+    with pytest.raises(AppException) as error:
+        await service.change_password(context, "wrong-password", "new-password-123")
+
+    assert error.value.code == "INVALID_CREDENTIALS"
+    assert verify_password("old-password", user.password_hash)
+    assert session_store.revoked == []

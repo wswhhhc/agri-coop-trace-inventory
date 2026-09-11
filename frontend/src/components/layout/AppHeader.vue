@@ -1,12 +1,24 @@
 <script setup lang="ts">
+import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { changePassword } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
+import { getApiErrorMessage } from '@/utils/api-error'
+import ModalShell from '@/components/common/ModalShell.vue'
 import ThemeSwitcher from '@/components/common/ThemeSwitcher.vue'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const showChangePassword = ref(false)
+const changingPassword = ref(false)
+const changePasswordError = ref('')
+const changePasswordForm = reactive({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+})
 
 const emit = defineEmits<{
   toggleSidebar: []
@@ -20,6 +32,48 @@ async function handleLogout(): Promise<void> {
   } finally {
     await router.replace({ name: 'login' })
   }
+}
+
+function resetChangePasswordForm(): void {
+  changePasswordForm.currentPassword = ''
+  changePasswordForm.newPassword = ''
+  changePasswordForm.confirmPassword = ''
+  changePasswordError.value = ''
+}
+
+function openChangePassword(): void {
+  resetChangePasswordForm()
+  showChangePassword.value = true
+}
+
+function closeChangePassword(): void {
+  if (changingPassword.value) return
+  showChangePassword.value = false
+  changePasswordError.value = ''
+}
+
+async function handleChangePassword(): Promise<void> {
+  if (changePasswordForm.newPassword !== changePasswordForm.confirmPassword) {
+    changePasswordError.value = '两次输入的新密码不一致。'
+    return
+  }
+  changingPassword.value = true
+  changePasswordError.value = ''
+  try {
+    await changePassword({
+      currentPassword: changePasswordForm.currentPassword,
+      newPassword: changePasswordForm.newPassword,
+    })
+  } catch (reason) {
+    changePasswordError.value = getApiErrorMessage(reason)
+    return
+  } finally {
+    changingPassword.value = false
+  }
+
+  showChangePassword.value = false
+  await authStore.logout().catch(() => undefined)
+  await router.replace({ name: 'login' })
 }
 </script>
 
@@ -47,8 +101,61 @@ async function handleLogout(): Promise<void> {
     </div>
     <div class="app-header__actions">
       <ThemeSwitcher />
+      <button class="app-header__change-password" type="button" @click="openChangePassword">修改密码</button>
       <button class="app-header__logout" type="button" @click="handleLogout">退出登录</button>
     </div>
+
+    <ModalShell :open="showChangePassword" title="修改密码" @close="closeChangePassword">
+      <form class="change-password-form" @submit.prevent="handleChangePassword">
+        <p class="change-password-form__hint">修改成功后需要重新登录。</p>
+        <label>
+          当前密码
+          <input
+            v-model="changePasswordForm.currentPassword"
+            type="password"
+            name="currentPassword"
+            autocomplete="current-password"
+            required
+            maxlength="128"
+          />
+        </label>
+        <label>
+          新密码
+          <input
+            v-model="changePasswordForm.newPassword"
+            type="password"
+            name="newPassword"
+            autocomplete="new-password"
+            required
+            minlength="8"
+            maxlength="128"
+          />
+        </label>
+        <label>
+          确认新密码
+          <input
+            v-model="changePasswordForm.confirmPassword"
+            type="password"
+            name="confirmPassword"
+            autocomplete="new-password"
+            required
+            minlength="8"
+            maxlength="128"
+          />
+        </label>
+        <p v-if="changePasswordError" class="change-password-form__error" role="alert">
+          {{ changePasswordError }}
+        </p>
+        <div class="change-password-form__actions">
+          <button type="button" class="change-password-form__cancel" :disabled="changingPassword" @click="closeChangePassword">
+            取消
+          </button>
+          <button type="submit" :disabled="changingPassword">
+            {{ changingPassword ? '提交中…' : '确认修改' }}
+          </button>
+        </div>
+      </form>
+    </ModalShell>
   </header>
 </template>
 
@@ -149,15 +256,54 @@ async function handleLogout(): Promise<void> {
   gap: var(--space-3);
 }
 
+.app-header__change-password,
 .app-header__logout {
   border-color: var(--color-border-strong);
   background: transparent;
   color: var(--color-text-secondary);
 }
 
+.app-header__change-password:hover:not(:disabled),
 .app-header__logout:hover:not(:disabled) {
   background: var(--color-surface-muted);
   color: var(--color-brand);
+}
+
+.change-password-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.change-password-form__hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.change-password-form label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.change-password-form__error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.change-password-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.change-password-form__cancel {
+  border-color: var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text-secondary);
 }
 
 @media (max-width: 64rem) {

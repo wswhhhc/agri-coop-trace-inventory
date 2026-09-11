@@ -159,6 +159,43 @@ async def test_logout_clears_cookie_and_invalidates_session(auth_api):
 
 
 @pytest.mark.asyncio
+async def test_change_password_updates_credentials_and_invalidates_current_session(auth_api):
+    login = await auth_api.post(
+        "/api/v1/auth/login",
+        json={"username": "coop_admin", "password": "correct-password"},
+    )
+    access_token = login.json()["data"]["accessToken"]
+    refresh_cookie = auth_api.cookies.get("refresh_token")
+
+    changed = await auth_api.post(
+        "/api/v1/auth/password",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={"currentPassword": "correct-password", "newPassword": "new-password-123"},
+    )
+
+    assert changed.status_code == 204
+    assert "Max-Age=0" in changed.headers["set-cookie"]
+
+    old_refresh = await auth_api.post(
+        "/api/v1/auth/refresh",
+        headers={"Cookie": f"refresh_token={refresh_cookie}"},
+    )
+    assert old_refresh.status_code == 401
+
+    old_login = await auth_api.post(
+        "/api/v1/auth/login",
+        json={"username": "coop_admin", "password": "correct-password"},
+    )
+    assert old_login.status_code == 401
+
+    new_login = await auth_api.post(
+        "/api/v1/auth/login",
+        json={"username": "coop_admin", "password": "new-password-123"},
+    )
+    assert new_login.status_code == 200
+
+
+@pytest.mark.asyncio
 async def test_unknown_username_and_wrong_password_have_same_error(auth_api):
     unknown = await auth_api.post(
         "/api/v1/auth/login",

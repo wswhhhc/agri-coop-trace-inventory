@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from app.schemas.auth import ChangePasswordRequest
 from app.schemas.common import (
     ApiResponse,
     ErrorResponse,
@@ -43,6 +44,20 @@ def test_resource_schema_reads_orm_attributes_and_aliases() -> None:
     )
 
     assert resource.id == resource_id
+
+
+def test_change_password_request_uses_camel_case_and_requires_eight_character_new_password() -> None:
+    request = ChangePasswordRequest.model_validate(
+        {"currentPassword": "old-password", "newPassword": "new-pass-123"}
+    )
+
+    assert request.current_password == "old-password"
+    assert request.new_password == "new-pass-123"
+
+    with pytest.raises(ValidationError):
+        ChangePasswordRequest.model_validate(
+            {"currentPassword": "old-password", "newPassword": "short"}
+        )
 
 
 def test_page_params_use_contract_defaults_and_validate_bounds() -> None:
